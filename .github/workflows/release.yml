@@ -1,0 +1,115 @@
+name: Build Installer & Deploy Docs
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # ----------------------------------------------------------------------
+  # 1. Build Windows Executable & Inno Setup Installer
+  # ----------------------------------------------------------------------
+  build-installer:
+    name: Package Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Setup Inno Setup Compiler
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            if (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
+              "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            } else {
+              choco install innosetup --no-progress
+              "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
+          }
+
+      - name: Build Application with PyInstaller
+        run: |
+          python -m PyInstaller packaging/MotorsportTycoon.spec
+
+      - name: Compile Windows Installer with Inno Setup
+        shell: pwsh
+        run: |
+          iscc packaging/installer.iss
+
+      - name: Create Portable Zip Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\MotorsportTycoon\*" -DestinationPath "dist_installer\MotorsportTycoon_Portable.zip"
+
+      - name: Upload Installer & Portable Zip Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MotorsportTycoon-Windows-Installer
+          path: |
+            dist_installer/MotorsportTycoon_Setup.exe
+            dist_installer/MotorsportTycoon_Portable.zip
+          retention-days: 30
+
+      - name: Publish GitHub Release (on version tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist_installer/MotorsportTycoon_Setup.exe
+            dist_installer/MotorsportTycoon_Portable.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ----------------------------------------------------------------------
+  # 2. Build & Deploy Documentation with MkDocs to GitHub Pages
+  # ----------------------------------------------------------------------
+  deploy-docs:
+    name: Build & Deploy MkDocs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install MkDocs and Material Theme
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material
+
+      - name: Build Documentation Site
+        run: |
+          mkdocs build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true

@@ -1,0 +1,52 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# SQLite databases & game save data
+*.db
+*.sqlite
+*.sqlite3
+test_*.db
+career.db
+race_game.db
+
+# OpenStreetMap dynamic cache & generated reports
+data/osm_cache/
+data/reports/
+*_report.json
+*.log
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Packaging & Build outputs
+build/
+dist/
+dist_installer/
+site/
+*.spec
+!packaging/*.spec
+

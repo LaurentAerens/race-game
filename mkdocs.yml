@@ -1,0 +1,48 @@
+site_name: Open‑Wheel Motorsport Management Tycoon
+nav:
+  - Home: README.md
+  - Getting Started:
+      - Game Overview: mechanics/overview.md
+      - Quick Start: mechanics/quick_start.md
+      - Difficulty Settings: mechanics/game_modes.md
+  - Race Weekends:
+      - Race Weekend: mechanics/race_weekend.md
+      - Pit Stops: mechanics/pit_stop.md
+      - UI Overview: ui_overview.md
+  - Team Management:
+      - Career Mode: mechanics/career.md
+      - Driver Management: mechanics/driver_management.md
+      - Engineering & Factory: mechanics/factory.md
+      - Innovation System: mechanics/innovation.md
+      - Staff System: mechanics/staff.md
+      - Sponsors & Revenue: mechanics/marketing.md
+  - Factory Tree:
+      - Overview: mechanics/factory_tree/index.md
+      - Engineering: mechanics/factory_tree/engineering.md
+      - Manufacturing: mechanics/factory_tree/manufacturing.md
+      - Powertrain: mechanics/factory_tree/powertrain.md
+      - Testing: mechanics/factory_tree/testing.md
+      - Trackside: mechanics/factory_tree/trackside.md
+      - Driver Performance: mechanics/factory_tree/driver.md
+      - Commercial: mechanics/factory_tree/commercial.md
+      - HR: mechanics/factory_tree/hr.md
+      - Management: mechanics/factory_tree/management.md
+      - Engine Suppliers: mechanics/factory_tree/engine_suppliers.md
+  - Reference:
+      - Advanced Tips: mechanics/advanced_tips.md
+      - Settings: mechanics/settings.md
+  - Admin Tools: admin_tools.md
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+  font:
+    text: Roboto
+    code: Roboto Mono
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
