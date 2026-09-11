@@ -1,0 +1,2068 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../testing/">
+      
+      
+        <link rel="next" href="../driver/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Trackside - Open‑Wheel Motorsport Management Tycoon</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#trackside-department" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Open‑Wheel Motorsport Management Tycoon" class="md-header__button md-logo" aria-label="Open‑Wheel Motorsport Management Tycoon" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Open‑Wheel Motorsport Management Tycoon
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Trackside
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Open‑Wheel Motorsport Management Tycoon" class="md-nav__button md-logo" aria-label="Open‑Wheel Motorsport Management Tycoon" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Open‑Wheel Motorsport Management Tycoon
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Game Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../game_modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Difficulty Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Race Weekends
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Race Weekends
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../race_weekend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Race Weekend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pit_stop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pit Stops
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ui_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Team Management
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Team Management
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../career/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Career Mode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../driver_management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../factory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engineering & Factory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../innovation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Innovation System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../staff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Staff System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../marketing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sponsors & Revenue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Factory Tree
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Factory Tree
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engineering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manufacturing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manufacturing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../powertrain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Powertrain
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trackside
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trackside
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tree-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tree Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pit-practice-rig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pit Practice Rig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#carbon-guns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carbon Guns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rapid-repair-gantry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rapid Repair Gantry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-jack-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Jack &amp; Release
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#track-telemetry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Track Telemetry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paddock-recon-unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paddock Recon Unit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optical-telemetry-intercept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optical Telemetry Intercept
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#doppler-weather-radar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Doppler Weather Radar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup-analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup Analytics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#virtual-fp-solver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Virtual FP Solver
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#factory-mission-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factory Mission Control
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commercial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commercial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine_suppliers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine Suppliers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced_tips/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Tips
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../admin_tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tree-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tree Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pit-practice-rig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pit Practice Rig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#carbon-guns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carbon Guns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rapid-repair-gantry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rapid Repair Gantry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#active-jack-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active Jack &amp; Release
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#track-telemetry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Track Telemetry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paddock-recon-unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paddock Recon Unit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optical-telemetry-intercept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optical Telemetry Intercept
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#doppler-weather-radar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Doppler Weather Radar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup-analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup Analytics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#virtual-fp-solver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Virtual FP Solver
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#factory-mission-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factory Mission Control
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="trackside-department">Trackside Department<a class="headerlink" href="#trackside-department" title="Permanent link">&para;</a></h1>
+<p>The Trackside department covers everything that happens at the race circuit: pit stop equipment, live telemetry, rival intelligence, weather forecasting, and setup analytics. It is the cheapest department to start and delivers the most immediate race-day impact.</p>
+<hr />
+<h2 id="tree-structure">Tree Structure<a class="headerlink" href="#tree-structure" title="Permanent link">&para;</a></h2>
+<div class="codehilite"><pre><span></span><code>Pit Practice Rig ($2.2M)                ← ROOT
+├── Carbon Guns ($12.5M)                → pit stop time reduction
+│   └── Rapid Repair Gantry ($13.5M)   → wing swap &amp; repair time
+│       └── Active Jack &amp; Release ($21M) → sub-2.0s stops
+└── Track Telemetry ($9.8M)
+    ├── Paddock Recon Unit ($11.5M)     → competitor intelligence pitches
+    │   └── Optical Telemetry Intercept ($19M) → +35% reverse-engineering
+    ├── Doppler Weather Radar ($12M)    → extended rain forecast
+    ├── Setup Analytics ($15M)          → recommended setup ranges in FP
+    │   └── Virtual FP Solver ($26M)   → pre-weekend synthetic laps
+    └── Factory Mission Control ($22M) → +15% all-part telemetry
+</code></pre></div>
+
+<hr />
+<h2 id="node-reference">Node Reference<a class="headerlink" href="#node-reference" title="Permanent link">&para;</a></h2>
+<h3 id="pit-practice-rig">Pit Practice Rig<a class="headerlink" href="#pit-practice-rig" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_pitrig</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$2,200,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$68,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>14 / 28 / 42</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>None (root node)</td>
+</tr>
+</tbody>
+</table>
+<p>Basic 12-man pit crew reaction and coordination training. Reduces the <code>base_stop_reduction</code> used in the pit stop timing formula. <strong>This is the single highest-ROI early purchase</strong> — every fraction of a second saved compounds over a full season. Should be bought on Week 1.</p>
+<hr />
+<h3 id="carbon-guns">Carbon Guns<a class="headerlink" href="#carbon-guns" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_wheelguns</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$12,500,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$360,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>18 / 36 / 54</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Pit Practice Rig</td>
+</tr>
+</tbody>
+</table>
+<p>Motorised titanium wheel guns with laser nut alignment, targeting 2.1-second stops. Large reduction to base stop time; also boosts innovation success for competitor intelligence pitches (+1.5%/tier).</p>
+<hr />
+<h3 id="rapid-repair-gantry">Rapid Repair Gantry<a class="headerlink" href="#rapid-repair-gantry" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_fast_repair</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$13,500,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$390,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>12 / 24 / 36</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Carbon Guns</td>
+</tr>
+</tbody>
+</table>
+<p>Sub-2.5s front wing swaps and rapid composite bonding. Reduces the <strong>Emergency Repairs</strong> box time penalty (normally +14.0s) by 50%. Essential if you frequently need repair stops.</p>
+<hr />
+<h3 id="active-jack-release">Active Jack &amp; Release<a class="headerlink" href="#active-jack-release" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_jack_release</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$21,000,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$580,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>14 / 28 / 42</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Rapid Repair Gantry</td>
+</tr>
+</tbody>
+</table>
+<p>Sub-0.2s pneumatic lifting and automated green-light traffic gantry. Targets sub-2.0s total base stop times. The pinnacle of pit stop speed investment.</p>
+<hr />
+<h3 id="track-telemetry">Track Telemetry<a class="headerlink" href="#track-telemetry" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_telemetry</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$9,800,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$280,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>8 / 16 / 24</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Pit Practice Rig</td>
+</tr>
+</tbody>
+</table>
+<p>High-accuracy live weather and race telemetry. Also boosts competitor intelligence pitch success (+3%/tier). Gateway to rival intel, weather radar, setup analytics, and factory mission control. A critical hub node — unlock it to open the rest of the trackside tree.</p>
+<hr />
+<h3 id="paddock-recon-unit">Paddock Recon Unit<a class="headerlink" href="#paddock-recon-unit" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_rival_intel</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$11,500,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$330,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>10 / 20 / 30</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Track Telemetry</td>
+</tr>
+</tbody>
+</table>
+<p>Trackside rival intelligence gathering — acoustic listening arrays and optical observation. Increases competitor intelligence pitch roll rate (+40%) and success chance (+6%/tier). The most powerful node for generating competitor intelligence pitches consistently.</p>
+<hr />
+<h3 id="optical-telemetry-intercept">Optical Telemetry Intercept<a class="headerlink" href="#optical-telemetry-intercept" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_reverse_eng</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$19,000,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$520,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>12 / 24 / 36</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Paddock Recon Unit</td>
+</tr>
+</tbody>
+</table>
+<p>Pit-straight dynamic LIDAR ride height profiling. Adds +5%/tier to competitor intelligence success chance. Also reduces competitor intelligence pitch lockout duration by 1 week at Tier 2.</p>
+<hr />
+<h3 id="doppler-weather-radar">Doppler Weather Radar<a class="headerlink" href="#doppler-weather-radar" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_weather_station</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$12,000,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$350,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>8 / 16 / 24</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Track Telemetry</td>
+</tr>
+</tbody>
+</table>
+<p>Dual-polarization mobile radar. When installed, the broadcast header shows the <code>[DOPPLER]</code> tag and a cyan border on the weather panel. Extends the rain forecast bars: minimum 6 laps shown, up to 10 based on <code>radar_tier + radar_eq_lvl</code>. Essential for wet-weather strategy.</p>
+<hr />
+<h3 id="setup-analytics">Setup Analytics<a class="headerlink" href="#setup-analytics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_setup_telemetry</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$15,000,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$420,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>10 / 20 / 30</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Track Telemetry</td>
+</tr>
+</tbody>
+</table>
+<p>Dynamic ride height and damper telemetry providing recommended setup ranges during Free Practice. Improves setup confidence seeding for qualifying and race. Gateway to the Virtual FP Solver.</p>
+<hr />
+<h3 id="virtual-fp-solver">Virtual FP Solver<a class="headerlink" href="#virtual-fp-solver" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_virtual_sim</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$26,000,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$720,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>12 / 24 / 36</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Setup Analytics</td>
+</tr>
+</tbody>
+</table>
+<p>Runs 10,000 synthetic pre-weekend laps, ensuring FP1 starts significantly closer to an optimal setup. Reduces the gap between practice plan confidence and real-world performance. The most expensive trackside node — buy it once you have the pit stop chain fully developed.</p>
+<hr />
+<h3 id="factory-mission-control">Factory Mission Control<a class="headerlink" href="#factory-mission-control" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node ID</td>
+<td><code>track_comm_uplink</code></td>
+</tr>
+<tr>
+<td>Build cost</td>
+<td>$22,000,000</td>
+</tr>
+<tr>
+<td>Monthly upkeep</td>
+<td>$600,000 × tier</td>
+</tr>
+<tr>
+<td>Staff capacity</td>
+<td>12 / 24 / 36</td>
+</tr>
+<tr>
+<td>Prerequisite</td>
+<td>Track Telemetry</td>
+</tr>
+</tbody>
+</table>
+<p>10,000Hz satellite telemetry uplink between trackside and factory. Applies a multiplier to <strong>all post-race knowledge gains</strong> across all 7 components:
+- Performance knowledge: +15% per tier
+- Reliability knowledge: +12% per tier</p>
+<p>This is a flat global multiplier — every component benefits from every race, compounding across a full season.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
