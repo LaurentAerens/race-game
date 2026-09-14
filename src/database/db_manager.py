@@ -116,6 +116,7 @@ class DatabaseManager:
             try:
                 cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('teams', 'car_attributes', 'drivers')")
             except Exception:
+                # sqlite_sequence table may not exist if no autoincrement keys exist yet
                 pass
             conn.commit()
             self._seed_default_data(conn)

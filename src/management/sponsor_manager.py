@@ -2,7 +2,6 @@ import random
 from typing import Any, Dict, List, Tuple
 
 from ..data.balance_config import BALANCE_REGISTRY
-from ..database.career_db import CareerDatabase
 
 BRAND_CATALOG = {
     "TITLE": [
@@ -185,7 +184,7 @@ class SponsorManager:
     Calculates Sponsor Appeal from Tier, Form, 5-Season History, Driver Marketability, and Marketing HQ.
     """
 
-    def __init__(self, db: CareerDatabase):
+    def __init__(self, db: Any):
         self.db = db
 
     def calculate_sponsor_appeal(self, team_id: int) -> Dict[str, Any]:

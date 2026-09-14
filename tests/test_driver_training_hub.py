@@ -408,3 +408,70 @@ def test_driver_buyout_costs_expensive_for_pay_and_loan_drivers(test_db):
     # Standard driver: 10 races left at $30,000/race -> 0.5x severance = $150,000
     d_std = {"driver_type": "STANDARD", "contract_races_left": 10, "salary_per_race": 30000.0}
     assert dm.get_driver_buyout_cost(d_std) == 150000.0
+
+
+def test_feeder_seat_market_value_initialization_all_ranks_and_tiers(test_db):
+    """Ensures get_feeder_seat_market_value initializes and returns valid values for all tiers and car ranks 1-10."""
+    dm = DriverManager(test_db)
+    for tier in [1, 2, 3, 4, 5]:
+        for car_rank in range(1, 11):
+            val = dm.get_feeder_seat_market_value(tier=tier, car_rank=car_rank)
+            assert isinstance(val, float)
+            assert val > 0.0
+
+
+def test_refresh_scout_search_and_prospect_count(test_db):
+    """Ensures refresh_scout_search executes correctly and _generate_scout_prospects respects count."""
+    dm = DriverManager(test_db)
+
+    # Test count parameter directly
+    dm._generate_scout_prospects(1, count=4)
+    with test_db.get_connection() as conn:
+        rows = conn.cursor().execute("SELECT * FROM scout_prospects WHERE team_id=1;").fetchall()
+    assert len(rows) == 4
+
+    # Test refresh_scout_search with sufficient funds
+    success, msg = dm.refresh_scout_search(1, scout_cost=15000.0)
+    assert success is True
+    assert "Scout search completed" in msg
+
+    # Test refresh_scout_search with insufficient funds
+    success_fail, msg_fail = dm.refresh_scout_search(1, scout_cost=999_999_999.0)
+    assert success_fail is False
+    assert "Insufficient funds" in msg_fail
+
+
+def test_homegrown_academy_loyalty_contract_evaluation(test_db):
+    """Verifies that homegrown academy drivers receive proper loyalty discount without uninitialized/redundant errors."""
+    dm = DriverManager(test_db)
+    driver = {
+        "name": "Leo Rossi",
+        "expected_salary_race": 50000.0,
+        "expected_signing_bonus": 100000.0,
+        "expected_role": "EQUAL",
+        "patience": 3,
+        "current_patience": 3,
+        "driver_type": "STANDARD",
+        "contract_preference": "BALANCED",
+    }
+
+    # Standard non-homegrown offer
+    res_std = dm.evaluate_contract_offer(
+        driver=driver,
+        offer={"seasons": 1, "salary_per_race": 15000.0, "signing_bonus": 20000.0, "role_status": "EQUAL"},
+        team_tier=3,
+        car_rank=5,
+        is_homegrown=False,
+    )
+    assert res_std["accepted"] is False
+
+    # Homegrown driver with 0 seasons in main team (max 80% discount): 15k/race should be accepted!
+    res_hg = dm.evaluate_contract_offer(
+        driver=driver,
+        offer={"seasons": 1, "salary_per_race": 15000.0, "signing_bonus": 25000.0, "role_status": "EQUAL"},
+        team_tier=3,
+        car_rank=5,
+        is_homegrown=True,
+        main_team_seasons=0,
+    )
+    assert res_hg["accepted"] is True

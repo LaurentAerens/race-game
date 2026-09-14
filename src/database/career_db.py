@@ -1588,6 +1588,7 @@ class CareerDatabase:
             try:
                 conn.close()
             except Exception:
+                # Connection may already be closed or in an invalid state during cleanup
                 pass
         self._open_connections.clear()
 
@@ -1713,6 +1714,7 @@ class CareerDatabase:
             try:
                 cur.execute("ALTER TABLE team_facilities ADD COLUMN savings_balance REAL DEFAULT 0.0;")
             except Exception:
+                # Column may already exist in upgraded schemas
                 pass
 
             # 5b. HR Department Automation Policies & Thresholds
@@ -1778,6 +1780,7 @@ class CareerDatabase:
                 try:
                     cur.execute(f"ALTER TABLE car_components ADD COLUMN {col_name} {col_type};")
                 except Exception:
+                    # Column may already exist in upgraded schemas
                     pass
 
             # 8. Innovation Pipeline (Breakthrough Ideas & Fog-of-War Ranges)
@@ -4070,6 +4073,7 @@ class CareerDatabase:
     def _seed_historical_seasons(self, cur: Optional[sqlite3.Cursor] = None):
         """Seeds 2 prior historical seasons (-1 and 0, corresponding to 2024 and 2025) across all 5 tiers."""
         own_conn = False
+        conn: Optional[sqlite3.Connection] = None
         if cur is None:
             conn = self.get_connection()
             cur = conn.cursor()
@@ -4082,6 +4086,7 @@ class CareerDatabase:
             cur.execute("SELECT COUNT(*) FROM driver_season_history;")
             if cur.fetchone()[0] > 0:
                 if own_conn and conn:
+                if conn is not None:
                     conn.close()
                 return
 
@@ -4273,11 +4278,13 @@ class CareerDatabase:
                         )
 
             if own_conn and conn:
+            if conn is not None:
                 conn.commit()
                 conn.close()
         except Exception as e:
             print(f"[CareerDatabase] Historical seasons seeding error: {e}")
             if own_conn and conn:
+            if conn is not None:
                 conn.close()
 
     def get_available_seasons(self) -> List[Dict[str, Any]]:

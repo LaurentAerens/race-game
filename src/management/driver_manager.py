@@ -1016,7 +1016,7 @@ class DriverManager:
                 rows = [dict(r) for r in cur.fetchall()]
             return rows
 
-    def _generate_scout_prospects(self, team_id: int):
+    def _generate_scout_prospects(self, team_id: int, count: Optional[int] = None):
         """Populates dynamic youth scouting board for the team with facility & equipment boosts."""
         with self.db.get_connection() as conn:
             cur = conn.cursor()
@@ -1048,7 +1048,6 @@ class DriverManager:
                 eq_levels[r[0]] = eq_levels.get(r[0], 0) + r[1]
 
             karting_tier = fac_tiers.get("driver_karting_scholarship", 0)
-            acad_tier = fac_tiers.get("driver_academy", 0)
             karting_eq = eq_levels.get("driver_karting_scholarship", 0)
 
             # Potential floor boost: +4 min potential per karting tier + equipment
@@ -1188,6 +1187,9 @@ class DriverManager:
                         "pref_tier": 5,
                     },
                 )
+
+            if count is not None and count > 0:
+                prospect_pool = prospect_pool[:count]
 
             for p in prospect_pool:
                 pot = min(99, p["pot"] + (pot_boost if p["pot"] < 90 else pot_boost // 2))
@@ -1409,6 +1411,8 @@ class DriverManager:
                 base = random.uniform(80000.0, 110000.0)
             elif car_rank <= 8:
                 base = random.uniform(62000.0, 95000.0)
+            else:
+                base = random.uniform(35000.0, 55000.0)
         return round(base, -2)
 
     def get_market_drivers(self, team_tier: int, car_rank: int = 5) -> List[Dict[str, Any]]:
@@ -1783,7 +1787,6 @@ class DriverManager:
         expected_role = driver.get("expected_role", "EQUAL")
 
         # 2. Homegrown Academy Loyalty Discount (80% base discount -> decays to 0% over 6 seasons)
-        loyalty_discount = 0.0
         if is_homegrown:
             loyalty_discount = max(0.0, 0.80 - min(6, main_team_seasons) * 0.16)
             base_sal = max(1000.0, base_sal * (1.0 - loyalty_discount))
