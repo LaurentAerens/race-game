@@ -291,8 +291,8 @@ class MacroBalanceAudit:
                             "UPDATE car_components SET performance = ?, current_durability = 95.0 WHERE team_id = ?;",
                             (base_perf, t_id),
                         )
-                        salary_scale = {1: 3.5, 2: 2.0, 3: 1.0, 4: 0.35, 5: 0.12}[tier]
-                        deduction = base_skill * 850.0 * salary_scale
+                        stipend_scale = {1: 3.5, 2: 2.0, 3: 1.0, 4: 0.35, 5: 0.12}[tier]
+                        deduction = base_skill * 850.0 * stipend_scale
                         cur.execute("UPDATE teams SET cash = cash - ? WHERE id = ?;", (deduction, t_id))
 
                     elif arch == "TECH_TITAN":
@@ -565,13 +565,13 @@ class EconomyAndDevelopmentAudit:
     def audit_pay_driver_strategy(self, tier: int = 3, num_races: int = 12) -> Dict[str, Any]:
         """Calculates financial surplus from employing 1 Pay Driver vs 2 Standard Drivers."""
         base_pay_income = BALANCE_REGISTRY.get_pay_driver_base_income(tier)
-        std_salary = 45_000.0 if tier == 3 else 120_000.0
+        std_driver_fee = 45_000.0 if tier == 3 else 120_000.0
 
         # Team A: 2 Standard Drivers (Paid salaries)
-        team_a_driver_cost = std_salary * 2 * num_races
+        team_a_driver_cost = std_driver_fee * 2 * num_races
 
         # Team B: 1 Standard Driver + 1 Pay Driver (Income generator)
-        team_b_driver_net = (std_salary * num_races) - (base_pay_income * num_races)
+        team_b_driver_net = (std_driver_fee * num_races) - (base_pay_income * num_races)
 
         net_advantage = team_a_driver_cost - team_b_driver_net
         t3_brakes_cost = BALANCE_REGISTRY.get_part_build_cost(tier, "BRAKES")
@@ -731,7 +731,7 @@ class EconomyAndDevelopmentAudit:
         Comprehensive audit of:
         1. 3x Performance vs. Reliability & Mechanical Strain Trade-Off.
         2. Commercial / Marketing Factory impact on Appeal, Retainers, and Portfolios per tier.
-        3. Staff & Driver Training Progression and Salary Costs.
+        3. Staff & Driver Training Progression and Compensation Costs.
         """
         import gc
 
@@ -920,7 +920,7 @@ class EconomyAndDevelopmentAudit:
                 )
 
             # -------------------------------------------------------------
-            # 3. STAFF & DRIVER TRAINING & SALARY AUDIT
+            # 3. STAFF & DRIVER TRAINING & COMPENSATION AUDIT
             # -------------------------------------------------------------
             # Test Staff Academy weekly training impact
             conn4 = db.get_connection()
@@ -947,7 +947,7 @@ class EconomyAndDevelopmentAudit:
                 staff_row = cur4.fetchone()
                 init_staff_eng = float(staff_row["stat_engineering"])
                 init_staff_lead = float(staff_row["stat_leadership"])
-                staff_sal = float(staff_row["salary_monthly"])
+                staff_comp = float(staff_row["salary_monthly"])
                 staff_row_id = staff_row["id"]
                 staff_row_name = staff_row["name"]
                 conn4.commit()
@@ -990,7 +990,7 @@ class EconomyAndDevelopmentAudit:
                 "marketing_system": marketing_tiers,
                 "staff_and_driver_training": {
                     "staff_member": staff_row_name,
-                    "monthly_salary": f"${staff_sal:,.0f}/mo",
+                    "monthly_compensation": f"${staff_comp:,.0f}/mo",
                     "training_weeks": 10,
                     "engineering_stat": f"{init_staff_eng:.0f} -> {final_staff_eng:.0f} (+{staff_eng_gain})",
                     "leadership_stat": f"{init_staff_lead:.0f} -> {final_staff_lead:.0f} (+{staff_lead_gain})",
@@ -1138,15 +1138,15 @@ class CareerProgressionAndPromotionAudit:
                         BALANCE_REGISTRY.get_pay_driver_base_income(current_tier) * 10.0 if has_pay_driver else 0.0
                     )
 
-                    # Driver salary costs
+                    # Driver fee costs
                     if has_prodigy:
-                        driver_salary = 120_000.0  # Rookie contract
+                        driver_fee = 120_000.0  # Rookie contract
                         driver_skill = min(96.0, driver_skill + 8.0)  # Prodigy growth
                     elif has_pay_driver:
-                        driver_salary = 350_000.0  # Only paying seat #2
+                        driver_fee = 350_000.0  # Only paying seat #2
                         driver_skill = 68.0
                     else:
-                        driver_salary = driver_skill * 850.0 * {1: 3.5, 2: 2.0, 3: 1.0}[current_tier] * 10.0
+                        driver_fee = driver_skill * 850.0 * {1: 3.5, 2: 2.0, 3: 1.0}[current_tier] * 10.0
 
                     # Strategy-specific R&D & spending decisions
                     rnd_spend = 0.0
@@ -1202,7 +1202,7 @@ class CareerProgressionAndPromotionAudit:
                             car_perf = max(car_perf, 140.0)
 
                     # Total expenses & cash flow
-                    cash += (sponsors + pay_income) - (overhead + driver_salary + rnd_spend + repair_bill)
+                    cash += (sponsors + pay_income) - (overhead + driver_fee + rnd_spend + repair_bill)
 
                     if cash < 0:
                         is_bankrupt = True
@@ -1323,10 +1323,10 @@ class FourSeasonPromotionDilemmaAudit:
         t2_sponsor_total = t2_sponsor_base + t2_sponsor_bonus
         # DECOUPLED: Promoted team still has Tier 3 factory -> $2,400,000 upkeep, NOT Tier 2 $5.8M!
         t2_overhead = 2_400_000.0
-        t2_driver_salary = 70.0 * 850.0 * 2.0 * 10.0 * 2.0  # Two Tier 2 benchmark drivers ~$2,380,000
+        t2_driver_stipends = 70.0 * 850.0 * 2.0 * 10.0 * 2.0  # Two Tier 2 benchmark drivers ~$2,380,000
         t2_rd_maintenance = 1_800_000.0  # Basic repairs
         t2_total_rev = t2_prize + t2_sponsor_total
-        t2_total_costs = t2_overhead + t2_driver_salary + t2_rd_maintenance
+        t2_total_costs = t2_overhead + t2_driver_stipends + t2_rd_maintenance
         t2_net_profit = t2_total_rev - t2_total_costs
 
         # Tier 3 P1 financials (Dominant Champion with full 16 sponsors hitting 100% of targets)
@@ -1336,10 +1336,10 @@ class FourSeasonPromotionDilemmaAudit:
         t3_sponsor_bonus = 4_200_000.0
         t3_sponsor_total = t3_sponsor_base + t3_sponsor_bonus  # ~$9,000,000
         t3_overhead = 2_400_000.0
-        t3_driver_salary = 55.0 * 850.0 * 1.0 * 10.0 * 2.0  # Two Tier 3 benchmark drivers ~$935,000
+        t3_driver_stipends = 55.0 * 850.0 * 1.0 * 10.0 * 2.0  # Two Tier 3 benchmark drivers ~$935,000
         t3_rd_maintenance = 1_400_000.0
         t3_total_rev = t3_prize + t3_sponsor_total
-        t3_total_costs = t3_overhead + t3_driver_salary + t3_rd_maintenance
+        t3_total_costs = t3_overhead + t3_driver_stipends + t3_rd_maintenance
         t3_net_profit = t3_total_rev - t3_total_costs
 
         net_advantage_t3_over_t2 = t3_net_profit - t2_net_profit
@@ -1355,7 +1355,7 @@ class FourSeasonPromotionDilemmaAudit:
                 "operational_costs": t2_total_costs,
                 "breakdown_costs": {
                     "overhead": t2_overhead,
-                    "driver_payroll": t2_driver_salary,
+                    "driver_stipends": t2_driver_stipends,
                     "rd_maintenance": t2_rd_maintenance,
                 },
                 "net_profit": t2_net_profit,
@@ -1370,7 +1370,7 @@ class FourSeasonPromotionDilemmaAudit:
                 "operational_costs": t3_total_costs,
                 "breakdown_costs": {
                     "overhead": t3_overhead,
-                    "driver_payroll": t3_driver_salary,
+                    "driver_stipends": t3_driver_stipends,
                     "rd_maintenance": t3_rd_maintenance,
                 },
                 "net_profit": t3_net_profit,
@@ -1662,7 +1662,9 @@ def main():
 
     print("\n  Pay Driver Strategy Viability (Tier 3):")
     print(f"  - Pay Driver Income:      +${pay_res['pay_driver_income_per_race']:,.0f}/race")
-    print(f"  - Net Seasonal Advantage: +${pay_res['total_seasonal_net_advantage']:,.0f} vs. 2 standard driver payroll")
+    print(
+        f"  - Net Seasonal Advantage: +${pay_res['total_seasonal_net_advantage']:,.0f} vs. 2 standard driver contracts"
+    )
     print(f"  - Equivalent R&D Boost:   Funds {pay_res['extra_parts_fundable']} extra component builds!")
 
     print("\n  Young Driver Growth Trajectory (3 Seasons from 45.0 Rating):")
@@ -1784,7 +1786,7 @@ def main():
     )
     print(f"  {'Gross Seasonal Revenue':<28} | ${t2_p10['total_revenue']:>19,.0f} | ${t3_p1['total_revenue']:>22,.0f}")
     print(
-        f"  {'Overhead (Payroll Redacted)':<28} | ${t2_p10['breakdown_costs']['overhead']:>19,.0f} | ${t3_p1['breakdown_costs']['overhead']:>22,.0f}"
+        f"  {'Overhead + Driver Stipends':<28} | ${t2_p10['breakdown_costs']['overhead'] + t2_p10['breakdown_costs']['driver_stipends']:>19,.0f} | ${t3_p1['breakdown_costs']['overhead'] + t3_p1['breakdown_costs']['driver_stipends']:>22,.0f}"
     )
     print(
         f"  {'R&D Maintenance & Repairs':<28} | ${t2_p10['breakdown_costs']['rd_maintenance']:>19,.0f} | ${t3_p1['breakdown_costs']['rd_maintenance']:>22,.0f}"
