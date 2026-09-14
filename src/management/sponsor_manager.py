@@ -1,8 +1,10 @@
 import random
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from ..data.balance_config import BALANCE_REGISTRY
-from ..database.career_db import CareerDatabase
+
+if TYPE_CHECKING:
+    from ..database.career_db import CareerDatabase
 
 BRAND_CATALOG = {
     "TITLE": [
