@@ -1784,7 +1784,7 @@ def main():
     )
     print(f"  {'Gross Seasonal Revenue':<28} | ${t2_p10['total_revenue']:>19,.0f} | ${t3_p1['total_revenue']:>22,.0f}")
     print(
-        f"  {'Overhead + Driver Payroll':<28} | ${t2_p10['breakdown_costs']['overhead'] + t2_p10['breakdown_costs']['driver_payroll']:>19,.0f} | ${t3_p1['breakdown_costs']['overhead'] + t3_p1['breakdown_costs']['driver_payroll']:>22,.0f}"
+        f"  {'Overhead (Payroll Redacted)':<28} | ${t2_p10['breakdown_costs']['overhead']:>19,.0f} | ${t3_p1['breakdown_costs']['overhead']:>22,.0f}"
     )
     print(
         f"  {'R&D Maintenance & Repairs':<28} | ${t2_p10['breakdown_costs']['rd_maintenance']:>19,.0f} | ${t3_p1['breakdown_costs']['rd_maintenance']:>22,.0f}"
