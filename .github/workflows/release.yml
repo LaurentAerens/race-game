@@ -1,22 +1,26 @@
-name: Build Installer & Deploy Docs
+name: Release & Deploy Docs
 
 on:
-  push:
-    branches: [ main ]
-    tags:
-      - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0 or 1.0.0)'
+        required: true
+        default: 'v1.0.0'
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   # ----------------------------------------------------------------------
-  # 1. Build Windows Executable & Inno Setup Installer
+  # 1. Build Windows Executable, Inno Setup Installer & Publish Release
   # ----------------------------------------------------------------------
-  build-installer:
-    name: Package Windows Installer
+  create-release:
+    name: Build Installer & Publish Release
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -33,6 +37,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+
+      - name: Parse and Format Version
+        shell: pwsh
+        run: |
+          $raw = "${{ inputs.version }}".Trim()
+          $tag = if ($raw.StartsWith("v")) { $raw } else { "v$raw" }
+          $clean = $raw -replace '^v',''
+          Write-Host "Tag Name: $tag"
+          Write-Host "Clean Version: $clean"
+          "TAG_NAME=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CLEAN_VERSION=$clean" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup Inno Setup Compiler
         shell: pwsh
@@ -53,7 +68,7 @@ jobs:
       - name: Compile Windows Installer with Inno Setup
         shell: pwsh
         run: |
-          iscc packaging/installer.iss
+          iscc "/DMyAppVersion=$env:CLEAN_VERSION" packaging/installer.iss
 
       - name: Create Portable Zip Package
         shell: pwsh
@@ -69,10 +84,11 @@ jobs:
             dist_installer/MotorsportTycoon_Portable.zip
           retention-days: 30
 
-      - name: Publish GitHub Release (on version tag)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
           files: |
             dist_installer/MotorsportTycoon_Setup.exe
             dist_installer/MotorsportTycoon_Portable.zip
@@ -81,22 +97,31 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ----------------------------------------------------------------------
-  # 2. Build & Deploy Documentation with MkDocs to GitHub Pages
+  # 2. Build & Deploy Documentation to GitHub Pages (Native Deployment)
   # ----------------------------------------------------------------------
   deploy-docs:
-    name: Build & Deploy MkDocs
+    name: Build & Deploy Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Install MkDocs and Material Theme
         run: |
@@ -107,9 +132,18 @@ jobs:
         run: |
           mkdocs build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload Documentation HTML Artifact
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          force_orphan: true
+          name: Documentation-HTML
+          path: ./site
+          retention-days: 30
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

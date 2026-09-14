@@ -2,7 +2,9 @@
 ; Builds a self-contained Windows Installer (.exe)
 
 #define MyAppName "Open-Wheel Motorsport Management Tycoon"
+#ifndef MyAppVersion
 #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Personal"
 #define MyAppExeName "MotorsportTycoon.exe"
 
