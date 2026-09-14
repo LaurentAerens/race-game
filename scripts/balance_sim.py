@@ -1700,7 +1700,7 @@ def main():
         )
         st_train = fac_tree_res["staff_and_driver_training"]
         print(
-            f"  - Staff Academy Progress: {st_train['staff_member']} ({st_train['monthly_salary']}) Eng: {st_train['engineering_stat']}, Lead: {st_train['leadership_stat']}"
+            f"  - Staff Academy Progress: {st_train['staff_member']} ([REDACTED]) Eng: {st_train['engineering_stat']}, Lead: {st_train['leadership_stat']}"
         )
     finally:
         econ_audit.cleanup()
