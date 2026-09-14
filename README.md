@@ -35,7 +35,7 @@ A standalone native desktop 2D open-wheel race simulator and interactive track e
 ## Quick Start
 
 ### Installation
-Ensure Python 3.11+ is installed, then install the lightweight dependencies:
+Ensure Python 3.12+ is installed, then install the lightweight dependencies:
 ```bash
 pip install -r requirements.txt
 ```
