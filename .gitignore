@@ -6,9 +6,13 @@ __pycache__/
 
 # Environments
 .venv/
+.venv*/
 venv/
+venv*/
 env/
+env*/
 ENV/
+ENV*/
 
 # Testing & Coverage
 .pytest_cache/
@@ -16,6 +20,8 @@ ENV/
 htmlcov/
 .tox/
 .nox/
+.mypy_cache/
+.ruff_cache/
 
 # SQLite databases & game save data
 *.db
@@ -47,6 +53,8 @@ build/
 dist/
 dist_installer/
 site/
+*.egg-info/
+*.egg
 *.spec
 !packaging/*.spec
 
