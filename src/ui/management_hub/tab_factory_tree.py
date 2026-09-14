@@ -1205,7 +1205,6 @@ class FactoryTreeTab:
             }
         elif node_id == "eng_dyno":
             p_rate = 1.8 * t_val
-            tot_p = 3.6 * t_val
             return {
                 "type": "POWERTRAIN",
                 "tag": "POWERTRAIN",
