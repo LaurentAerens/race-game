@@ -1,9 +1,9 @@
 import pytest
-import sqlite3
-import os
-from src.database.career_db import CareerDatabase, ALL_FACILITY_NODES
+
+from src.database.career_db import ALL_FACILITY_NODES, CareerDatabase
 from src.database.equipment_catalog import EQUIPMENT_CATALOG
 from src.management.staff_manager import StaffManager
+
 
 @pytest.fixture
 def temp_db(tmp_path):
@@ -24,11 +24,14 @@ def temp_db(tmp_path):
         conn.commit()
     return db
 
+
 def test_management_single_node_tree_structure(temp_db):
     """Verifies that MANAGEMENT has exactly 1 single root node (Executive Boardroom)."""
     mgmt_nodes = [n for n in ALL_FACILITY_NODES if n[1] == "MANAGEMENT"]
-    assert len(mgmt_nodes) == 1, f"Expected exactly 1 MANAGEMENT node, got {len(mgmt_nodes)}: {[n[0] for n in mgmt_nodes]}"
-    
+    assert len(mgmt_nodes) == 1, (
+        f"Expected exactly 1 MANAGEMENT node, got {len(mgmt_nodes)}: {[n[0] for n in mgmt_nodes]}"
+    )
+
     boardroom = mgmt_nodes[0]
     node_id, dept, name, desc, parent_id, min_tier, max_tier, cost, upkeep, staff_cap, league = boardroom
     assert node_id == "mgmt_boardroom"
@@ -37,6 +40,7 @@ def test_management_single_node_tree_structure(temp_db):
     assert max_tier == 3
     assert cost > 0
     assert upkeep > 0
+
 
 def test_management_equipment_catalog():
     """Verifies all equipment pieces for mgmt_boardroom are properly configured with no orphans."""
@@ -52,23 +56,30 @@ def test_management_equipment_catalog():
     auto_eq = [eq for eq in EQUIPMENT_CATALOG if eq[1] == "mgmt_automation"]
     assert len(auto_eq) == 0
 
+
 def test_management_global_leadership_output_boost(temp_db):
     """Verifies calculate_facility_staff_output boosts effective head/director leadership and coordination."""
     staff_mgr = StaffManager(temp_db)
 
     with temp_db.get_connection() as conn:
         cur = conn.cursor()
-        
+
         # Seed an engineering facility node and personnel
-        cur.execute("INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'eng_workshop', 1, 1);")
-        cur.execute("INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'mgmt_boardroom', 0, 0);")
-        
+        cur.execute(
+            "INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'eng_workshop', 1, 1);"
+        )
+        cur.execute(
+            "INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'mgmt_boardroom', 0, 0);"
+        )
+
         # Seed Category Director for ENGINEERING with baseline 40 leadership
         cur.execute("""
         INSERT INTO personnel (id, team_id, facility_node_id, assigned_category, role_type, name, age, birth_year, peak_age, retire_age, specialty, salary_monthly, market_value_monthly, morale, stat_engineering, stat_craftsmanship, stat_marketing, stat_communication, stat_leadership, stat_composure, stat_potential)
         VALUES (10, 1, NULL, 'ENGINEERING', 'CATEGORY_DIRECTOR', 'Elena Vance', 45, 1981, 50, 70, 'COMPOSITES', 10000, 10000, 90, 60, 40, 40, 50, 40, 50, 70);
         """)
-        cur.execute("INSERT OR REPLACE INTO team_category_directors (team_id, category, director_personnel_id) VALUES (1, 'ENGINEERING', 10);")
+        cur.execute(
+            "INSERT OR REPLACE INTO team_category_directors (team_id, category, director_personnel_id) VALUES (1, 'ENGINEERING', 10);"
+        )
 
         # Seed Department Head with baseline 35 leadership
         cur.execute("""
@@ -86,7 +97,7 @@ def test_management_global_leadership_output_boost(temp_db):
         conn.commit()
 
     # 1. Baseline calculation with mgmt_boardroom Tier 0
-    out_tier0 = staff_mgr.calculate_facility_staff_output(1, 'eng_workshop', 1)
+    out_tier0 = staff_mgr.calculate_facility_staff_output(1, "eng_workshop", 1)
     assert out_tier0["mgmt_lead_bonus"] == 0.0
     base_head_mult = out_tier0["head_mult"]
     base_dir_mult = out_tier0["dir_mult"]
@@ -96,10 +107,12 @@ def test_management_global_leadership_output_boost(temp_db):
     # 2. Upgrade mgmt_boardroom to Tier 2 (+10.0 Global Leadership Aura)
     with temp_db.get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("UPDATE team_facilities SET current_tier = 2, is_unlocked = 1 WHERE team_id = 1 AND node_id = 'mgmt_boardroom';")
+        cur.execute(
+            "UPDATE team_facilities SET current_tier = 2, is_unlocked = 1 WHERE team_id = 1 AND node_id = 'mgmt_boardroom';"
+        )
         conn.commit()
 
-    out_tier2 = staff_mgr.calculate_facility_staff_output(1, 'eng_workshop', 1)
+    out_tier2 = staff_mgr.calculate_facility_staff_output(1, "eng_workshop", 1)
     assert out_tier2["mgmt_lead_bonus"] == 10.0
     assert out_tier2["head_mult"] > base_head_mult
     assert out_tier2["dir_mult"] > base_dir_mult
@@ -109,13 +122,16 @@ def test_management_global_leadership_output_boost(temp_db):
     # 3. Add Strategic War Room equipment (level 2 -> +3.0 additional leadership)
     with temp_db.get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO team_equipment (team_id, equipment_id, current_level, is_active) VALUES (1, 'eq_mgmt_strategy_war_room', 2, 1);")
+        cur.execute(
+            "INSERT INTO team_equipment (team_id, equipment_id, current_level, is_active) VALUES (1, 'eq_mgmt_strategy_war_room', 2, 1);"
+        )
         conn.commit()
 
-    out_equip = staff_mgr.calculate_facility_staff_output(1, 'eng_workshop', 1)
-    assert out_equip["mgmt_lead_bonus"] == 13.0 # 10.0 from tier + 3.0 from equipment
+    out_equip = staff_mgr.calculate_facility_staff_output(1, "eng_workshop", 1)
+    assert out_equip["mgmt_lead_bonus"] == 13.0  # 10.0 from tier + 3.0 from equipment
     assert out_equip["head_mult"] > out_tier2["head_mult"]
     assert out_equip["staff_mult"] > out_tier2["staff_mult"]
+
 
 def test_management_weekly_personnel_turn_boost(temp_db):
     """Verifies that advance_weekly_personnel increases stat_leadership for ALL personnel in the factory."""
@@ -123,7 +139,9 @@ def test_management_weekly_personnel_turn_boost(temp_db):
 
     with temp_db.get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'mgmt_boardroom', 2, 1);") # Tier 2 -> 0.30/wk
+        cur.execute(
+            "INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'mgmt_boardroom', 2, 1);"
+        )  # Tier 2 -> 0.30/wk
 
         # Insert 1 Director, 1 Head, 1 Staff, 1 Intern
         cur.execute("""
@@ -155,15 +173,20 @@ def test_management_weekly_personnel_turn_boost(temp_db):
     assert staff_row[2] == pytest.approx(25.30, rel=1e-2)
     assert intern_row[2] == pytest.approx(20.30, rel=1e-2)
 
+
 def test_management_mentorship_equipment_growth_bonus(temp_db):
     """Verifies that Executive Mentorship Suite equipment further accelerates weekly leadership growth."""
     staff_mgr = StaffManager(temp_db)
 
     with temp_db.get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'mgmt_boardroom', 1, 1);") # Tier 1 -> 0.15/wk
+        cur.execute(
+            "INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked) VALUES (1, 'mgmt_boardroom', 1, 1);"
+        )  # Tier 1 -> 0.15/wk
         # Add Mentorship Suite level 2 (+0.10/wk) -> total 0.25/wk
-        cur.execute("INSERT INTO team_equipment (team_id, equipment_id, current_level, is_active) VALUES (1, 'eq_mgmt_mentorship_suite', 2, 1);")
+        cur.execute(
+            "INSERT INTO team_equipment (team_id, equipment_id, current_level, is_active) VALUES (1, 'eq_mgmt_mentorship_suite', 2, 1);"
+        )
 
         cur.execute("""
         INSERT INTO personnel (id, team_id, facility_node_id, assigned_category, role_type, name, age, birth_year, peak_age, retire_age, specialty, salary_monthly, market_value_monthly, morale, stat_engineering, stat_craftsmanship, stat_marketing, stat_communication, stat_leadership, stat_composure, stat_potential)

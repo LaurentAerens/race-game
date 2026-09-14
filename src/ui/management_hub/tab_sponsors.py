@@ -1,15 +1,17 @@
 import pygame
-from typing import Dict, List, Any, Callable, Tuple, Optional
-from ..theme import UITheme
+
 from ...management.game_manager import GameManager
 from ...management.sponsor_manager import SponsorManager
+from ..theme import UITheme
+
 
 class SponsorsTab:
     """Sponsors & Commercial Hub featuring 3-tier slots (2 Title, 4 Middle, 10 Minor) and incoming contract offers."""
+
     def __init__(self, screen_width: int, screen_height: int):
         self.width = screen_width
         self.height = screen_height
-        
+
         self._init_fonts()
         self.status_message: str = "Review active sponsor partnerships or negotiate incoming commercial contracts."
 
@@ -25,13 +27,12 @@ class SponsorsTab:
         self.height = height
         self._init_fonts()
 
-
     def handle_click(self, mx: int, my: int, gm: GameManager, sm: SponsorManager) -> bool:
         offers = sm.get_sponsor_offers(gm.team_id)
-        
+
         # Check click on Sign Offer Buttons (Right Column)
         off_rect = pygame.Rect(560, 126, self.width - 584, self.height - 170)
-        
+
         for idx, o in enumerate(offers[:4]):
             oy = 158 + idx * 88
             oc_box = pygame.Rect(off_rect.x + 10, oy, off_rect.width - 20, 80)
@@ -45,7 +46,6 @@ class SponsorsTab:
 
         return False
 
-
     def render(self, surface: pygame.Surface, gm: GameManager, sm: SponsorManager):
         sm.check_and_generate_offers(gm.team_id, is_progression=False)
         appeal_data = sm.calculate_sponsor_appeal(gm.team_id)
@@ -58,12 +58,14 @@ class SponsorsTab:
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, app_rect, width=1, border_radius=4)
 
         # Title & Breakdown on Left
-        surface.blit(self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0)), (app_rect.x + 12, app_rect.y + 6))
+        surface.blit(
+            self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0)), (app_rect.x + 12, app_rect.y + 6)
+        )
         breakdown_str = f"Tier: +{appeal_data['tier_pts']:.0f}pts  |  10-Race Form: +{appeal_data['form_pts']:.0f}pts  |  5-Season History: +{appeal_data['history_pts']:.0f}pts  |  Driver Marketability: +{appeal_data['driver_pts']:.0f}pts  |  Marketing HQ: +{appeal_data['facility_pts']:.0f}pts"
         surface.blit(self.font_body.render(breakdown_str, True, UITheme.TEXT_MUTED), (app_rect.x + 12, app_rect.y + 26))
 
         # Score & Visual Progress Bar on Top Right
-        score_val = appeal_data['total_appeal']
+        score_val = appeal_data["total_appeal"]
         score_txt = f"{score_val} / 100"
         score_surf = self.font_title.render(score_txt, True, (0, 240, 140))
         lbl_surf = self.font_badge.render("APPEAL SCORE:", True, (255, 215, 0))
@@ -89,13 +91,18 @@ class SponsorsTab:
 
         act_hdr = pygame.Rect(act_rect.x, act_rect.y, act_rect.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, act_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_title.render("ACTIVE SPONSOR CONTRACTS (3 TIERS)", True, (0, 220, 255)), (act_rect.x + 12, act_rect.y + 5))
-
+        surface.blit(
+            self.font_title.render("ACTIVE SPONSOR CONTRACTS (3 TIERS)", True, (0, 220, 255)),
+            (act_rect.x + 12, act_rect.y + 5),
+        )
 
         cur_y = 158
 
         # --- A. TITLE SPONSORS (2 Max) ---
-        surface.blit(self.font_card_title.render("1. TITLE SPONSORS (2 Slots Max)", True, (255, 215, 0)), (act_rect.x + 10, cur_y))
+        surface.blit(
+            self.font_card_title.render("1. TITLE SPONSORS (2 Slots Max)", True, (255, 215, 0)),
+            (act_rect.x + 10, cur_y),
+        )
         cur_y += 20
         title_slots = active.get("TITLE", [])
         num_title_display = max(2, len(title_slots))
@@ -104,33 +111,66 @@ class SponsorsTab:
             if s_idx < len(title_slots):
                 s = title_slots[s_idx]
                 pygame.draw.rect(surface, (28, 36, 46), s_box, border_radius=3)
-                
+
                 is_pay_driver = s.get("is_pay_driver_sponsor", False)
                 b_color = (0, 240, 140) if is_pay_driver else (255, 215, 0)
                 pygame.draw.rect(surface, b_color, s_box, width=1, border_radius=3)
-                
+
                 col_rgb = pygame.Color(s.get("color_hex", "#00d2be"))
                 pygame.draw.rect(surface, col_rgb, (s_box.x + 8, s_box.y + 8, 8, 36), border_radius=2)
-                
+
                 if is_pay_driver:
-                    surface.blit(self.font_card_title.render(f"{s['brand_name']}", True, (0, 240, 140)), (s_box.x + 22, s_box.y + 7))
-                    sub_txt = f"+${s['per_race_payment']:,.0f} / race  •  Free Title Sponsor ({s.get('driver_name', '')})"
+                    surface.blit(
+                        self.font_card_title.render(f"{s['brand_name']}", True, (0, 240, 140)),
+                        (s_box.x + 22, s_box.y + 7),
+                    )
+                    sub_txt = (
+                        f"+${s['per_race_payment']:,.0f} / race  •  Free Title Sponsor ({s.get('driver_name', '')})"
+                    )
                     surface.blit(self.font_body.render(sub_txt, True, UITheme.TEXT_WHITE), (s_box.x + 22, s_box.y + 27))
-                    surface.blit(self.font_badge.render(f"{s['races_remaining']}", True, (0, 240, 140)), (s_box.x + s_box.width - 110, s_box.y + 8))
+                    surface.blit(
+                        self.font_badge.render(f"{s['races_remaining']}", True, (0, 240, 140)),
+                        (s_box.x + s_box.width - 110, s_box.y + 8),
+                    )
                 else:
-                    surface.blit(self.font_card_title.render(s["brand_name"], True, UITheme.TEXT_WHITE), (s_box.x + 22, s_box.y + 7))
-                    t_str = f"Target: Top P{s['target_position']} (+${s['target_bonus']:,.0f})" if s["target_position"] else "Standard Partnership"
-                    surface.blit(self.font_body.render(f"+${s['per_race_payment']:,.0f} / race | {t_str}", True, (0, 240, 140)), (s_box.x + 22, s_box.y + 27))
-                    r_rem = f"{s['races_remaining']} RACES LEFT" if isinstance(s['races_remaining'], int) else str(s['races_remaining'])
-                    surface.blit(self.font_badge.render(r_rem, True, UITheme.TEXT_MUTED), (s_box.x + s_box.width - 110, s_box.y + 8))
+                    surface.blit(
+                        self.font_card_title.render(s["brand_name"], True, UITheme.TEXT_WHITE),
+                        (s_box.x + 22, s_box.y + 7),
+                    )
+                    t_str = (
+                        f"Target: Top P{s['target_position']} (+${s['target_bonus']:,.0f})"
+                        if s["target_position"]
+                        else "Standard Partnership"
+                    )
+                    surface.blit(
+                        self.font_body.render(f"+${s['per_race_payment']:,.0f} / race | {t_str}", True, (0, 240, 140)),
+                        (s_box.x + 22, s_box.y + 27),
+                    )
+                    r_rem = (
+                        f"{s['races_remaining']} RACES LEFT"
+                        if isinstance(s["races_remaining"], int)
+                        else str(s["races_remaining"])
+                    )
+                    surface.blit(
+                        self.font_badge.render(r_rem, True, UITheme.TEXT_MUTED),
+                        (s_box.x + s_box.width - 110, s_box.y + 8),
+                    )
             else:
                 pygame.draw.rect(surface, (16, 20, 26), s_box, border_radius=3)
                 pygame.draw.rect(surface, (45, 55, 65), s_box, width=1, border_radius=3)
-                surface.blit(self.font_body.render(f"[ EMPTY TITLE SLOT #{s_idx+1} - AWAITING OFFER ]", True, UITheme.TEXT_MUTED), (s_box.x + 14, s_box.y + 18))
+                surface.blit(
+                    self.font_body.render(
+                        f"[ EMPTY TITLE SLOT #{s_idx + 1} - AWAITING OFFER ]", True, UITheme.TEXT_MUTED
+                    ),
+                    (s_box.x + 14, s_box.y + 18),
+                )
             cur_y += 58
 
         # --- B. MIDDLE SPONSORS (4 Max) ---
-        surface.blit(self.font_card_title.render("2. SECONDARY SPONSORS (4 Slots Max)", True, (0, 200, 255)), (act_rect.x + 10, cur_y))
+        surface.blit(
+            self.font_card_title.render("2. SECONDARY SPONSORS (4 Slots Max)", True, (0, 200, 255)),
+            (act_rect.x + 10, cur_y),
+        )
         cur_y += 20
         mid_slots = active.get("MIDDLE", [])
         for s_idx in range(4):
@@ -139,44 +179,69 @@ class SponsorsTab:
                 s = mid_slots[s_idx]
                 pygame.draw.rect(surface, (20, 28, 36), s_box, border_radius=3)
                 pygame.draw.rect(surface, (0, 180, 220), s_box, width=1, border_radius=3)
-                surface.blit(self.font_card_title.render(s["brand_name"], True, UITheme.TEXT_WHITE), (s_box.x + 10, s_box.y + 6))
-                surface.blit(self.font_body.render(f"+${s['per_race_payment']:,.0f} / race", True, (0, 240, 140)), (s_box.x + 10, s_box.y + 24))
-                surface.blit(self.font_badge.render(f"{s['races_remaining']} RACES LEFT", True, UITheme.TEXT_MUTED), (s_box.x + s_box.width - 100, s_box.y + 6))
+                surface.blit(
+                    self.font_card_title.render(s["brand_name"], True, UITheme.TEXT_WHITE), (s_box.x + 10, s_box.y + 6)
+                )
+                surface.blit(
+                    self.font_body.render(f"+${s['per_race_payment']:,.0f} / race", True, (0, 240, 140)),
+                    (s_box.x + 10, s_box.y + 24),
+                )
+                surface.blit(
+                    self.font_badge.render(f"{s['races_remaining']} RACES LEFT", True, UITheme.TEXT_MUTED),
+                    (s_box.x + s_box.width - 100, s_box.y + 6),
+                )
             else:
                 pygame.draw.rect(surface, (14, 18, 22), s_box, border_radius=3)
                 pygame.draw.rect(surface, (35, 45, 55), s_box, width=1, border_radius=3)
-                surface.blit(self.font_body.render(f"[ Empty Secondary Slot #{s_idx+1} ]", True, (80, 95, 110)), (s_box.x + 10, s_box.y + 14))
+                surface.blit(
+                    self.font_body.render(f"[ Empty Secondary Slot #{s_idx + 1} ]", True, (80, 95, 110)),
+                    (s_box.x + 10, s_box.y + 14),
+                )
             cur_y += 46
 
         # --- C. MINOR & ACADEMY PARTNERS (10 Max) ---
         minor_slots = active.get("MINOR", [])
-        surface.blit(self.font_card_title.render(f"3. MINOR & ACADEMY PARTNERS ({len(minor_slots)}/10 Active)", True, UITheme.TEXT_WHITE), (act_rect.x + 10, cur_y))
+        surface.blit(
+            self.font_card_title.render(
+                f"3. MINOR & ACADEMY PARTNERS ({len(minor_slots)}/10 Active)", True, UITheme.TEXT_WHITE
+            ),
+            (act_rect.x + 10, cur_y),
+        )
         cur_y += 18
         min_box = pygame.Rect(act_rect.x + 10, cur_y, act_rect.width - 20, 56)
         pygame.draw.rect(surface, (16, 20, 26), min_box, border_radius=3)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, min_box, width=1, border_radius=3)
-        
+
         if minor_slots:
             m_items = []
             for m in minor_slots[:5]:
                 if m.get("is_sponsored_loan"):
-                    m_items.append(f"{m['brand_name']} (+${m['per_race_payment']/1000:.0f}k [Loan: {m.get('driver_name', '')}])")
+                    m_items.append(
+                        f"{m['brand_name']} (+${m['per_race_payment'] / 1000:.0f}k [Loan: {m.get('driver_name', '')}])"
+                    )
                 else:
-                    m_items.append(f"{m['brand_name']} (+${m['per_race_payment']/1000:.0f}k)")
+                    m_items.append(f"{m['brand_name']} (+${m['per_race_payment'] / 1000:.0f}k)")
             m_txt = " • ".join(m_items)
             surface.blit(self.font_badge.render(m_txt, True, (0, 220, 255)), (min_box.x + 8, min_box.y + 8))
-            
+
             if len(minor_slots) > 5:
                 m_items2 = []
                 for m in minor_slots[5:10]:
                     if m.get("is_sponsored_loan"):
-                        m_items2.append(f"{m['brand_name']} (+${m['per_race_payment']/1000:.0f}k [Loan: {m.get('driver_name', '')}])")
+                        m_items2.append(
+                            f"{m['brand_name']} (+${m['per_race_payment'] / 1000:.0f}k [Loan: {m.get('driver_name', '')}])"
+                        )
                     else:
-                        m_items2.append(f"{m['brand_name']} (+${m['per_race_payment']/1000:.0f}k)")
+                        m_items2.append(f"{m['brand_name']} (+${m['per_race_payment'] / 1000:.0f}k)")
                 m_txt2 = " • ".join(m_items2)
                 surface.blit(self.font_badge.render(m_txt2, True, (0, 220, 255)), (min_box.x + 8, min_box.y + 28))
         else:
-            surface.blit(self.font_body.render("No minor suppliers or youth academy loans currently active.", True, UITheme.TEXT_MUTED), (min_box.x + 10, min_box.y + 18))
+            surface.blit(
+                self.font_body.render(
+                    "No minor suppliers or youth academy loans currently active.", True, UITheme.TEXT_MUTED
+                ),
+                (min_box.x + 10, min_box.y + 18),
+            )
 
         # 3. Incoming Sponsor Offers Portal (Right Column)
 
@@ -185,8 +250,10 @@ class SponsorsTab:
 
         off_hdr = pygame.Rect(off_rect.x, off_rect.y, off_rect.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, off_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_title.render(f"INCOMING SPONSOR OFFERS ({len(offers)} Available)", True, (255, 180, 40)), (off_rect.x + 12, off_rect.y + 5))
-
+        surface.blit(
+            self.font_title.render(f"INCOMING SPONSOR OFFERS ({len(offers)} Available)", True, (255, 180, 40)),
+            (off_rect.x + 12, off_rect.y + 5),
+        )
 
         for idx, o in enumerate(offers[:4]):
             oy = 158 + idx * 88
@@ -194,12 +261,35 @@ class SponsorsTab:
             pygame.draw.rect(surface, (20, 26, 34), oc_box, border_radius=3)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, oc_box, width=1, border_radius=3)
 
-            tier_col = (255, 215, 0) if o["slot_tier"] == "TITLE" else ((0, 200, 255) if o["slot_tier"] == "MIDDLE" else UITheme.TEXT_WHITE)
-            surface.blit(self.font_card_title.render(f"{o['brand_name']} [{o['slot_tier']}]", True, tier_col), (oc_box.x + 10, oc_box.y + 8))
-            surface.blit(self.font_body.render(f"Signing Bonus: +${o['signing_bonus']:,.0f} (Instant Cash) | Contract: {o['races_total']} Races", True, (0, 240, 140)), (oc_box.x + 10, oc_box.y + 28))
-            
-            t_str = f"Target: P{o['target_position']} (+${o['target_bonus']:,.0f}/race)" if o["target_position"] else "Fixed Payout"
-            surface.blit(self.font_body.render(f"Payment: ${o['per_race_payment']:,.0f} / race | {t_str}", True, UITheme.TEXT_WHITE), (oc_box.x + 10, oc_box.y + 48))
+            tier_col = (
+                (255, 215, 0)
+                if o["slot_tier"] == "TITLE"
+                else ((0, 200, 255) if o["slot_tier"] == "MIDDLE" else UITheme.TEXT_WHITE)
+            )
+            surface.blit(
+                self.font_card_title.render(f"{o['brand_name']} [{o['slot_tier']}]", True, tier_col),
+                (oc_box.x + 10, oc_box.y + 8),
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"Signing Bonus: +${o['signing_bonus']:,.0f} (Instant Cash) | Contract: {o['races_total']} Races",
+                    True,
+                    (0, 240, 140),
+                ),
+                (oc_box.x + 10, oc_box.y + 28),
+            )
+
+            t_str = (
+                f"Target: P{o['target_position']} (+${o['target_bonus']:,.0f}/race)"
+                if o["target_position"]
+                else "Fixed Payout"
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"Payment: ${o['per_race_payment']:,.0f} / race | {t_str}", True, UITheme.TEXT_WHITE
+                ),
+                (oc_box.x + 10, oc_box.y + 48),
+            )
 
             # Sign Offer Button
             sign_btn = pygame.Rect(oc_box.x + oc_box.width - 105, oc_box.y + 26, 95, 28)

@@ -1,15 +1,15 @@
-import unittest
 import os
 import tempfile
-import random
-from src.core.circuit import Circuit
-from src.data.default_tracks import create_emerald_ring
-from src.core.driver import Driver
+import unittest
+
 from src.core.car import Car
-from src.core.race_control import RaceControl, FlagStatus
-from src.database.db_manager import CarAttributes
+from src.core.driver import Driver
+from src.core.race_control import RaceControl
+from src.data.default_tracks import create_emerald_ring
 from src.database.career_db import CareerDatabase
+from src.database.db_manager import CarAttributes
 from src.management.engineering_manager import EngineeringManager
+
 
 class TestPartReliabilityAndBreakdown(unittest.TestCase):
     def setUp(self):
@@ -35,10 +35,10 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
         custom_durs = {
             "FRONT_WING": 40.0,
             "REAR_WING": 88.0,
-            "BRAKES": 115.0, # Uncapped custom R&D
+            "BRAKES": 115.0,  # Uncapped custom R&D
             "ENGINE": 52.0,
             "SUSPENSION": 60.0,
-            "FLOOR": 70.0
+            "FLOOR": 70.0,
         }
         car = Car(1, self.driver, self.attrs, league_tier=3, initial_part_durabilities=custom_durs)
         self.assertAlmostEqual(car.part_durability["FRONT_WING"], 40.0)
@@ -49,10 +49,10 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
         car = Car(1, self.driver, self.attrs, league_tier=3)
         car.part_durability["ENGINE"] = 0.0
         car.speed = 40.0
-        
+
         # Physics tick triggers terminal breakdown
         car.update_physics(0.1, self.circuit, self.race_control, 0.0, None, None)
-        
+
         self.assertTrue(car.is_broken)
         self.assertTrue(car.is_dnf)
         self.assertEqual(car.speed, 0.0)
@@ -63,7 +63,7 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
         """Verify front wing pit stop adds +4.0s and restores front wing durability to spare unit level."""
         car = Car(1, self.driver, self.attrs, league_tier=3)
         car.part_durability["FRONT_WING"] = 35.0
-        
+
         # Order pit stop with front wing swap
         car.order_pit_stop(new_compound="HARD", replace_front_wing=True, front_wing_durability=95.0)
         self.assertTrue(car.box_this_lap)
@@ -76,11 +76,11 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
         car.pit_s = self.circuit.pit_length * self.circuit.pit_box_s - 1.0
         car.speed = 22.0
         car._update_pit_lane(0.1, self.circuit)
-        
+
         self.assertEqual(car.pit_state, "IN_BOX")
         # Base stop is 2.4s + extra 4.0s for wing = >= 6.4s
         self.assertGreaterEqual(car.pit_timer, 6.4)
-        
+
         # Simulate timer countdown in box
         car._update_pit_lane(car.pit_timer + 0.1, self.circuit)
         self.assertEqual(car.pit_state, "EXITING")
@@ -93,7 +93,7 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
         car.part_durability["BRAKES"] = 28.0
         car.part_durability["SUSPENSION"] = 42.0
         car.part_durability["REAR_WING"] = 80.0
-        
+
         car.order_pit_stop(new_compound="MEDIUM", emergency_repairs=True)
         self.assertTrue(car.pit_emergency_repairs)
 
@@ -103,10 +103,10 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
         car.pit_s = self.circuit.pit_length * self.circuit.pit_box_s - 1.0
         car.speed = 22.0
         car._update_pit_lane(0.1, self.circuit)
-        
+
         # Base stop 2.4s + 14.0s = >= 16.4s
         self.assertGreaterEqual(car.pit_timer, 16.4)
-        
+
         # Finish stop
         car._update_pit_lane(car.pit_timer + 0.1, self.circuit)
         self.assertGreaterEqual(car.part_durability["BRAKES"], 55.0)
@@ -139,7 +139,7 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
                 "BRAKES": 62.0,
                 "ENGINE": 70.0,
                 "SUSPENSION": 58.0,
-                "FLOOR": 65.0
+                "FLOOR": 65.0,
             }
             db.save_car_part_durabilities(team_id, car_slot=1, durabilities=new_durs)
 
@@ -152,7 +152,7 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
             em = EngineeringManager(db)
             success, msg = em.buy_factory_part(team_id, "REAR_WING", target_car_slot=1)
             self.assertTrue(success)
-            
+
             # Check mounted part updated
             comps = db.get_team_components(team_id)
             c1_rw = [c for c in comps if c["car_slot"] == 1 and c["category"] == "REAR_WING"][0]
@@ -161,9 +161,12 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
             # Test building part with uncapped durability
             # First unlock/build facility for FRONT_WING ('eng_wings_front')
             with db.get_connection() as conn:
-                conn.execute("INSERT OR REPLACE INTO team_facilities (team_id, node_id, current_tier, is_unlocked, monthly_sub_budget) VALUES (?, 'eng_wings_front', 1, 1, 20000);", (team_id,))
+                conn.execute(
+                    "INSERT OR REPLACE INTO team_facilities (team_id, node_id, current_tier, is_unlocked, monthly_sub_budget) VALUES (?, 'eng_wings_front', 1, 1, 20000);",
+                    (team_id,),
+                )
                 conn.commit()
-            
+
             b_success, b_msg, _ = em.build_next_generation_part(team_id, c1_fw["id"])
             self.assertTrue(b_success)
             comps = db.get_team_components(team_id)
@@ -178,6 +181,7 @@ class TestPartReliabilityAndBreakdown(unittest.TestCase):
                     os.remove(temp_db)
                 except Exception:
                     pass
+
 
 if __name__ == "__main__":
     unittest.main()

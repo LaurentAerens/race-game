@@ -1,12 +1,14 @@
 import math
 import random
-from typing import Optional, List, Dict, Tuple
-from .driver import Driver
-from .tires import TireSet
-from .circuit import Circuit
-from .race_control import RaceControl, FlagStatus
-from .race_weekend import CarSetup
+from typing import Dict, List, Optional
+
 from ..database.db_manager import CarAttributes
+from .circuit import Circuit
+from .driver import Driver
+from .race_control import FlagStatus, RaceControl
+from .race_weekend import CarSetup
+from .tires import TireSet
+
 
 class Car:
     """
@@ -14,10 +16,19 @@ class Car:
     Features aerodynamic wake (dirty air), slipstreaming, multi-lane overtaking,
     outbraking in corner entries, fuel weight, and tire thermodynamics.
     """
-    def __init__(self, car_id: int, driver: Driver, car_attributes: Optional[CarAttributes] = None, 
-                 initial_compound: str = "MEDIUM", setup: Optional[CarSetup] = None, 
-                 setup_confidence: float = 50.0, practice_bonuses: Optional[Dict[str, float]] = None,
-                 league_tier: int = 3, initial_part_durabilities: Optional[Dict[str, float]] = None):
+
+    def __init__(
+        self,
+        car_id: int,
+        driver: Driver,
+        car_attributes: Optional[CarAttributes] = None,
+        initial_compound: str = "MEDIUM",
+        setup: Optional[CarSetup] = None,
+        setup_confidence: float = 50.0,
+        practice_bonuses: Optional[Dict[str, float]] = None,
+        league_tier: int = 3,
+        initial_part_durabilities: Optional[Dict[str, float]] = None,
+    ):
         self.id = car_id
         self.driver = driver
         self.attributes = car_attributes or CarAttributes()
@@ -26,23 +37,23 @@ class Car:
         self.setup_confidence = setup_confidence
         self.practice_bonuses = practice_bonuses or {}
         self.league_tier: int = league_tier
-        
+
         # Position & Kinematics
-        self.s: float = 0.0              # Track distance (meters)
+        self.s: float = 0.0  # Track distance (meters)
         self.lap: int = 0
-        self.speed: float = 0.0          # Current velocity (m/s)
-        self.lateral_offset: float = 0.0 # -left, +right relative to track width
+        self.speed: float = 0.0  # Current velocity (m/s)
+        self.lateral_offset: float = 0.0  # -left, +right relative to track width
         self.target_lateral: float = 0.0
         self.heading: float = 0.0
         self.world_x: float = 0.0
         self.world_y: float = 0.0
 
         # Powertrain & Energy
-        self.fuel_kg: float = 50.0       # Starting fuel (kg)
+        self.fuel_kg: float = 50.0  # Starting fuel (kg)
         self._ers_pct: float = 0.0 if self.league_tier >= 3 else 100.0  # Hybrid battery %
-        self._pace_mode: str = "NORMAL"   # CONSERVE, NORMAL, PUSH, ATTACK
-        self._engine_mode: str = "STANDARD"# LEAN, STANDARD, RICH
-        self._ers_mode: str = "NONE" if self.league_tier >= 3 else "AUTO"      # AUTO, RECHARGE, BALANCED, OVERTAKE
+        self._pace_mode: str = "NORMAL"  # CONSERVE, NORMAL, PUSH, ATTACK
+        self._engine_mode: str = "STANDARD"  # LEAN, STANDARD, RICH
+        self._ers_mode: str = "NONE" if self.league_tier >= 3 else "AUTO"  # AUTO, RECHARGE, BALANCED, OVERTAKE
 
         # Flag Neutralization State & Mode Locking
         self.is_mode_locked: bool = False
@@ -82,8 +93,8 @@ class Car:
         self.pit_queued_compound: str = "HARD"
         self.in_pit_lane: bool = False
         self.pit_s: float = 0.0
-        self.pit_state: str = "TRACK"    # TRACK, APPROACH, IN_BOX, EXITING
-        self.pit_timer: float = 0.0      # Seconds remaining in box
+        self.pit_state: str = "TRACK"  # TRACK, APPROACH, IN_BOX, EXITING
+        self.pit_timer: float = 0.0  # Seconds remaining in box
         self.total_pit_stops: int = 0
         self.last_pit_duration: float = 0.0
 
@@ -93,7 +104,7 @@ class Car:
         self.interval_to_ahead: float = 0.0
         self.current_lap_time: float = 0.0
         self.last_lap_time: float = 0.0
-        self.best_lap_time: float = float('inf')
+        self.best_lap_time: float = float("inf")
         self.s1_time: float = 0.0
         self.s2_time: float = 0.0
         self.s3_time: float = 0.0
@@ -121,15 +132,15 @@ class Car:
         self.pit_emergency_repairs: bool = False
         self.blunder_part_damaged: Optional[str] = None
         self.blunder_drop_pct: float = 0.0
-        
+
         # Trackside & Pit Crew Modifiers (from facilities and equipment)
         self.pit_modifiers: Dict[str, float] = {
-            "base_stop_reduction": 0.0,       # seconds reduced from base 2.4s
-            "error_rate_mult": 1.0,           # multiplier on 4% error chance
-            "wing_change_time": 4.0,          # seconds for front wing swap
-            "repair_time": 14.0,              # seconds for emergency on-the-fly repairs
-            "repair_durability_min": 55.0,    # min restored durability %
-            "repair_durability_max": 60.0,    # max restored durability %
+            "base_stop_reduction": 0.0,  # seconds reduced from base 2.4s
+            "error_rate_mult": 1.0,  # multiplier on 4% error chance
+            "wing_change_time": 4.0,  # seconds for front wing swap
+            "repair_time": 14.0,  # seconds for emergency on-the-fly repairs
+            "repair_durability_min": 55.0,  # min restored durability %
+            "repair_durability_max": 60.0,  # max restored durability %
         }
 
     @property
@@ -146,6 +157,7 @@ class Car:
     def norm_aero(self) -> float:
         a = self.attributes.aero_downforce
         return (a / 380.0) if a > 120.0 else (a / 85.0)
+
     @property
     def ers_pct(self) -> float:
         return 0.0 if self.league_tier >= 3 else self._ers_pct
@@ -229,9 +241,17 @@ class Car:
         if self._saved_ers_mode:
             self._ers_mode = self._saved_ers_mode
             self._saved_ers_mode = None
-    def update_physics(self, dt: float, circuit: Circuit, race_control: RaceControl, 
-                       track_wetness: float, car_ahead: Optional['Car'], car_behind: Optional['Car'],
-                       all_cars: Optional[List['Car']] = None):
+
+    def update_physics(
+        self,
+        dt: float,
+        circuit: Circuit,
+        race_control: RaceControl,
+        track_wetness: float,
+        car_ahead: Optional["Car"],
+        car_behind: Optional["Car"],
+        all_cars: Optional[List["Car"]] = None,
+    ):
         """Advances physics based on Car and Driver attributes with multi-lane overtakes."""
         if self.finished or self.is_broken:
             self.speed = 0.0
@@ -305,7 +325,6 @@ class Car:
                 self._update_pit_lane(dt, circuit)
                 return
 
-
         # Smoke timer decay
         if self.smoke_timer > 0:
             self.smoke_timer = max(0.0, self.smoke_timer - dt)
@@ -318,12 +337,12 @@ class Car:
 
         curvature = circuit.get_curvature(self.s)
         local_width = circuit.get_width(self.s)
-        is_corner = (curvature > 0.0035)
+        is_corner = curvature > 0.0035
 
         dist_to_apex, apex_curv, inside_sign = circuit.get_corner_apex_ahead(self.s, lookahead_m=160.0)
         inside_offset = inside_sign * (local_width * 0.28)
         outside_offset = -inside_sign * (local_width * 0.28)
-        is_corner_entry = (dist_to_apex < 60.0 and apex_curv > 0.0035)
+        is_corner_entry = dist_to_apex < 60.0 and apex_curv > 0.0035
 
         # 4. Drafting & Dirty Air Evaluation
         if car_ahead and not car_ahead.in_pit_lane:
@@ -367,16 +386,23 @@ class Car:
         # Lookahead Corner Entry Braking Point - adjusted by Driver braking technique
         pace_brake_mult = {"CONSERVE": 0.88, "NORMAL": 1.0, "PUSH": 1.08, "ATTACK": 1.16}.get(self.pace_mode, 1.0)
         driver_brake_factor = 0.75 + 0.35 * self.driver.braking
-        decel_power = (22.0 + 16.0 * self.norm_brakes + 6.0 * self.driver.braking) * driver_brake_factor * effective_grip * pace_brake_mult
+        decel_power = (
+            (22.0 + 16.0 * self.norm_brakes + 6.0 * self.driver.braking)
+            * driver_brake_factor
+            * effective_grip
+            * pace_brake_mult
+        )
         brake_depth_mult = self.driver.get_brake_depth_multiplier()
 
         if is_corner_entry:
             apex_safe_speed = math.sqrt((effective_grip * 9.81 * aero_mult) / max(1e-4, apex_curv)) * driver_apex_factor
-            req_brake_dist = max(0.0, (self.speed**2 - apex_safe_speed**2) / (2.0 * max(10.0, decel_power))) * brake_depth_mult
+            req_brake_dist = (
+                max(0.0, (self.speed**2 - apex_safe_speed**2) / (2.0 * max(10.0, decel_power))) * brake_depth_mult
+            )
             if self.pace_mode == "ATTACK":
-                req_brake_dist *= 0.88 # Late braking dive bomb!
+                req_brake_dist *= 0.88  # Late braking dive bomb!
             elif self.pace_mode == "CONSERVE":
-                req_brake_dist *= 1.12 # Early braking
+                req_brake_dist *= 1.12  # Early braking
 
             if dist_to_apex <= req_brake_dist:
                 interp = dist_to_apex / max(1.0, req_brake_dist)
@@ -394,7 +420,7 @@ class Car:
                 if 0 < dist_behind < 40.0:
                     self.is_yielding_blue_flag = True
                     self.target_lateral = outside_offset * 1.1
-                    corner_max *= 0.86 # Ease off throttle under blue flags
+                    corner_max *= 0.86  # Ease off throttle under blue flags
             else:
                 # Same-lap battle: under pressure from pursuer
                 dist_behind = (self.s - car_behind.s) % circuit.length
@@ -423,7 +449,7 @@ class Car:
         engine_mix_mult = {"LEAN": 0.95, "STANDARD": 1.0, "RICH": 1.05}.get(self.engine_mode, 1.0)
 
         target_v = corner_max * pace_mult * fuel_weight_factor * (0.87 + driver_skill * 0.17)
-        
+
         gear_speed_delta = (self.setup.gear_ratio - 50.0) * 0.08
         top_speed_cap = (80.0 + 13.0 * self.norm_engine + gear_speed_delta) * engine_mix_mult * fuel_weight_factor
 
@@ -443,7 +469,7 @@ class Car:
 
         # ERS Hybrid Modes (Tier 1 & Tier 2)
         if self.league_tier < 3:
-            ers_boost_power = 4.0 if self.league_tier == 2 else 5.2 # Standardized spec ERS in Tier 2
+            ers_boost_power = 4.0 if self.league_tier == 2 else 5.2  # Standardized spec ERS in Tier 2
             ers_top_cap = 2.5 if self.league_tier == 2 else 3.5
             if self.ers_mode == "OVERTAKE" and self.ers_pct > 1.5:
                 target_v += ers_boost_power
@@ -465,7 +491,7 @@ class Car:
                         self.ers_pct = max(0.0, self.ers_pct - 0.7 * dt)
                     elif self.ers_pct < 65.0:
                         self.ers_pct = min(100.0, self.ers_pct + 1.2 * dt)
-            else: # BALANCED
+            else:  # BALANCED
                 if self.ers_pct < 100.0:
                     self.ers_pct = min(100.0, self.ers_pct + 0.8 * dt)
         else:
@@ -474,7 +500,13 @@ class Car:
         # Bunching & Traffic Density Incident Risk (number of cars within 25m)
         bunch_count = 0
         if all_cars:
-            bunch_count = sum(1 for oc in all_cars if oc is not self and not oc.is_broken and (abs(oc.s - self.s) < 25.0 or (circuit.length - abs(oc.s - self.s)) < 25.0))
+            bunch_count = sum(
+                1
+                for oc in all_cars
+                if oc is not self
+                and not oc.is_broken
+                and (abs(oc.s - self.s) < 25.0 or (circuit.length - abs(oc.s - self.s)) < 25.0)
+            )
         else:
             if car_ahead and not car_ahead.is_broken and ((car_ahead.s - self.s) % circuit.length < 25.0):
                 bunch_count += 1
@@ -486,7 +518,7 @@ class Car:
         if self.is_defending:
             driver_risk *= 1.45
         if track_wetness > 0.25:
-            driver_risk *= (1.0 + track_wetness * 0.8)
+            driver_risk *= 1.0 + track_wetness * 0.8
 
         # Tire wetness capability check:
         # If track wetness exceeds (tire_wet_capability + 0.10), car has 5x+ higher chance of fatal crash
@@ -517,7 +549,13 @@ class Car:
                 return
 
         # 2. Off-track Incident Check (goes into runoff / grass, loses speed and positions)
-        if not self.in_pit_lane and not self.off_track and not self.is_broken and not self.ran_wide and not self.locked_up:
+        if (
+            not self.in_pit_lane
+            and not self.off_track
+            and not self.is_broken
+            and not self.ran_wide
+            and not self.locked_up
+        ):
             p_offtrack = 0.00055 * driver_risk * bunch_mult * wet_offtrack_mult * dt
             if random.random() < p_offtrack:
                 self.off_track = True
@@ -533,7 +571,7 @@ class Car:
 
         # Flags, Safety Car, Sector Yellow & VSC Speed Control
         current_sector = circuit.get_sector(self.s)
-        in_yellow_sector = (race_control.yellow_sector == current_sector and race_control.flag == FlagStatus.YELLOW)
+        in_yellow_sector = race_control.yellow_sector == current_sector and race_control.flag == FlagStatus.YELLOW
         can_overtake = True
 
         # Dynamic Sector Yellow Neutralization (Conservative mode & locked strictly within yellow sector)
@@ -573,7 +611,7 @@ class Car:
                 can_overtake = False
                 # Smoothly decelerate from racing speed down toward pit limiter speed (22.2 m/s / 80 km/h)
                 approach_factor = max(0.0, min(1.0, dist_to_entry / 75.0))
-                pit_approach_speed = 22.2 + (target_v - 22.2) * (approach_factor ** 1.3)
+                pit_approach_speed = 22.2 + (target_v - 22.2) * (approach_factor**1.3)
                 target_v = min(target_v, pit_approach_speed)
 
         # Driver Error / Running Wide Check (driven by consistency and pressure)
@@ -585,7 +623,7 @@ class Car:
                     self.ran_wide_timer = 1.4
                     self.target_lateral = outside_offset * 1.25
                     self.speed *= 0.88
-                    
+
                     # Reliability wear trap: variable mistake drop
                     # 25% chance of severe blunder (-6% to -10%), else minor mistake (-2% to -4%)
                     blunder_candidates = ["FRONT_WING", "FLOOR", "SUSPENSION", "BRAKES"]
@@ -612,14 +650,20 @@ class Car:
         target_v = min(target_v, top_speed_cap)
         if self.speed < target_v:
             engine_accel_factor = 11.0 + 5.5 * self.norm_engine
-            accel = (engine_accel_factor * engine_mix_mult * effective_grip) * max(0.18, (1.0 - (self.speed / top_speed_cap)))
+            accel = (engine_accel_factor * engine_mix_mult * effective_grip) * max(
+                0.18, (1.0 - (self.speed / top_speed_cap))
+            )
             self.speed = min(target_v, self.speed + accel * dt)
         else:
             effective_decel = max(decel_power, 90.0) if self.off_track else decel_power
             self.speed = max(target_v, self.speed - effective_decel * dt)
 
             # Lockup risk (higher with worn tires, wetness, or extreme late braking)
-            if (self.tires.wear_pct > 65.0 or track_wetness > 0.25 or self.pace_mode == "ATTACK") and not self.locked_up and not self.off_track:
+            if (
+                (self.tires.wear_pct > 65.0 or track_wetness > 0.25 or self.pace_mode == "ATTACK")
+                and not self.locked_up
+                and not self.off_track
+            ):
                 lockup_prob = 0.003 * (1.1 - self.driver.consistency) * max(0.2, 1.3 - self.norm_brakes)
                 if self.driver.driving_style == "LATE_BRAKER":
                     lockup_prob *= 0.70  # Master of late braking avoids locking up despite deep entry
@@ -634,13 +678,24 @@ class Car:
                     self.part_durability["BRAKES"] = max(0.0, self.part_durability.get("BRAKES", 65.0) - brake_drop)
 
         # 8. Dynamic Multi-Lane Overtaking Battles - Modulated by Driver Style
-        if can_overtake and car_ahead and not car_ahead.in_pit_lane and not car_ahead.is_broken and not self.off_track and not self.rejoining:
+        if (
+            can_overtake
+            and car_ahead
+            and not car_ahead.in_pit_lane
+            and not car_ahead.is_broken
+            and not self.off_track
+            and not self.rejoining
+        ):
             dist_to_ahead = (car_ahead.s - self.s) % circuit.length
             ahead_defending = getattr(car_ahead, "is_defending", False)
             ahead_yielding = getattr(car_ahead, "is_yielding_blue_flag", False)
 
-            brake_ratio = (self.norm_brakes * self.driver.braking) / max(0.1, (car_ahead.norm_brakes * car_ahead.driver.braking))
-            aero_ratio = (self.norm_aero * effective_grip * driver_apex_factor) / max(0.1, (car_ahead.norm_aero * car_ahead.tires.get_effective_grip(track_wetness)))
+            brake_ratio = (self.norm_brakes * self.driver.braking) / max(
+                0.1, (car_ahead.norm_brakes * car_ahead.driver.braking)
+            )
+            aero_ratio = (self.norm_aero * effective_grip * driver_apex_factor) / max(
+                0.1, (car_ahead.norm_aero * car_ahead.tires.get_effective_grip(track_wetness))
+            )
 
             # Extended attack reach for Aggressive Hunters
             dive_range = 36.0 if self.driver.driving_style == "AGGRESSIVE_HUNTER" else 32.0
@@ -655,11 +710,14 @@ class Car:
             elif is_corner_entry and 0 < dist_to_ahead < dive_range:
                 # If defender is actively guarding the inside, attacker needs a massive braking delta (e.g. 685 vs 432) or LATE_BRAKER style to lunge inside
                 if ahead_defending:
-                    can_dive = (brake_ratio > 1.22 or (self.driver.driving_style == "LATE_BRAKER" and brake_ratio > 1.10))
+                    can_dive = brake_ratio > 1.22 or (self.driver.driving_style == "LATE_BRAKER" and brake_ratio > 1.10)
                 else:
-                    can_dive = (brake_ratio > 1.08 or self.pace_mode in ["ATTACK", "PUSH"] or 
-                                self.driver.driving_style in ["LATE_BRAKER", "AGGRESSIVE_HUNTER"] or 
-                                brake_ratio > 0.95)
+                    can_dive = (
+                        brake_ratio > 1.08
+                        or self.pace_mode in ["ATTACK", "PUSH"]
+                        or self.driver.driving_style in ["LATE_BRAKER", "AGGRESSIVE_HUNTER"]
+                        or brake_ratio > 0.95
+                    )
 
                 if can_dive:
                     self.target_lateral = inside_offset
@@ -717,7 +775,13 @@ class Car:
             if dist_to_ahead > 32.0 and self.is_overtaking:
                 self.is_overtaking = False
                 self.target_lateral = circuit.get_racing_line_offset(self.s)
-        elif not self.is_overtaking and not self.is_defending and not self.slipstream_active and not self.ran_wide and not self.off_track:
+        elif (
+            not self.is_overtaking
+            and not self.is_defending
+            and not self.slipstream_active
+            and not self.ran_wide
+            and not self.off_track
+        ):
             # When pitting this lap, smoothly steer toward pit entry corridor along the edge of the asphalt
             if self.box_this_lap and getattr(circuit, "pit_lane_enabled", False):
                 self.target_lateral = circuit.get_pit_approach_racing_line_offset(self.s, transition_window_m=90.0)
@@ -747,7 +811,7 @@ class Car:
         # 9. Update distance & Lap Timing
         dist_travelled = self.speed * dt
         new_s = self.s + dist_travelled
-        
+
         # Sector split timing checks
         s1_dist = circuit.sectors[0] * circuit.length
         s2_dist = circuit.sectors[1] * circuit.length
@@ -774,9 +838,9 @@ class Car:
         self.heading = circuit.get_heading(self.s)
 
         # 11. Tire Degradation, Suspension Setup & Practice Plan Bonuses
-        cornering_g = (self.speed ** 2) * curvature / 9.81
+        cornering_g = (self.speed**2) * curvature / 9.81
         wear_mult = {"CONSERVE": 0.65, "NORMAL": 1.0, "PUSH": 1.4, "ATTACK": 1.95}.get(self.pace_mode, 1.0)
-        
+
         chassis_preserve_factor = 1.15 - 0.30 * (self.attributes.tire_preservation / 100.0)
         driver_preserve_factor = self.driver.get_tire_preservation_multiplier()
 
@@ -784,25 +848,35 @@ class Car:
         suspension_wear_factor = 0.90 + 0.20 * (self.setup.suspension / 100.0)
 
         # Practice Plan bonuses (e.g. Sprint Stints or Long Runs tire preservation)
-        plan_wear_reduction = 1.0 - (self.practice_bonuses.get("race_wear_bonus", 0.0) + self.practice_bonuses.get("sprint_wear_bonus", 0.0))
+        plan_wear_reduction = 1.0 - (
+            self.practice_bonuses.get("race_wear_bonus", 0.0) + self.practice_bonuses.get("sprint_wear_bonus", 0.0)
+        )
         plan_wear_reduction = max(0.65, plan_wear_reduction)
 
         self.tires.apply_wear_and_thermals(
             dist_travelled=dist_travelled,
             track_length=circuit.length,
             dt=dt,
-            pace_multiplier=wear_mult * chassis_preserve_factor * driver_preserve_factor * suspension_wear_factor * plan_wear_reduction,
+            pace_multiplier=wear_mult
+            * chassis_preserve_factor
+            * driver_preserve_factor
+            * suspension_wear_factor
+            * plan_wear_reduction,
             cornering_g=cornering_g,
             fuel_weight_kg=self.fuel_kg,
             in_dirty_air=self.in_dirty_air,
-            track_wetness=track_wetness
+            track_wetness=track_wetness,
         )
 
-        
         # 12. Fuel Consumption & Practice Plan Fuel Saving Bonus
         chassis_fuel_factor = 1.15 - 0.30 * (self.attributes.fuel_efficiency / 100.0)
         fuel_bonus_mult = max(0.85, 1.0 - self.practice_bonuses.get("fuel_saving_bonus", 0.0))
-        fuel_burn = (0.018 * chassis_fuel_factor * fuel_bonus_mult * {"LEAN": 0.8, "STANDARD": 1.0, "RICH": 1.35}.get(self.engine_mode, 1.0)) * dt
+        fuel_burn = (
+            0.018
+            * chassis_fuel_factor
+            * fuel_bonus_mult
+            * {"LEAN": 0.8, "STANDARD": 1.0, "RICH": 1.35}.get(self.engine_mode, 1.0)
+        ) * dt
         self.fuel_kg = max(0.1, self.fuel_kg - fuel_burn)
 
         # 13. Component Durability Continuous Degradation & Terminal Breakdown
@@ -810,8 +884,8 @@ class Car:
         lap_dist = max(100.0, circuit.length)
         pace_deg_mult = {"CONSERVE": 0.7, "NORMAL": 1.0, "PUSH": 1.35, "ATTACK": 1.8}.get(self.pace_mode, 1.0)
         engine_deg_mult = {"LEAN": 0.8, "STANDARD": 1.0, "RICH": 1.4}.get(self.engine_mode, 1.0)
-        continuous_wear = (0.32 * pace_deg_mult * (dist_travelled / lap_dist))
-        
+        continuous_wear = 0.32 * pace_deg_mult * (dist_travelled / lap_dist)
+
         for p in self.part_durability:
             p_mult = engine_deg_mult if p == "ENGINE" else 1.0
             self.part_durability[p] = max(0.0, self.part_durability[p] - continuous_wear * p_mult)
@@ -833,7 +907,7 @@ class Car:
                     break
 
     def _update_pit_lane(self, dt: float, circuit: Circuit):
-        pit_limiter_speed = 22.2 # 80 km/h
+        pit_limiter_speed = 22.2  # 80 km/h
         box_s = circuit.pit_length * circuit.pit_box_s
 
         if self.pit_state == "APPROACH":
@@ -842,7 +916,7 @@ class Car:
                 self.speed = max(pit_limiter_speed, self.speed - 35.0 * dt)
             else:
                 self.speed = pit_limiter_speed
-                
+
             self.pit_s += self.speed * dt
             if self.pit_s >= box_s:
                 self.pit_s = box_s
@@ -867,10 +941,12 @@ class Car:
             self.pit_timer -= dt
             if self.pit_timer <= 0.0:
                 self.tires = TireSet(self.pit_queued_compound)
-                
+
                 # Apply front wing replacement if ordered
                 if self.pit_replace_front_wing:
-                    self.part_durability["FRONT_WING"] = max(self.part_durability.get("FRONT_WING", 0.0), self.pit_front_wing_durability)
+                    self.part_durability["FRONT_WING"] = max(
+                        self.part_durability.get("FRONT_WING", 0.0), self.pit_front_wing_durability
+                    )
                     self.pit_replace_front_wing = False
 
                 # Apply emergency on-the-fly repairs if ordered (brings worn parts up to target durability)
@@ -901,9 +977,13 @@ class Car:
         self.world_y = py
         self.heading = heading
 
-
-    def order_pit_stop(self, new_compound: str = "HARD", replace_front_wing: bool = False, 
-                       front_wing_durability: float = 100.0, emergency_repairs: bool = False):
+    def order_pit_stop(
+        self,
+        new_compound: str = "HARD",
+        replace_front_wing: bool = False,
+        front_wing_durability: float = 100.0,
+        emergency_repairs: bool = False,
+    ):
         self.box_this_lap = True
         self.pit_queued_compound = new_compound.upper()
         self.pit_replace_front_wing = replace_front_wing

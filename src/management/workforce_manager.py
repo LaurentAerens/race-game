@@ -1,6 +1,8 @@
 import random
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict
+
 from ..database.career_db import CareerDatabase
+
 
 class WorkforceManager:
     """
@@ -8,6 +10,7 @@ class WorkforceManager:
     sub-node staff capacity limits, hiring/firing,
     and HR automated recruitment delegation.
     """
+
     def __init__(self, db: CareerDatabase):
         self.db = db
 
@@ -15,7 +18,7 @@ class WorkforceManager:
         """Calculates total staff count, total capacity across unlocked sub-nodes, and monthly payroll."""
         facilities = self.db.get_team_facilities(team_id)
         total_capacity = sum(f["staff_capacity"] * f["current_tier"] for f in facilities if f["is_unlocked"])
-        
+
         with self.db.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("SELECT COUNT(*), SUM(salary_monthly), AVG(skill) FROM staff WHERE team_id = ?;", (team_id,))
@@ -32,7 +35,7 @@ class WorkforceManager:
                 "total_capacity": total_capacity,
                 "monthly_payroll": payroll,
                 "average_skill": avg_skill,
-                "auto_hire_enabled": auto_hire
+                "auto_hire_enabled": auto_hire,
             }
 
     def set_auto_hire(self, team_id: int, enabled: bool):
@@ -62,8 +65,11 @@ class WorkforceManager:
                 name = f"{random.choice(first_names)} {random.choice(last_names)}"
                 skill = random.randint(55, 80)
                 salary = skill * 45.0
-                cur.execute("""
+                cur.execute(
+                    """
                 INSERT INTO staff (team_id, name, role, assigned_subnode, skill, salary_monthly)
                 VALUES (?, ?, 'Specialist', 'eng_workshop', ?, ?);
-                """, (team_id, name, skill, salary))
+                """,
+                    (team_id, name, skill, salary),
+                )
             conn.commit()

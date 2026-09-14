@@ -1,16 +1,22 @@
+from typing import Any, List, Optional
+
 import pygame
-from typing import Optional, Callable, List, Any
+
 from ..core.car import Car
 from ..core.tires import TIRE_COMPOUNDS
 from .theme import UITheme
 
+
 class PitStrategyModal:
     """Popup modal dialog for choosing pit stop tire compounds, front wing replacement, and on-the-fly emergency repairs."""
+
     def __init__(self, screen_width: int, screen_height: int):
         self.width = 460
         self.height = 360
-        self.rect = pygame.Rect((screen_width - self.width) // 2, (screen_height - self.height) // 2, self.width, self.height)
-        
+        self.rect = pygame.Rect(
+            (screen_width - self.width) // 2, (screen_height - self.height) // 2, self.width, self.height
+        )
+
         self.is_open = False
         self.target_car: Optional[Car] = None
         self.selected_compound = "SOFT"
@@ -20,7 +26,7 @@ class PitStrategyModal:
         self.spare_wing_available = True
         self.spare_wing_durability = 100.0
         self.db_manager: Optional[Any] = None
-        
+
         self._init_fonts()
 
     def _init_fonts(self):
@@ -32,18 +38,30 @@ class PitStrategyModal:
     def resize(self, screen_width: int, screen_height: int):
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.rect = pygame.Rect((screen_width - self.width) // 2, (screen_height - self.height) // 2, self.width, self.height)
+        self.rect = pygame.Rect(
+            (screen_width - self.width) // 2, (screen_height - self.height) // 2, self.width, self.height
+        )
         self._init_fonts()
 
-    def open(self, car: Car, dry_compounds: Optional[List[str]] = None, db_manager: Optional[Any] = None, team_id: Optional[int] = None):
+    def open(
+        self,
+        car: Car,
+        dry_compounds: Optional[List[str]] = None,
+        db_manager: Optional[Any] = None,
+        team_id: Optional[int] = None,
+    ):
         self.target_car = car
         self.db_manager = db_manager
         dry = dry_compounds or ["HARD", "MEDIUM", "SOFT"]
         self.available_compounds = dry + ["INTER", "WET"]
-        self.selected_compound = car.pit_queued_compound if car.pit_queued_compound in self.available_compounds else self.available_compounds[1]
+        self.selected_compound = (
+            car.pit_queued_compound
+            if car.pit_queued_compound in self.available_compounds
+            else self.available_compounds[1]
+        )
         self.replace_front_wing = getattr(car, "pit_replace_front_wing", False)
         self.emergency_repairs = getattr(car, "pit_emergency_repairs", False)
-        
+
         # Check spare stock from warehouse if db available
         self.spare_wing_available = True
         self.spare_wing_durability = 100.0
@@ -71,7 +89,7 @@ class PitStrategyModal:
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mx, my = event.pos
-            
+
             # Clicked outside modal -> close
             if not self.rect.collidepoint(mx, my):
                 self.close()
@@ -104,7 +122,7 @@ class PitStrategyModal:
                         self.selected_compound,
                         replace_front_wing=self.replace_front_wing,
                         front_wing_durability=self.spare_wing_durability,
-                        emergency_repairs=self.emergency_repairs
+                        emergency_repairs=self.emergency_repairs,
                     )
                 self.close()
                 return True
@@ -130,11 +148,11 @@ class PitStrategyModal:
 
         # Main Modal Box
         UITheme.draw_panel(surface, self.rect, border_radius=6)
-        
+
         # Title bar
         hdr_rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 34)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=6, border_top_right_radius=6)
-        
+
         title_text = f"PIT STRATEGY - {self.target_car.driver.name} (#{self.target_car.driver.number})"
         t_surf = self.font_title.render(title_text, True, UITheme.ACCENT_CYAN)
         surface.blit(t_surf, (self.rect.x + 14, self.rect.y + 8))
@@ -147,17 +165,17 @@ class PitStrategyModal:
         for idx, c_name in enumerate(self.available_compounds):
             comp = TIRE_COMPOUNDS[c_name]
             b_rect = pygame.Rect(self.rect.x + 18 + idx * 84, self.rect.y + 66, 76, 58)
-            is_sel = (self.selected_compound == c_name)
-            
+            is_sel = self.selected_compound == c_name
+
             bg_col = (45, 55, 75) if is_sel else (26, 30, 38)
             border_col = comp.color_rgb if is_sel else UITheme.PANEL_BORDER
-            
+
             pygame.draw.rect(surface, bg_col, b_rect, border_radius=4)
             pygame.draw.rect(surface, border_col, b_rect, width=2 if is_sel else 1, border_radius=4)
-            
+
             # Pip color
             pygame.draw.circle(surface, comp.color_rgb, (b_rect.x + 14, b_rect.y + 14), 6)
-            
+
             # Name & Code
             c_lbl = self.font_btn.render(comp.code, True, UITheme.TEXT_WHITE)
             surface.blit(c_lbl, (b_rect.x + 28, b_rect.y + 7))
@@ -174,10 +192,10 @@ class PitStrategyModal:
         pygame.draw.rect(surface, (18, 22, 28), info_rect, border_radius=4)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, info_rect, width=1, border_radius=4)
 
-        info1 = f"Selected: {sel_comp.name} [{sel_comp.tier}] | Grip: {int(sel_comp.base_grip*100)}% | Cliff: {int(sel_comp.cliff_wear_pct)}%"
+        info1 = f"Selected: {sel_comp.name} [{sel_comp.tier}] | Grip: {int(sel_comp.base_grip * 100)}% | Cliff: {int(sel_comp.cliff_wear_pct)}%"
         cur_fw = self.target_car.part_durability.get("FRONT_WING", 65.0)
         info2 = f"Current Front Wing Durability: {cur_fw:.0f}%"
-        
+
         surface.blit(self.font_btn.render(info1, True, sel_comp.color_rgb), (info_rect.x + 10, info_rect.y + 8))
         surface.blit(self.font_desc.render(info2, True, UITheme.TEXT_MUTED), (info_rect.x + 10, info_rect.y + 28))
 
@@ -187,20 +205,25 @@ class PitStrategyModal:
         fw_border = (0, 220, 140) if self.replace_front_wing else UITheme.PANEL_BORDER
         pygame.draw.rect(surface, fw_bg, fw_rect, border_radius=4)
         pygame.draw.rect(surface, fw_border, fw_rect, width=2 if self.replace_front_wing else 1, border_radius=4)
-        
+
         chk_icon = "[X]" if self.replace_front_wing else "[ ]"
         stock_txt = f"{chk_icon} SWAP FRONT WING (+4.0s)"
         stock_col = UITheme.TEXT_WHITE if self.spare_wing_available else (120, 120, 120)
         surface.blit(self.font_btn.render(stock_txt, True, stock_col), (fw_rect.x + 8, fw_rect.y + 6))
-        avail_txt = f"Spare in Stock ({self.spare_wing_durability:.0f}%)" if self.spare_wing_available else "NO SPARE IN STOCK"
-        surface.blit(self.font_badge.render(avail_txt, True, (0, 200, 220) if self.spare_wing_available else (220, 60, 60)), (fw_rect.x + 8, fw_rect.y + 24))
+        avail_txt = (
+            f"Spare in Stock ({self.spare_wing_durability:.0f}%)" if self.spare_wing_available else "NO SPARE IN STOCK"
+        )
+        surface.blit(
+            self.font_badge.render(avail_txt, True, (0, 200, 220) if self.spare_wing_available else (220, 60, 60)),
+            (fw_rect.x + 8, fw_rect.y + 24),
+        )
 
         er_rect = pygame.Rect(self.rect.x + 237, self.rect.y + 194, 205, 42)
         er_bg = (65, 40, 30) if self.emergency_repairs else (22, 26, 32)
         er_border = (255, 140, 40) if self.emergency_repairs else UITheme.PANEL_BORDER
         pygame.draw.rect(surface, er_bg, er_rect, border_radius=4)
         pygame.draw.rect(surface, er_border, er_rect, width=2 if self.emergency_repairs else 1, border_radius=4)
-        
+
         er_chk = "[X]" if self.emergency_repairs else "[ ]"
         er_txt = f"{er_chk} EMERGENCY REPAIRS (+14.0s)"
         surface.blit(self.font_btn.render(er_txt, True, UITheme.TEXT_WHITE), (er_rect.x + 8, er_rect.y + 6))

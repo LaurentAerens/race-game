@@ -1,8 +1,9 @@
 import math
 import random
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
 
 class RaceWeekendSession(str, Enum):
     FP1 = "FP1"
@@ -12,39 +13,45 @@ class RaceWeekendSession(str, Enum):
     SPRINT = "SPRINT"
     RACE = "RACE"
 
+
 class PracticePlan(str, Enum):
     BALANCED = "BALANCED"
     FAST_LAP = "FAST_LAP"
     SPRINT_STINTS = "SPRINT_STINTS"
     LONG_RUNS = "LONG_RUNS"
 
+
 @dataclass
 class CarSetup:
     """Aerodynamic, mechanical, and gearing setup parameters."""
-    front_wing: float = 50.0       # 0 (low drag) - 100 (high downforce / turn-in)
-    rear_wing: float = 50.0        # 0 (high top speed) - 100 (high downforce / stability)
-    suspension: float = 50.0       # 0 (soft / curb compliance) - 100 (stiff / aero stability)
-    gear_ratio: float = 50.0       # 0 (short acceleration) - 100 (long top speed)
-    brake_bias: float = 56.0       # 50% (rear bias / rotation) - 65% (front bias / stability)
 
-    def copy(self) -> 'CarSetup':
+    front_wing: float = 50.0  # 0 (low drag) - 100 (high downforce / turn-in)
+    rear_wing: float = 50.0  # 0 (high top speed) - 100 (high downforce / stability)
+    suspension: float = 50.0  # 0 (soft / curb compliance) - 100 (stiff / aero stability)
+    gear_ratio: float = 50.0  # 0 (short acceleration) - 100 (long top speed)
+    brake_bias: float = 56.0  # 50% (rear bias / rotation) - 65% (front bias / stability)
+
+    def copy(self) -> "CarSetup":
         return CarSetup(
             front_wing=self.front_wing,
             rear_wing=self.rear_wing,
             suspension=self.suspension,
             gear_ratio=self.gear_ratio,
-            brake_bias=self.brake_bias
+            brake_bias=self.brake_bias,
         )
+
 
 @dataclass
 class OptimalTrackSetup:
     """Target sweet-spot values for a specific circuit."""
+
     front_wing: float = 55.0
     rear_wing: float = 58.0
     suspension: float = 50.0
     gear_ratio: float = 55.0
     brake_bias: float = 56.5
-    tolerance: float = 8.0 # +/- tolerance where setup is considered optimal
+    tolerance: float = 8.0  # +/- tolerance where setup is considered optimal
+
 
 class RaceWeekendManager:
     """
@@ -57,8 +64,14 @@ class RaceWeekendManager:
     SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1]
     RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 
-    def __init__(self, league_tier: int, track_metadata: Dict[str, Any], total_laps_base: int = 22,
-                 facility_tiers: Optional[Dict[str, int]] = None, equipment_levels: Optional[Dict[str, int]] = None):
+    def __init__(
+        self,
+        league_tier: int,
+        track_metadata: Dict[str, Any],
+        total_laps_base: int = 22,
+        facility_tiers: Optional[Dict[str, int]] = None,
+        equipment_levels: Optional[Dict[str, int]] = None,
+    ):
         self.tier = league_tier
         self.track_metadata = track_metadata
         self.track_name = track_metadata.get("track_name", "Grand Prix Circuit")
@@ -96,7 +109,9 @@ class RaceWeekendManager:
                     rear_wing=max(0.0, min(100.0, c_opt.rear_wing + random.uniform(-drift_max, drift_max))),
                     suspension=max(0.0, min(100.0, c_opt.suspension + random.uniform(-drift_max, drift_max))),
                     gear_ratio=max(0.0, min(100.0, c_opt.gear_ratio + random.uniform(-drift_max, drift_max))),
-                    brake_bias=max(50.0, min(65.0, c_opt.brake_bias + random.uniform(-drift_max * 0.15, drift_max * 0.15)))
+                    brake_bias=max(
+                        50.0, min(65.0, c_opt.brake_bias + random.uniform(-drift_max * 0.15, drift_max * 0.15))
+                    ),
                 )
             else:
                 initial_setups[slot] = CarSetup()
@@ -104,36 +119,29 @@ class RaceWeekendManager:
         self.car_setups: Dict[int, CarSetup] = initial_setups
 
         # Practice Plans per car
-        self.practice_plans: Dict[int, PracticePlan] = {
-            1: PracticePlan.BALANCED,
-            2: PracticePlan.BALANCED
-        }
+        self.practice_plans: Dict[int, PracticePlan] = {1: PracticePlan.BALANCED, 2: PracticePlan.BALANCED}
 
         # Setup Confidence (0.0 to 100.0) per car (boosted by virtual sim and rubber testing bench)
         base_confidence = 25.0
         if vsim_tier > 0:
-            base_confidence = min(85.0, base_confidence + (vsim_tier * 10.0) + (vsim_rubber_lvl * 4.0) + (vsim_neural_lvl * 3.0))
+            base_confidence = min(
+                85.0, base_confidence + (vsim_tier * 10.0) + (vsim_rubber_lvl * 4.0) + (vsim_neural_lvl * 3.0)
+            )
 
-        self.setup_confidence: Dict[int, float] = {
-            1: base_confidence,
-            2: base_confidence
-        }
+        self.setup_confidence: Dict[int, float] = {1: base_confidence, 2: base_confidence}
 
         # Driver feedback log per car: list of feedback message dicts
-        self.driver_feedback: Dict[int, List[Dict[str, Any]]] = {
-            1: [],
-            2: []
-        }
+        self.driver_feedback: Dict[int, List[Dict[str, Any]]] = {1: [], 2: []}
 
         # Plan bonuses accumulated during practice
         self.practice_bonuses: Dict[int, Dict[str, float]] = {
             1: {"qualy_pace_bonus": 0.0, "sprint_wear_bonus": 0.0, "race_wear_bonus": 0.0, "fuel_saving_bonus": 0.0},
-            2: {"qualy_pace_bonus": 0.0, "sprint_wear_bonus": 0.0, "race_wear_bonus": 0.0, "fuel_saving_bonus": 0.0}
+            2: {"qualy_pace_bonus": 0.0, "sprint_wear_bonus": 0.0, "race_wear_bonus": 0.0, "fuel_saving_bonus": 0.0},
         }
 
         # Session results storage
         self.practice_results: Dict[str, List[Dict[str, Any]]] = {}
-        self.qualifying_results: List[Dict[str, Any]] = [] # P1 to P20
+        self.qualifying_results: List[Dict[str, Any]] = []  # P1 to P20
         self.sprint_results: List[Dict[str, Any]] = []
         self.race_results: List[Dict[str, Any]] = []
 
@@ -151,7 +159,7 @@ class RaceWeekendManager:
                 RaceWeekendSession.FP1,
                 RaceWeekendSession.FP2,
                 RaceWeekendSession.QUALIFYING,
-                RaceWeekendSession.SPRINT
+                RaceWeekendSession.SPRINT,
             ]
         elif tier == 2:
             # Tier 2 (Continental): 2 Practice Sessions, 1 Qualifying, 1 Normal Race
@@ -159,7 +167,7 @@ class RaceWeekendManager:
                 RaceWeekendSession.FP1,
                 RaceWeekendSession.FP2,
                 RaceWeekendSession.QUALIFYING,
-                RaceWeekendSession.RACE
+                RaceWeekendSession.RACE,
             ]
         else:
             # Tier 1 (World Super Formula): FP1 -> FP2 -> QUALIFYING -> SPRINT (Reverse Grid) -> FP3 (Race Fine-Tuning) -> RACE
@@ -169,42 +177,37 @@ class RaceWeekendManager:
                 RaceWeekendSession.QUALIFYING,
                 RaceWeekendSession.SPRINT,
                 RaceWeekendSession.FP3,
-                RaceWeekendSession.RACE
+                RaceWeekendSession.RACE,
             ]
 
     def _derive_optimal_setup(self, track_meta: Dict[str, Any]) -> OptimalTrackSetup:
         """Derives track sweet spot from track characteristics."""
         c_file = track_meta.get("circuit_file", "").lower()
-        
+
         # High downforce street circuit
         if "harbor" in c_file:
             return OptimalTrackSetup(
                 front_wing=76.0,
                 rear_wing=80.0,
-                suspension=38.0, # softer for street bumps
-                gear_ratio=42.0, # short gearing for tight acceleration
+                suspension=38.0,  # softer for street bumps
+                gear_ratio=42.0,  # short gearing for tight acceleration
                 brake_bias=57.5,
-                tolerance=7.5
+                tolerance=7.5,
             )
         # High speed power temple
         elif "apex" in c_file:
             return OptimalTrackSetup(
                 front_wing=42.0,
                 rear_wing=45.0,
-                suspension=68.0, # stiff platform for high-speed sweepers
-                gear_ratio=74.0, # long gearing for top speed
+                suspension=68.0,  # stiff platform for high-speed sweepers
+                gear_ratio=74.0,  # long gearing for top speed
                 brake_bias=55.5,
-                tolerance=8.0
+                tolerance=8.0,
             )
         # Technical balanced circuit
-        else: # Emerald Ring
+        else:  # Emerald Ring
             return OptimalTrackSetup(
-                front_wing=58.0,
-                rear_wing=62.0,
-                suspension=54.0,
-                gear_ratio=56.0,
-                brake_bias=56.0,
-                tolerance=8.0
+                front_wing=58.0, rear_wing=62.0, suspension=54.0, gear_ratio=56.0, brake_bias=56.0, tolerance=8.0
             )
 
     @property
@@ -231,9 +234,9 @@ class RaceWeekendManager:
 
     def get_current_session_laps(self) -> int:
         if self.is_practice:
-            return 5 # Practice stint
+            return 5  # Practice stint
         elif self.is_qualifying:
-            return 3 # Out-lap, flying lap, in-lap
+            return 3  # Out-lap, flying lap, in-lap
         elif self.is_sprint:
             return self.sprint_laps
         else:
@@ -396,7 +399,7 @@ class RaceWeekendManager:
             "confidence_pct": round(new_conf, 1),
             "summary_quote": summary,
             "feedback_points": comments,
-            "laps_completed": laps_run
+            "laps_completed": laps_run,
         }
 
         self.driver_feedback[car_slot].append(run_result)
@@ -408,7 +411,7 @@ class RaceWeekendManager:
         Takes into account car power, driver pace, setup confidence, and fast-lap bonuses.
         """
         qualy_entries = []
-        base_lap_time = 72.500 # Baseline lap ~1:12.500
+        base_lap_time = 72.500  # Baseline lap ~1:12.500
 
         for driver, car_attrs in all_drivers_cars:
             # Power & Aero delta
@@ -438,15 +441,17 @@ class RaceWeekendManager:
             final_lap_time = base_lap_time - car_perf_bonus - drv_bonus - player_bonus + variance
             final_lap_time = max(55.0, final_lap_time)
 
-            qualy_entries.append({
-                "driver": driver,
-                "driver_name": getattr(driver, "name", "Driver"),
-                "team_name": getattr(driver, "team_name", "Team"),
-                "is_player": getattr(driver, "is_player", False),
-                "number": getattr(driver, "number", 1),
-                "car_attrs": car_attrs,
-                "lap_time": final_lap_time
-            })
+            qualy_entries.append(
+                {
+                    "driver": driver,
+                    "driver_name": getattr(driver, "name", "Driver"),
+                    "team_name": getattr(driver, "team_name", "Team"),
+                    "is_player": getattr(driver, "is_player", False),
+                    "number": getattr(driver, "number", 1),
+                    "car_attrs": car_attrs,
+                    "lap_time": final_lap_time,
+                }
+            )
 
         # Sort by fastest flying lap time
         qualy_entries.sort(key=lambda x: x["lap_time"])
@@ -474,7 +479,7 @@ class RaceWeekendManager:
             top_10 = list(reversed(self.qualifying_results[:10]))
             bottom_10 = list(self.qualifying_results[10:])
             reversed_grid = []
-            
+
             for new_pos, entry in enumerate(top_10, 1):
                 item = dict(entry)
                 item["sprint_grid_pos"] = new_pos

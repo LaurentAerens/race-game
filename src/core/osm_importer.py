@@ -1,14 +1,17 @@
 import math
+from typing import List, Optional, Tuple
+
 import requests
-from typing import List, Tuple, Dict, Optional
+
 from .circuit import Circuit
+
 
 class OSMImporter:
     """
-    Imports and converts OpenStreetMap road nodes and GPS coordinates 
+    Imports and converts OpenStreetMap road nodes and GPS coordinates
     (Lat, Lon) into continuous 2D Circuit splines using Spherical Mercator projection.
     """
-    
+
     @staticmethod
     def latlon_to_meters(lat: float, lon: float, origin_lat: float, origin_lon: float) -> Tuple[float, float]:
         """Projects (lat, lon) to local tangent plane in meters relative to origin."""
@@ -16,7 +19,7 @@ class OSMImporter:
         d_lat = math.radians(lat - origin_lat)
         d_lon = math.radians(lon - origin_lon)
         lat_rad = math.radians(origin_lat)
-        
+
         x = R * d_lon * math.cos(lat_rad)
         y = -R * d_lat  # Invert Y so North is Up
         return (x, y)
@@ -36,14 +39,15 @@ class OSMImporter:
 
         # Convert to local meters
         local_points = [cls.latlon_to_meters(lat, lon, avg_lat, avg_lon) for lat, lon in coords]
-        
+
         circuit = Circuit(name=name, width=width)
         circuit.set_control_points(local_points)
         return circuit
 
     @classmethod
-    def fetch_overpass_street_loop(cls, query_bbox: Tuple[float, float, float, float], 
-                                  street_names: Optional[List[str]] = None) -> Optional[List[Tuple[float, float]]]:
+    def fetch_overpass_street_loop(
+        cls, query_bbox: Tuple[float, float, float, float], street_names: Optional[List[str]] = None
+    ) -> Optional[List[Tuple[float, float]]]:
         """
         Fetches street nodes within a bounding box (south, west, north, east) from OpenStreetMap Overpass API.
         """
@@ -62,9 +66,13 @@ class OSMImporter:
             resp = requests.post(overpass_url, data={"data": query}, timeout=10)
             if resp.status_code == 200:
                 data = resp.json()
-                nodes = {node["id"]: (node["lat"], node["lon"]) for node in data.get("elements", []) if node["type"] == "node"}
+                nodes = {
+                    node["id"]: (node["lat"], node["lon"])
+                    for node in data.get("elements", [])
+                    if node["type"] == "node"
+                }
                 ways = [way["nodes"] for way in data.get("elements", []) if way["type"] == "way"]
-                
+
                 # Extract first prominent way loop if available
                 if ways:
                     coords = [nodes[nid] for nid in ways[0] if nid in nodes]

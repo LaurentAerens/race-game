@@ -5,14 +5,15 @@ GPS-to-meters projection, road snapping, and Circuit object generation.
 Completely copyright-free: no hardcoded or bundled real-world circuits.
 """
 
-import os
-import math
-import json
 import heapq
-import numpy as np
-import urllib.request
+import json
+import math
+import os
 import urllib.parse
-from typing import List, Tuple, Dict, Any, Optional
+import urllib.request
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 from src.core.circuit import Circuit
 
@@ -63,7 +64,9 @@ def parse_osm_road_width(tags: Dict[str, Any]) -> float:
     for key in ("width", "est_width"):
         val = tags.get(key)
         if val is not None:
-            val_str = str(val).lower().replace("m", "").replace("meters", "").replace("metres", "").replace(",", ".").strip()
+            val_str = (
+                str(val).lower().replace("m", "").replace("meters", "").replace("metres", "").replace(",", ".").strip()
+            )
             val_str = val_str.split(";")[0].split()[0] if val_str else ""
             try:
                 w_val = float(val_str)
@@ -134,10 +137,8 @@ def geocode_location(query: str) -> Optional[Dict[str, Any]]:
 
     encoded_q = urllib.parse.quote(query.strip())
     url = f"https://nominatim.openstreetmap.org/search?q={encoded_q}&format=json&limit=1"
-    headers = {
-        "User-Agent": "RaceGameTrackEditor/1.0 (Educational open-source project)"
-    }
-    
+    headers = {"User-Agent": "RaceGameTrackEditor/1.0 (Educational open-source project)"}
+
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=8) as resp:
@@ -146,7 +147,7 @@ def geocode_location(query: str) -> Optional[Dict[str, Any]]:
                 return {
                     "lat": float(data[0]["lat"]),
                     "lon": float(data[0]["lon"]),
-                    "display_name": data[0].get("display_name", query)
+                    "display_name": data[0].get("display_name", query),
                 }
     except Exception as e:
         print(f"[OSMImporter] Geocoding error for '{query}': {e}")
@@ -161,7 +162,9 @@ OVERPASS_ENDPOINTS = [
 ]
 
 
-def fetch_road_network(lat: float, lon: float, radius_m: int = 1500, origin_lat: Optional[float] = None, origin_lon: Optional[float] = None) -> Dict[str, Any]:
+def fetch_road_network(
+    lat: float, lon: float, radius_m: int = 1500, origin_lat: Optional[float] = None, origin_lon: Optional[float] = None
+) -> Dict[str, Any]:
     """
     Fetches drivable roads and cycling/path networks around (lat, lon) within radius_m using Overpass API.
     Caches response locally to avoid redundant API calls.
@@ -172,7 +175,7 @@ def fetch_road_network(lat: float, lon: float, radius_m: int = 1500, origin_lat:
     ensure_cache_dir()
     cache_filename = f"osm_{round(lat, 4)}_{round(lon, 4)}_{radius_m}.json"
     cache_path = os.path.join(CACHE_DIR, cache_filename)
-    
+
     proj_lat0 = origin_lat if origin_lat is not None else lat
     proj_lon0 = origin_lon if origin_lon is not None else lon
 
@@ -204,16 +207,14 @@ def fetch_road_network(lat: float, lon: float, radius_m: int = 1500, origin_lat:
                                 ys = [p[1] for p in xy_pts]
                                 w_copy["bbox"] = (min(xs), max(xs), min(ys), max(ys))
                             reprojected_ways.append(w_copy)
-                    return {
-                        "center": [lat, lon],
-                        "radius": radius_m,
-                        "ways": reprojected_ways
-                    }
+                    return {"center": [lat, lon], "radius": radius_m, "ways": reprojected_ways}
         except Exception:
             pass
 
     # Build Overpass QL query covering all drivable roads as well as cycleways, bike highways, paths, and service tracks
-    highway_filter = "motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street|cycleway|track|path"
+    highway_filter = (
+        "motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street|cycleway|track|path"
+    )
     overpass_query = f"""
     [out:json][timeout:25];
     (
@@ -223,7 +224,7 @@ def fetch_road_network(lat: float, lon: float, radius_m: int = 1500, origin_lat:
     >;
     out skel qt;
     """
-    
+
     data_payload = urllib.parse.urlencode({"data": overpass_query}).encode("utf-8")
     headers = {
         "User-Agent": "RaceGameTrackEditor/1.0 (Educational open-source project; contact: github.com/personal/race-game)"
@@ -264,28 +265,26 @@ def fetch_road_network(lat: float, lon: float, radius_m: int = 1500, origin_lat:
                     points_gps.append((nlat, nlon))
                     xy = project_gps_to_meters(nlat, nlon, proj_lat0, proj_lon0)
                     points_xy.append(xy)
-            
+
             if len(points_xy) >= 2:
                 xs = [p[0] for p in points_xy]
                 ys = [p[1] for p in points_xy]
                 road_type = tags.get("highway", "road")
-                ways.append({
-                    "id": element["id"],
-                    "name": tags.get("name", "Unnamed Road"),
-                    "type": road_type,
-                    "width_m": parse_osm_road_width(tags),
-                    "tags": tags,
-                    "oneway": tags.get("oneway") in ["yes", "1", "true"],
-                    "points_gps": points_gps,
-                    "points_xy": points_xy,
-                    "bbox": (min(xs), max(xs), min(ys), max(ys))
-                })
+                ways.append(
+                    {
+                        "id": element["id"],
+                        "name": tags.get("name", "Unnamed Road"),
+                        "type": road_type,
+                        "width_m": parse_osm_road_width(tags),
+                        "tags": tags,
+                        "oneway": tags.get("oneway") in ["yes", "1", "true"],
+                        "points_gps": points_gps,
+                        "points_xy": points_xy,
+                        "bbox": (min(xs), max(xs), min(ys), max(ys)),
+                    }
+                )
 
-    result = {
-        "center": [lat, lon],
-        "radius": radius_m,
-        "ways": ways
-    }
+    result = {"center": [lat, lon], "radius": radius_m, "ways": ways}
 
     try:
         with open(cache_path, "w", encoding="utf-8") as f:
@@ -296,8 +295,9 @@ def fetch_road_network(lat: float, lon: float, radius_m: int = 1500, origin_lat:
     return result
 
 
-
-def point_segment_distance(px: float, py: float, ax: float, ay: float, bx: float, by: float) -> Tuple[float, Tuple[float, float]]:
+def point_segment_distance(
+    px: float, py: float, ax: float, ay: float, bx: float, by: float
+) -> Tuple[float, Tuple[float, float]]:
     """
     Returns (distance, (closest_x, closest_y)) from point P to segment AB.
     """
@@ -307,7 +307,7 @@ def point_segment_distance(px: float, py: float, ax: float, ay: float, bx: float
     if seg_len_sq == 0.0:
         dist = math.hypot(px - ax, py - ay)
         return dist, (ax, ay)
-    
+
     t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / seg_len_sq))
     proj_x = ax + t * dx
     proj_y = ay + t * dy
@@ -315,7 +315,9 @@ def point_segment_distance(px: float, py: float, ax: float, ay: float, bx: float
     return dist, (round(proj_x, 2), round(proj_y, 2))
 
 
-def snap_point_to_roads(px: float, py: float, ways: List[Dict[str, Any]], max_dist: float = 80.0) -> Optional[Dict[str, Any]]:
+def snap_point_to_roads(
+    px: float, py: float, ways: List[Dict[str, Any]], max_dist: float = 80.0
+) -> Optional[Dict[str, Any]]:
     """
     Finds closest point on any road segment within max_dist meters.
     """
@@ -349,7 +351,7 @@ def snap_point_to_roads(px: float, py: float, ways: List[Dict[str, Any]], max_di
             "road_name": best_road["name"],
             "road_type": best_road["type"],
             "width_m": float(road_w),
-            "distance": best_dist
+            "distance": best_dist,
         }
     return None
 
@@ -413,9 +415,7 @@ def remove_backtracking_and_hairpins(path: List[Tuple[float, float]]) -> List[Tu
 
 
 def simplify_almost_straights(
-    pts: List[Tuple[float, float]],
-    max_lateral_dev: float = 3.5,
-    min_corner_angle_deg: float = 10.0
+    pts: List[Tuple[float, float]], max_lateral_dev: float = 3.5, min_corner_angle_deg: float = 10.0
 ) -> List[Tuple[float, float]]:
     """
     Simplifies road geometry by collapsing small kinks, micro-bends, and sub-threshold wiggles
@@ -449,7 +449,7 @@ def simplify_almost_straights(
                 index = i
                 dmax = d
         if dmax > max_lateral_dev:
-            r1 = _rdp(sub[:index + 1])
+            r1 = _rdp(sub[: index + 1])
             r2 = _rdp(sub[index:])
             return r1[:-1] + r2
         else:
@@ -525,7 +525,9 @@ def fillet_sharp_corners(pts: List[Tuple[float, float]], default_radius: float =
     return result
 
 
-def regularize_control_points(pts: List[Tuple[float, float]], min_spacing: float = 20.0, max_spacing: Optional[float] = None) -> List[Tuple[float, float]]:
+def regularize_control_points(
+    pts: List[Tuple[float, float]], min_spacing: float = 20.0, max_spacing: Optional[float] = None
+) -> List[Tuple[float, float]]:
     """
     Cleans and deduplicates control points:
     - Eliminates micro-spaced redundant points closer than min_spacing.
@@ -565,10 +567,7 @@ def regularize_control_points(pts: List[Tuple[float, float]], min_spacing: float
 
 
 def shortest_path_on_roads(
-    start_pt: Tuple[float, float],
-    end_pt: Tuple[float, float],
-    ways: List[Dict[str, Any]],
-    tolerance: float = 10.0
+    start_pt: Tuple[float, float], end_pt: Tuple[float, float], ways: List[Dict[str, Any]], tolerance: float = 10.0
 ) -> List[Tuple[float, float]]:
     """
     Finds a sequence of road vertices connecting start_pt to end_pt along the public road network using A* search.
@@ -738,13 +737,12 @@ def shortest_path_on_roads(
     return cleaned
 
 
-
 def convert_waypoints_to_circuit(
-    waypoints: List[Tuple[float, float]], 
+    waypoints: List[Tuple[float, float]],
     track_name: str = "Custom Street Circuit",
     default_width: float = 12.0,
     min_dist_spacing: float = 12.0,
-    ways: Optional[List[Dict[str, Any]]] = None
+    ways: Optional[List[Dict[str, Any]]] = None,
 ) -> Optional[Circuit]:
     """
     Transforms user-selected road waypoints into a complete, drivable Circuit.
@@ -826,13 +824,15 @@ def convert_waypoints_to_circuit(
     pit_exit_idx = 2 % total_pts
 
     sf_width = widths[0] if widths else default_width
-    circuit.set_pit_lane_endpoints(entry_node=pit_entry_idx, exit_node=pit_exit_idx, side="INSIDE", offset_m=sf_width * 1.2)
+    circuit.set_pit_lane_endpoints(
+        entry_node=pit_entry_idx, exit_node=pit_exit_idx, side="INSIDE", offset_m=sf_width * 1.2
+    )
 
     # Setup one DRS zone on the longest straight
     max_straight_len = 0.0
     best_a = 0
     best_b = 1
-    
+
     if len(circuit.node_s_distances) >= 3:
         for i in range(len(circuit.node_s_distances)):
             next_i = (i + 1) % len(circuit.node_s_distances)
@@ -848,13 +848,14 @@ def convert_waypoints_to_circuit(
         end_s = circuit.node_s_distances[best_b]
         if end_s < start_s:
             end_s = circuit.length
-        circuit.drs_zones = [{
-            "name": f"DRS #{best_a + 1}->#{best_b + 1}",
-            "node_a": best_a,
-            "node_b": best_b,
-            "start_s": start_s,
-            "end_s": end_s
-        }]
+        circuit.drs_zones = [
+            {
+                "name": f"DRS #{best_a + 1}->#{best_b + 1}",
+                "node_a": best_a,
+                "node_b": best_b,
+                "start_s": start_s,
+                "end_s": end_s,
+            }
+        ]
 
     return circuit
-

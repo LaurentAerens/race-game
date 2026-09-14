@@ -1,12 +1,14 @@
 import pygame
-from typing import List
-from ..core.simulation import Simulation
+
 from ..core.race_control import FlagStatus
+from ..core.simulation import Simulation
 from ..render.camera import Camera
 from .theme import UITheme
 
+
 class BroadcastHeader:
     """Top bar for session laps, weather radar, speed controls, flags, and camera modes."""
+
     def __init__(self, width: int, height: int = 48):
         self.rect = pygame.Rect(0, 0, width, height)
         self._init_fonts()
@@ -21,7 +23,6 @@ class BroadcastHeader:
     def resize(self, width: int, height: int = 48):
         self.rect = pygame.Rect(0, 0, width, height)
         self._init_fonts()
-
 
     def handle_event(self, event: pygame.event.Event, sim: Simulation, camera: Camera) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -66,7 +67,7 @@ class BroadcastHeader:
         # 1. Circuit Name & Flag Status
         c_name = self.font_title.render(sim.circuit.name.upper(), True, UITheme.TEXT_WHITE)
         surface.blit(c_name, (14, 6))
-        
+
         # Flag Status Badge
         flag_status = sim.race_control.flag
         if getattr(sim, "race_finished", False):
@@ -115,34 +116,48 @@ class BroadcastHeader:
         w_width = max(210, 20 + radar_bars_count * 30)
         w_rect = pygame.Rect(340, 6, w_width, 36)
         pygame.draw.rect(surface, (18, 22, 28), w_rect, border_radius=3)
-        pygame.draw.rect(surface, (0, 200, 255) if radar_tier > 0 else UITheme.PANEL_BORDER, w_rect, width=1, border_radius=3)
-        
+        pygame.draw.rect(
+            surface, (0, 200, 255) if radar_tier > 0 else UITheme.PANEL_BORDER, w_rect, width=1, border_radius=3
+        )
+
         wet_pct = int(sim.weather.track_wetness * 100)
         wet_col = (60, 160, 240) if wet_pct > 15 else UITheme.TEXT_MUTED
         radar_tag = " [DOPPLER]" if radar_tier > 0 else ""
 
-        if getattr(sim.weather, "is_local_shower", False) and any(sim.weather.get_sector_wetness(s) > 0.05 for s in (1, 2, 3)):
+        if getattr(sim.weather, "is_local_shower", False) and any(
+            sim.weather.get_sector_wetness(s) > 0.05 for s in (1, 2, 3)
+        ):
             s1 = int(sim.weather.get_sector_wetness(1) * 100)
             s2 = int(sim.weather.get_sector_wetness(2) * 100)
             s3 = int(sim.weather.get_sector_wetness(3) * 100)
-            w_txt = self.font_sub.render(f"S1:{s1}% S2:{s2}% S3:{s3}% | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col)
+            w_txt = self.font_sub.render(
+                f"S1:{s1}% S2:{s2}% S3:{s3}% | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
+            )
         else:
-            w_txt = self.font_sub.render(f"Track: {wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col)
+            w_txt = self.font_sub.render(
+                f"Track: {wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
+            )
         surface.blit(w_txt, (w_rect.x + 6, w_rect.y + 4))
 
         # Mini forward forecast bars
-        forecast_nodes = sim.weather.get_forecast_slice(sim.current_lap, window=radar_bars_count - 1, radar_tier=radar_tier, radar_eq_lvl=radar_eq_lvl)
+        forecast_nodes = sim.weather.get_forecast_slice(
+            sim.current_lap, window=radar_bars_count - 1, radar_tier=radar_tier, radar_eq_lvl=radar_eq_lvl
+        )
         for f_idx, node in enumerate(forecast_nodes[:radar_bars_count]):
             bar_x = w_rect.x + 6 + f_idx * 30
             bar_y = w_rect.y + 20
-            bar_col = (40, 140, 240) if node.rain_intensity > 0.3 else ((100, 180, 255) if node.rain_intensity > 0.05 else (70, 75, 85))
+            bar_col = (
+                (40, 140, 240)
+                if node.rain_intensity > 0.3
+                else ((100, 180, 255) if node.rain_intensity > 0.05 else (70, 75, 85))
+            )
             pygame.draw.rect(surface, bar_col, (bar_x, bar_y, 26, 12), border_radius=2)
             l_num = self.font_sub.render(f"L{node.lap}", True, (255, 255, 255))
             surface.blit(l_num, (bar_x + 3, bar_y))
 
         # 4. Camera View Toggle button (Placed to the left of speed controls: width - 615)
         cam_btn = pygame.Rect(self.rect.width - 615, 10, 100, 28)
-        cam_active = (camera.mode == "FOLLOW_CAR")
+        cam_active = camera.mode == "FOLLOW_CAR"
         cam_label = "CAM: CAR" if cam_active else "CAM: OVERVIEW"
         UITheme.draw_button(surface, cam_btn, cam_label, self.font_btn, is_active=cam_active)
 
@@ -151,5 +166,5 @@ class BroadcastHeader:
         speed_start_x = self.rect.width - 505
         for idx, (spd, lbl) in enumerate(speeds):
             b_rect = pygame.Rect(speed_start_x + idx * 29, 10, 27, 28)
-            is_active = (sim.is_paused if spd == 0.0 else (not sim.is_paused and sim.sim_speed == spd))
+            is_active = sim.is_paused if spd == 0.0 else (not sim.is_paused and sim.sim_speed == spd)
             UITheme.draw_button(surface, b_rect, lbl, self.font_btn, is_active=is_active)

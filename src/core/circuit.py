@@ -1,8 +1,10 @@
 import json
 import math
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 from scipy.interpolate import CubicSpline
-from typing import List, Dict, Tuple, Optional
+
 
 class Circuit:
     """
@@ -10,20 +12,21 @@ class Circuit:
     Supports variable per-section track width, DRS zones, interactive pit lane editor,
     and free 3-compound weekend tyre allocations.
     """
+
     def __init__(self, name: str = "Custom Circuit", width: float = 14.0):
         self.name = name
         self.width = width
         self.control_points: List[Tuple[float, float]] = []
         self.node_widths: List[float] = []
         self.is_closed: bool = True
-        
+
         # Spline evaluations
         self.length: float = 0.0
         self.sample_step: float = 2.0  # Sample resolution in meters
         self.spline_x = None
         self.spline_y = None
         self.spline_w = None
-        
+
         # Precomputed tables for ultra-fast lookup
         self.s_samples: np.ndarray = np.array([])
         self.points: np.ndarray = np.empty((0, 2))
@@ -33,23 +36,22 @@ class Circuit:
         self.signed_curvatures: np.ndarray = np.array([])
         self.headings: np.ndarray = np.array([])
         self.widths_sample: np.ndarray = np.array([])
-        
+
         # Track features
-        self.sectors: List[float] = [0.33, 0.66, 1.0] # Proportions of track length
+        self.sectors: List[float] = [0.33, 0.66, 1.0]  # Proportions of track length
         self.drs_zones: List[Dict] = []  # [{name, start_s, end_s, node_a, node_b}]
         self.node_s_distances: List[float] = []
         self.nominated_compounds: List[str] = ["HARD", "SOFT", "SUPERSOFT"]
         self.base_rain_chance: float = 0.20
-        
+
         # Interactive Pit Lane Configuration
         self.pit_lane_enabled: bool = True
         self.pit_entry_node: Optional[int] = None
         self.pit_exit_node: Optional[int] = None
-        self.pit_side: str = "INSIDE" # "INSIDE" (-1.0) or "OUTSIDE" (+1.0)
+        self.pit_side: str = "INSIDE"  # "INSIDE" (-1.0) or "OUTSIDE" (+1.0)
         self.pit_offset_m: float = 14.0
-        self.pit_box_s: float = 0.5   # Relative proportion along pit lane [0, 1]
+        self.pit_box_s: float = 0.5  # Relative proportion along pit lane [0, 1]
 
-        
         self.pit_entry_s: float = 0.0
         self.pit_exit_s: float = 0.0
         self.pit_control_points: List[Tuple[float, float]] = []
@@ -109,7 +111,7 @@ class Circuit:
         if self.length < 10.0:
             return
 
-        bc = 'periodic' if self.is_closed else 'not-a-knot'
+        bc = "periodic" if self.is_closed else "not-a-knot"
 
         self.spline_x = CubicSpline(cum_dist, pts_closed[:, 0], bc_type=bc)
         self.spline_y = CubicSpline(cum_dist, pts_closed[:, 1], bc_type=bc)
@@ -118,7 +120,7 @@ class Circuit:
         # Lookup samples every ~2 meters
         num_samples = max(50, int(self.length / self.sample_step))
         self.s_samples = np.linspace(0, self.length, num_samples, endpoint=False)
-        
+
         px = self.spline_x(self.s_samples)
         py = self.spline_y(self.s_samples)
         self.points = np.column_stack([px, py])
@@ -186,7 +188,6 @@ class Circuit:
         self.pit_entry_s = entry_s
         self.pit_exit_s = exit_s
 
-
         side_sign = -1.0 if self.pit_side == "INSIDE" else 1.0
 
         # Compute span distance along track loop
@@ -199,9 +200,15 @@ class Circuit:
         exit_w = self.get_width(exit_s)
 
         p1 = self.get_position(entry_s, lateral_offset=side_sign * (entry_w * 0.45))
-        p2 = self.get_position((entry_s + span_dist * 0.18) % self.length, lateral_offset=side_sign * (entry_w * 0.5 + 4.0))
-        p3 = self.get_position((entry_s + span_dist * 0.50) % self.length, lateral_offset=side_sign * (entry_w * 0.5 + self.pit_offset_m))
-        p4 = self.get_position((entry_s + span_dist * 0.82) % self.length, lateral_offset=side_sign * (exit_w * 0.5 + 4.0))
+        p2 = self.get_position(
+            (entry_s + span_dist * 0.18) % self.length, lateral_offset=side_sign * (entry_w * 0.5 + 4.0)
+        )
+        p3 = self.get_position(
+            (entry_s + span_dist * 0.50) % self.length, lateral_offset=side_sign * (entry_w * 0.5 + self.pit_offset_m)
+        )
+        p4 = self.get_position(
+            (entry_s + span_dist * 0.82) % self.length, lateral_offset=side_sign * (exit_w * 0.5 + 4.0)
+        )
         p5 = self.get_position(exit_s, lateral_offset=side_sign * (exit_w * 0.45))
 
         self.pit_control_points = [p1, p2, p3, p4, p5]
@@ -212,16 +219,16 @@ class Circuit:
         seg_lens = np.maximum(np.sqrt((diffs**2).sum(axis=1)), 1e-4)
         cum_dist = np.insert(np.cumsum(seg_lens), 0, 0.0)
         self.pit_length = float(cum_dist[-1])
-        
+
         spline_px = CubicSpline(cum_dist, pts[:, 0])
         spline_py = CubicSpline(cum_dist, pts[:, 1])
-        
+
         num_pit_samples = max(20, int(self.pit_length / 2.0))
         self.pit_s_samples = np.linspace(0, self.pit_length, num_pit_samples)
         pit_x = spline_px(self.pit_s_samples)
         pit_y = spline_py(self.pit_s_samples)
         self.pit_points = np.column_stack([pit_x, pit_y])
-        
+
         pdx = spline_px(self.pit_s_samples, 1)
         pdy = spline_py(self.pit_s_samples, 1)
         pspeed = np.maximum(np.sqrt(pdx**2 + pdy**2), 1e-6)
@@ -240,7 +247,7 @@ class Circuit:
             return (0.0, 0.0)
         s = s % self.length
         idx = int((s / self.length) * len(self.s_samples)) % len(self.s_samples)
-        
+
         px, py = self.points[idx]
         nx, ny = self.normals[idx]
         return (float(px + nx * lateral_offset), float(py + ny * lateral_offset))
@@ -274,20 +281,20 @@ class Circuit:
         """
         if self.length <= 0 or len(self.curvatures) == 0:
             return (lookahead_m, 0.0, 1.0)
-        
+
         step_m = max(2.0, self.sample_step)
         num_steps = max(1, int(lookahead_m / step_m))
-        
+
         peak_curv = 0.0
         apex_dist = lookahead_m
         apex_signed = 0.0
-        
+
         # Scan ahead along track for the immediate upcoming corner apex
         for i in range(1, num_steps + 1):
             scan_dist = i * step_m
             scan_s = (s + scan_dist) % self.length
             curv = self.get_curvature(scan_s)
-            
+
             if curv > 0.003:
                 if curv > peak_curv:
                     peak_curv = curv
@@ -296,7 +303,7 @@ class Circuit:
                 elif peak_curv > 0.004 and curv < peak_curv * 0.94:
                     # We have found and passed the first upcoming corner's apex
                     break
-        
+
         inside_sign = 1.0 if apex_signed >= 0 else -1.0
         return (apex_dist, peak_curv, inside_sign)
 
@@ -319,14 +326,14 @@ class Circuit:
         """
         if self.length <= 0 or len(self.curvatures) == 0:
             return 0.0
-        
+
         curv = self.get_curvature(s)
         w = self.get_width(s)
         dist_to_apex, apex_curv, inside_sign = self.get_corner_apex_ahead(s, lookahead_m=120.0)
-        
+
         if apex_curv < 0.003 and curv < 0.003:
             return 0.0  # Straight line
-        
+
         # Approaching corner: swing wide (outside)
         if dist_to_apex > 35.0:
             outside_sign = -inside_sign
@@ -338,7 +345,6 @@ class Circuit:
         else:
             interp = (dist_to_apex - 15.0) / 20.0
             return (inside_sign * (1.0 - interp) - inside_sign * interp) * (w * 0.26)
-
 
     def get_pit_side_sign(self) -> float:
         """Returns lateral direction multiplier for the pit entry: -1.0 for inside, +1.0 for outside."""
@@ -413,7 +419,9 @@ class Circuit:
             return 2
         return 3
 
-    def get_corners(self, min_peak_curv: float = 0.0035, min_turn_angle_deg: float = 7.0, min_separation_m: float = 35.0) -> List[Dict]:
+    def get_corners(
+        self, min_peak_curv: float = 0.0035, min_turn_angle_deg: float = 7.0, min_separation_m: float = 35.0
+    ) -> List[Dict]:
         """
         Detects true racing corners along the circuit based on curvature peaks and integrated turn angles.
         Small kinks, micro-bends, and almost-straight sections are excluded and treated as straights.
@@ -457,7 +465,7 @@ class Circuit:
                 filtered_peaks.pop()
 
         # Measure integrated turning angle across each corner apex
-        half_window = max(10, int(45.0 / step)) # +/- 45m window around apex
+        half_window = max(10, int(45.0 / step))  # +/- 45m window around apex
         for p_idx, p_s, p_k in filtered_peaks:
             angle_accum = 0.0
             for offset in range(-half_window, half_window + 1):
@@ -467,14 +475,16 @@ class Circuit:
             if turn_deg >= min_turn_angle_deg:
                 start_s = (p_s - half_window * step) % self.length
                 end_s = (p_s + half_window * step) % self.length
-                corners.append({
-                    "apex_s": round(p_s, 1),
-                    "peak_curv": float(p_k),
-                    "min_radius": round(float(1.0 / p_k), 1),
-                    "turn_angle_deg": round(float(turn_deg), 1),
-                    "start_s": round(start_s, 1),
-                    "end_s": round(end_s, 1),
-                })
+                corners.append(
+                    {
+                        "apex_s": round(p_s, 1),
+                        "peak_curv": float(p_k),
+                        "min_radius": round(float(1.0 / p_k), 1),
+                        "turn_angle_deg": round(float(turn_deg), 1),
+                        "start_s": round(start_s, 1),
+                        "end_s": round(end_s, 1),
+                    }
+                )
 
         corners.sort(key=lambda x: x["apex_s"])
         return corners
@@ -502,9 +512,8 @@ class Circuit:
             best_idx = min(
                 range(len(self.node_s_distances)),
                 key=lambda i: min(
-                    abs(self.node_s_distances[i] - apex_s),
-                    abs(self.length - abs(self.node_s_distances[i] - apex_s))
-                )
+                    abs(self.node_s_distances[i] - apex_s), abs(self.length - abs(self.node_s_distances[i] - apex_s))
+                ),
             )
             # If multiple apexes map to same node, keep turn number
             if best_idx not in turn_map:
@@ -534,11 +543,11 @@ class Circuit:
             "pit_offset_m": self.pit_offset_m,
             "pit_entry_s": self.pit_entry_s,
             "pit_exit_s": self.pit_exit_s,
-            "pit_control_points": self.pit_control_points
+            "pit_control_points": self.pit_control_points,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Circuit':
+    def from_dict(cls, data: Dict) -> "Circuit":
         circuit = cls(name=data.get("name", "Custom Circuit"), width=data.get("width", 14.0))
         circuit.sectors = data.get("sectors", [0.33, 0.66, 1.0])
         circuit.drs_zones = data.get("drs_zones", [])
@@ -548,7 +557,7 @@ class Circuit:
         circuit.pit_exit_node = data.get("pit_exit_node", 1)
         circuit.pit_side = data.get("pit_side", "INSIDE")
         circuit.pit_offset_m = data.get("pit_offset_m", 14.0)
-        
+
         pts = data.get("control_points", [])
         widths = data.get("node_widths", None)
         circuit.set_control_points(pts, widths)
@@ -559,7 +568,7 @@ class Circuit:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load_json(cls, filepath: str) -> 'Circuit':
+    def load_json(cls, filepath: str) -> "Circuit":
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         return cls.from_dict(data)

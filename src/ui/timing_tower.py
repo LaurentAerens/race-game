@@ -1,12 +1,13 @@
 import pygame
-from typing import List, Optional
+
 from ..core.simulation import Simulation
-from ..core.car import Car
 from ..render.camera import Camera
 from .theme import UITheme
 
+
 class TimingTower:
     """Live Motorsport Manager timing tower and leaderboard."""
+
     def __init__(self, x: int, y: int, width: int, height: int):
         self.rect = pygame.Rect(x, y, width, height)
         self._init_fonts()
@@ -21,7 +22,6 @@ class TimingTower:
     def resize(self, x: int, y: int, width: int, height: int):
         self.rect = pygame.Rect(x, y, width, height)
         self._init_fonts()
-
 
     def handle_event(self, event: pygame.event.Event, sim: Simulation, camera: Camera) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -40,18 +40,18 @@ class TimingTower:
 
     def render(self, surface: pygame.Surface, sim: Simulation, camera: Camera):
         UITheme.draw_panel(surface, self.rect)
-        
+
         # Header bar
         hdr_rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
-        
+
         # Header columns
         txt_pos = self.font_header.render("POS", True, UITheme.TEXT_MUTED)
         txt_drv = self.font_header.render("DRIVER", True, UITheme.TEXT_MUTED)
         txt_gap = self.font_header.render("GAP", True, UITheme.TEXT_MUTED)
         txt_tire = self.font_header.render("TYRE", True, UITheme.TEXT_MUTED)
         txt_pit = self.font_header.render("PIT", True, UITheme.TEXT_MUTED)
-        
+
         surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
         surface.blit(txt_drv, (self.rect.x + 42, self.rect.y + 6))
         surface.blit(txt_gap, (self.rect.x + 130, self.rect.y + 6))
@@ -61,10 +61,12 @@ class TimingTower:
         # Rows
         start_y = self.rect.y + 28
         for i, car in enumerate(sim.cars[:20]):
-            r_rect = pygame.Rect(self.rect.x + 2, start_y + i * self.row_height, self.rect.width - 4, self.row_height - 2)
-            
+            r_rect = pygame.Rect(
+                self.rect.x + 2, start_y + i * self.row_height, self.rect.width - 4, self.row_height - 2
+            )
+
             # Hover / Selected highlight
-            is_selected = (camera.followed_car == car and camera.mode == "FOLLOW_CAR")
+            is_selected = camera.followed_car == car and camera.mode == "FOLLOW_CAR"
             if is_selected:
                 pygame.draw.rect(surface, (35, 50, 70), r_rect, border_radius=2)
             elif car.driver.is_player:
@@ -107,7 +109,7 @@ class TimingTower:
             pygame.draw.circle(surface, comp.color_rgb, (t_badge_rect.x + 8, t_badge_rect.y + 8), 8)
             t_code = self.font_badge.render(comp.code, True, (0, 0, 0) if comp.name != "HARD" else (10, 10, 10))
             surface.blit(t_code, (t_badge_rect.x + 4, t_badge_rect.y + 1))
-            
+
             # Wear % text
             wear_int = int(100.0 - car.tires.wear_pct)
             wear_color = UITheme.TEXT_MUTED if wear_int > 40 else UITheme.ACCENT_RED

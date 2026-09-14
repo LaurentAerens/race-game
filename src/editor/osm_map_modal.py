@@ -7,22 +7,22 @@ Zero hardcoded/trademarked presets.
 """
 
 import math
-import time
 import threading
+import time
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import pygame
-from typing import List, Tuple, Dict, Any, Optional, Callable
 
-from src.editor.osm_importer import (
-    geocode_location,
-    fetch_road_network,
-    snap_point_to_roads,
-    convert_waypoints_to_circuit,
-    unproject_meters_to_gps,
-    shortest_path_on_roads,
-    remove_backtracking_and_hairpins,
-)
 from src.core.circuit import Circuit
-
+from src.editor.osm_importer import (
+    convert_waypoints_to_circuit,
+    fetch_road_network,
+    geocode_location,
+    remove_backtracking_and_hairpins,
+    shortest_path_on_roads,
+    snap_point_to_roads,
+    unproject_meters_to_gps,
+)
 
 ROAD_COLORS = {
     "motorway": (230, 100, 100),
@@ -33,7 +33,7 @@ ROAD_COLORS = {
     "residential": (140, 160, 170),
     "unclassified": (130, 150, 160),
     "living_street": (150, 180, 190),
-    "cycleway": (80, 220, 170),    # Vibrant teal-green for bike highways & cycleways
+    "cycleway": (80, 220, 170),  # Vibrant teal-green for bike highways & cycleways
     "service": (110, 130, 140),
     "track": (170, 140, 100),
     "path": (90, 190, 160),
@@ -73,7 +73,7 @@ class OSMMapModal:
         self.road_data: Optional[Dict[str, Any]] = None
         self.current_lat: float = 0.0
         self.current_lon: float = 0.0
-        self.loaded_chunks: set = set()   # set of (chunk_x, chunk_y) tile indices in meters
+        self.loaded_chunks: set = set()  # set of (chunk_x, chunk_y) tile indices in meters
         self.pending_chunks: set = set()  # set of (chunk_x, chunk_y) awaiting fetch
         self.is_fetching_chunk: bool = False
         self._tile_worker_thread: Optional[threading.Thread] = None
@@ -82,7 +82,7 @@ class OSMMapModal:
         self.cam_x: float = 0.0  # Center X in meters
         self.cam_y: float = 0.0  # Center Y in meters
         self.last_check_cam: Tuple[float, float] = (0.0, 0.0)
-        self.zoom: float = 0.8   # pixels per meter (default 0.8 = ~1000m across viewport)
+        self.zoom: float = 0.8  # pixels per meter (default 0.8 = ~1000m across viewport)
         self.is_panning: bool = False
         self.pan_start_screen: Tuple[int, int] = (0, 0)
         self.pan_start_cam: Tuple[float, float] = (0.0, 0.0)
@@ -176,18 +176,15 @@ class OSMMapModal:
                 self.tracked_path.clear()
                 self.pending_chunks.clear()
                 # Mark origin and immediately adjacent grid tiles as covered by the large 3000m initial fetch
-                self.loaded_chunks = {
-                    (0, 0),
-                    (-1, -1), (0, -1), (1, -1),
-                    (-1,  0),          (1,  0),
-                    (-1,  1), (0,  1), (1,  1)
-                }
+                self.loaded_chunks = {(0, 0), (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)}
                 total_ways = len(roads.get("ways", []))
                 if total_ways > 0:
-                    self.status_message = f"Loaded {total_ways} roads and paths. Pan anywhere to automatically load more!"
+                    self.status_message = (
+                        f"Loaded {total_ways} roads and paths. Pan anywhere to automatically load more!"
+                    )
                 else:
                     self.status_message = "No roads found in this area. Try another location."
-                
+
                 # Check visible viewport immediately to fetch any outer visible tiles
                 self.check_and_fetch_nearby_tiles()
             except Exception as ex:
@@ -286,8 +283,7 @@ class OSMMapModal:
 
             try:
                 new_chunk = fetch_road_network(
-                    target_lat, target_lon, radius_m=2400,
-                    origin_lat=self.current_lat, origin_lon=self.current_lon
+                    target_lat, target_lon, radius_m=2400, origin_lat=self.current_lat, origin_lon=self.current_lon
                 )
                 new_ways = new_chunk.get("ways", [])
                 if self.road_data and "ways" in self.road_data:
@@ -306,7 +302,6 @@ class OSMMapModal:
 
             # Modest delay between consecutive uncached requests to avoid Overpass rate limit
             time.sleep(0.05)
-
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Returns True if the event was consumed by the modal."""
@@ -335,7 +330,6 @@ class OSMMapModal:
                 # to prevent double typing on systems that emit both KEYDOWN and TEXTINPUT.
                 return True
 
-
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos
 
@@ -360,7 +354,11 @@ class OSMMapModal:
             # Handle map interaction
             if self.map_rect.collidepoint(mx, my):
                 if event.button == 1:  # Left click: place or snap waypoint
-                    new_pt = self.hovered_snap["snapped_xy"] if self.hovered_snap else (round(self.screen_to_world(mx, my)[0], 2), round(self.screen_to_world(mx, my)[1], 2))
+                    new_pt = (
+                        self.hovered_snap["snapped_xy"]
+                        if self.hovered_snap
+                        else (round(self.screen_to_world(mx, my)[0], 2), round(self.screen_to_world(mx, my)[1], 2))
+                    )
                     self.waypoints.append(new_pt)
 
                     # Route along road network from previous waypoint to new waypoint
@@ -375,9 +373,15 @@ class OSMMapModal:
                             self.tracked_path.append(p)
                         self.tracked_path = remove_backtracking_and_hairpins(self.tracked_path)
 
-                    w_info = f" ({self.hovered_snap.get('width_m', 12.0):.1f}m width)" if (self.hovered_snap and "width_m" in self.hovered_snap) else ""
+                    w_info = (
+                        f" ({self.hovered_snap.get('width_m', 12.0):.1f}m width)"
+                        if (self.hovered_snap and "width_m" in self.hovered_snap)
+                        else ""
+                    )
                     road_label = f" on {self.hovered_snap['road_name']}{w_info}" if self.hovered_snap else ""
-                    self.status_message = f"Added waypoint #{len(self.waypoints)}{road_label} (Track follows road network)."
+                    self.status_message = (
+                        f"Added waypoint #{len(self.waypoints)}{road_label} (Track follows road network)."
+                    )
                     return True
 
                 elif event.button == 3:  # Right click: start pan
@@ -385,7 +389,6 @@ class OSMMapModal:
                     self.pan_start_screen = (mx, my)
                     self.pan_start_cam = (self.cam_x, self.cam_y)
                     return True
-
 
                 elif event.button == 4:  # Scroll up: zoom in
                     self.zoom = min(5.0, self.zoom * 1.15)
@@ -423,14 +426,15 @@ class OSMMapModal:
             if self.map_rect.collidepoint(mx, my) and self.road_data:
                 wx, wy = self.screen_to_world(mx, my)
                 snap_radius_m = 60.0 / max(0.1, self.zoom)  # screen tolerance converted to meters
-                snap_res = snap_point_to_roads(wx, wy, self.road_data.get("ways", []), max_dist=max(20.0, snap_radius_m))
+                snap_res = snap_point_to_roads(
+                    wx, wy, self.road_data.get("ways", []), max_dist=max(20.0, snap_radius_m)
+                )
                 self.hovered_snap = snap_res
                 return True
             else:
                 self.hovered_snap = None
 
         return True  # Consume all events while modal is open
-
 
     def _on_button_clicked(self, name: str):
         if name == "search":
@@ -482,7 +486,6 @@ class OSMMapModal:
             else:
                 self.status_message = "Failed to create circuit: check that loop is not intersecting or too small."
 
-
     def render(self, screen: pygame.Surface):
         if not self.is_open:
             return
@@ -530,12 +533,16 @@ class OSMMapModal:
         search_w = mw - 340
         search_box = pygame.Rect(search_x, search_y, search_w, 32)
         self.btn_rects["search_bar"] = search_box
-        
+
         box_border_color = (0, 168, 255) if self.search_active else (70, 80, 95)
         pygame.draw.rect(screen, (15, 17, 22), search_box, border_radius=4)
         pygame.draw.rect(screen, box_border_color, search_box, width=2, border_radius=4)
 
-        display_text = self.search_query if self.search_query else ("Type city name (e.g. Monaco, Austin, Melbourne)..." if not self.search_active else "")
+        display_text = (
+            self.search_query
+            if self.search_query
+            else ("Type city name (e.g. Monaco, Austin, Melbourne)..." if not self.search_active else "")
+        )
         text_color = (255, 255, 255) if self.search_query else (120, 130, 145)
         query_surf = self.font_ui.render(display_text, True, text_color)
         screen.blit(query_surf, (search_x + 8, search_y + 6))
@@ -587,7 +594,9 @@ class OSMMapModal:
             sx, sy = self.world_to_screen(pt[0], pt[1])
             pygame.draw.circle(screen, (0, 255, 255), (sx, sy), 6, 2)
             w_str = f", {self.hovered_snap['width_m']:.1f}m" if "width_m" in self.hovered_snap else ""
-            lbl = self.font_small.render(f"{self.hovered_snap['road_name']} ({self.hovered_snap['road_type']}{w_str})", True, (0, 255, 255))
+            lbl = self.font_small.render(
+                f"{self.hovered_snap['road_name']} ({self.hovered_snap['road_type']}{w_str})", True, (0, 255, 255)
+            )
             screen.blit(lbl, (sx + 10, sy - 10))
 
         # Reset clip
@@ -625,13 +634,21 @@ class OSMMapModal:
 
         # Status & Instructions on right
         status_x = action_x + 520
-        status_col = (255, 120, 120) if "not found" in self.status_message.lower() or "error" in self.status_message.lower() else (200, 215, 230)
+        status_col = (
+            (255, 120, 120)
+            if "not found" in self.status_message.lower() or "error" in self.status_message.lower()
+            else (200, 215, 230)
+        )
         status_surf = self.font_small.render(self.status_message, True, status_col)
         screen.blit(status_surf, (status_x, bottom_y + 8))
 
         # Map controls helper hint (overlay top right inside map)
-        hint_surf = self.font_small.render("Right-Click Drag: Pan  |  Scroll: Zoom  |  Left-Click Road: Place Waypoint", True, (160, 180, 200))
-        hint_bg = pygame.Rect(self.map_rect.right - hint_surf.get_width() - 14, self.map_rect.top + 6, hint_surf.get_width() + 10, 20)
+        hint_surf = self.font_small.render(
+            "Right-Click Drag: Pan  |  Scroll: Zoom  |  Left-Click Road: Place Waypoint", True, (160, 180, 200)
+        )
+        hint_bg = pygame.Rect(
+            self.map_rect.right - hint_surf.get_width() - 14, self.map_rect.top + 6, hint_surf.get_width() + 10, 20
+        )
         pygame.draw.rect(screen, (20, 24, 30), hint_bg, border_radius=3)
         screen.blit(hint_surf, (hint_bg.x + 5, hint_bg.y + 2))
 
@@ -674,12 +691,16 @@ class OSMMapModal:
                 max_x = max(p[0] for p in screen_pts)
                 min_y = min(p[1] for p in screen_pts)
                 max_y = max(p[1] for p in screen_pts)
-                if max_x < self.map_rect.left or min_x > self.map_rect.right or max_y < self.map_rect.top or min_y > self.map_rect.bottom:
+                if (
+                    max_x < self.map_rect.left
+                    or min_x > self.map_rect.right
+                    or max_y < self.map_rect.top
+                    or min_y > self.map_rect.bottom
+                ):
                     continue
 
             if len(screen_pts) >= 2:
                 pygame.draw.lines(screen, color, False, screen_pts, screen_w)
-
 
     def _render_waypoints(self, screen: pygame.Surface):
         if not self.waypoints:
@@ -695,7 +716,7 @@ class OSMMapModal:
 
         # Draw dots
         for idx, sp in enumerate(screen_pts):
-            is_first = (idx == 0)
+            is_first = idx == 0
             col = (50, 255, 50) if is_first else (0, 220, 255)
             r = 6 if is_first else 5
             pygame.draw.circle(screen, col, sp, r)

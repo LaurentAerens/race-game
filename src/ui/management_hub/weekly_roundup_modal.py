@@ -1,12 +1,16 @@
+from typing import Any, Dict
+
 import pygame
-from typing import Dict, List, Any, Optional
+
 from ..theme import UITheme
+
 
 class WeeklyRoundupModal:
     """
     Pop-up debrief modal showing simulated race outcomes across active championship series
     for the current calendar week, with special focus on Academy Drivers and Tier 1/2 results.
     """
+
     def __init__(self, screen_width: int, screen_height: int):
         self.width = screen_width
         self.height = screen_height
@@ -106,7 +110,7 @@ class WeeklyRoundupModal:
         # Header Banner
         hdr_rect = pygame.Rect(modal_x, modal_y, modal_w, 40)
         pygame.draw.rect(surface, (20, 28, 42), hdr_rect, border_top_left_radius=6, border_top_right_radius=6)
-        
+
         is_season_start = bool(self.summary_data.get("is_season_start", False))
         week = self.summary_data.get("week", 1)
 
@@ -120,7 +124,9 @@ class WeeklyRoundupModal:
             sub_txt = f"Active Series Simulated This Week: {tiers_str}"
 
         surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (modal_x + 16, modal_y + 10))
-        surface.blit(self.font_subtitle.render(sub_txt, True, UITheme.TEXT_MUTED), (modal_x + modal_w - 360, modal_y + 14))
+        surface.blit(
+            self.font_subtitle.render(sub_txt, True, UITheme.TEXT_MUTED), (modal_x + modal_w - 360, modal_y + 14)
+        )
 
         # Tab Strip
         tab_x = modal_x + 16
@@ -136,21 +142,33 @@ class WeeklyRoundupModal:
             surface.blit(lbl_h, (h_rect.x + (140 - lbl_h.get_width()) // 2, h_rect.y + 6))
         else:
             # 1. Highlights Tab
-            is_hl = (self.selected_tier_tab == "HIGHLIGHTS")
+            is_hl = self.selected_tier_tab == "HIGHLIGHTS"
             h_rect = pygame.Rect(tab_x, tab_y, tab_w, tab_h)
             pygame.draw.rect(surface, (36, 56, 78) if is_hl else (20, 26, 36), h_rect, border_radius=3)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_hl else UITheme.PANEL_BORDER, h_rect, width=1, border_radius=3)
+            pygame.draw.rect(
+                surface, UITheme.ACCENT_CYAN if is_hl else UITheme.PANEL_BORDER, h_rect, width=1, border_radius=3
+            )
             lbl_h = self.font_tab.render("HIGHLIGHTS", True, UITheme.TEXT_WHITE if is_hl else UITheme.TEXT_MUTED)
             surface.blit(lbl_h, (h_rect.x + (tab_w - lbl_h.get_width()) // 2, h_rect.y + 6))
 
             # Tier Tabs
-            tier_labels = {1: "TIER 1 (WSF)", 2: "TIER 2 (CC)", 3: "TIER 3 (NOC)", 4: "TIER 4 (JTS)", 5: "TIER 5 (KART)"}
+            tier_labels = {
+                1: "TIER 1 (WSF)",
+                2: "TIER 2 (CC)",
+                3: "TIER 3 (NOC)",
+                4: "TIER 4 (JTS)",
+                5: "TIER 5 (KART)",
+            }
             for idx, t in enumerate(tiers_sim):
                 t_rect = pygame.Rect(tab_x + (idx + 1) * (tab_w + 8), tab_y, tab_w, tab_h)
-                is_sel = (self.selected_tier_tab == f"TIER_{t}")
+                is_sel = self.selected_tier_tab == f"TIER_{t}"
                 pygame.draw.rect(surface, (36, 56, 78) if is_sel else (20, 26, 36), t_rect, border_radius=3)
-                pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, t_rect, width=1, border_radius=3)
-                t_lbl = self.font_tab.render(tier_labels.get(t, f"TIER {t}"), True, UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED)
+                pygame.draw.rect(
+                    surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, t_rect, width=1, border_radius=3
+                )
+                t_lbl = self.font_tab.render(
+                    tier_labels.get(t, f"TIER {t}"), True, UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED
+                )
                 surface.blit(t_lbl, (t_rect.x + (tab_w - t_lbl.get_width()) // 2, t_rect.y + 6))
 
         # Content Box
@@ -200,10 +218,14 @@ class WeeklyRoundupModal:
             "  • Driver & team points, podiums, and race classifications will be recorded",
             "  • Academy driver performances will be highlighted here in the debrief",
             "",
-            "Click 'START RACE WEEKEND' on the dashboard to hit the track for Round 1!"
+            "Click 'START RACE WEEKEND' on the dashboard to hit the track for Round 1!",
         ]
         for idx, line in enumerate(lines):
-            col = (0, 220, 255) if line.startswith("Click") else (UITheme.TEXT_WHITE if line.strip().startswith("•") else UITheme.TEXT_MUTED)
+            col = (
+                (0, 220, 255)
+                if line.startswith("Click")
+                else (UITheme.TEXT_WHITE if line.strip().startswith("•") else UITheme.TEXT_MUTED)
+            )
             font = self.font_card_title if line.startswith("Click") else self.font_body
             surface.blit(font.render(line, True, col), (card_x + 24, card_y + 54 + idx * 21))
 
@@ -225,18 +247,32 @@ class WeeklyRoundupModal:
                 pos = ah["position"]
                 pos_col = (255, 215, 0) if pos == 1 else ((0, 240, 140) if pos <= 3 else (0, 220, 255))
                 pos_str = f"P{pos}"
-                surface.blit(self.font_card_title.render(f"🌟 ACADEMY SPOTLIGHT: {ah['driver_name'].upper()}", True, (255, 215, 0)), (c_box.x + 12, c_box.y + 8))
+                surface.blit(
+                    self.font_card_title.render(
+                        f"🌟 ACADEMY SPOTLIGHT: {ah['driver_name'].upper()}", True, (255, 215, 0)
+                    ),
+                    (c_box.x + 12, c_box.y + 8),
+                )
                 surface.blit(self.font_title.render(pos_str, True, pos_col), (c_box.x + c_box.width - 52, c_box.y + 10))
 
-                surface.blit(self.font_body.render(ah["message"], True, UITheme.TEXT_WHITE), (c_box.x + 12, c_box.y + 30))
-                stat_str = f"Championship Points Earned: +{ah['points']} PTS | Updated Driver Morale: {ah['morale']:.0f}%"
+                surface.blit(
+                    self.font_body.render(ah["message"], True, UITheme.TEXT_WHITE), (c_box.x + 12, c_box.y + 30)
+                )
+                stat_str = (
+                    f"Championship Points Earned: +{ah['points']} PTS | Updated Driver Morale: {ah['morale']:.0f}%"
+                )
                 surface.blit(self.font_badge.render(stat_str, True, (0, 220, 255)), (c_box.x + 12, c_box.y + 52))
 
                 cur_y += card_h + 10
         else:
             c_box = pygame.Rect(rect.x + 12, cur_y, rect.width - 24, 52)
             pygame.draw.rect(surface, (20, 26, 34), c_box, border_radius=4)
-            surface.blit(self.font_card_title.render("ACADEMY WATCH: No academy drivers had a scheduled race this week.", True, UITheme.TEXT_MUTED), (c_box.x + 12, c_box.y + 16))
+            surface.blit(
+                self.font_card_title.render(
+                    "ACADEMY WATCH: No academy drivers had a scheduled race this week.", True, UITheme.TEXT_MUTED
+                ),
+                (c_box.x + 12, c_box.y + 16),
+            )
             cur_y += 62
 
         # 2. Winners Across Simulated Tiers
@@ -244,14 +280,20 @@ class WeeklyRoundupModal:
         surface.blit(sec_title, (rect.x + 12, cur_y))
         cur_y += 24
 
-        tier_names = {1: "Tier 1 World Super Formula", 2: "Tier 2 Continental Championship", 3: "Tier 3 National Open Cup", 4: "Tier 4 Junior Talent Series", 5: "Tier 5 Karting Masters"}
+        tier_names = {
+            1: "Tier 1 World Super Formula",
+            2: "Tier 2 Continental Championship",
+            3: "Tier 3 National Open Cup",
+            4: "Tier 4 Junior Talent Series",
+            5: "Tier 5 Karting Masters",
+        }
 
         for t_num in [1, 2, 3, 4, 5]:
             if t_num in res_by_tier:
                 results = res_by_tier[t_num]
                 if not results:
                     continue
-                w = results[0] # P1 winner
+                w = results[0]  # P1 winner
                 p2 = results[1] if len(results) > 1 else None
                 p3 = results[2] if len(results) > 2 else None
 
@@ -267,7 +309,10 @@ class WeeklyRoundupModal:
 
                 if p2 and p3:
                     pod_txt = f"P2: {p2['driver_name']}  |  P3: {p3['driver_name']}"
-                    surface.blit(self.font_subtitle.render(pod_txt, True, UITheme.TEXT_MUTED), (row_rect.x + 510, row_rect.y + 12))
+                    surface.blit(
+                        self.font_subtitle.render(pod_txt, True, UITheme.TEXT_MUTED),
+                        (row_rect.x + 510, row_rect.y + 12),
+                    )
 
                 cur_y += 46
                 if cur_y > rect.y + rect.height - 45:
@@ -279,7 +324,10 @@ class WeeklyRoundupModal:
         results = res_by_tier.get(tier, [])
 
         if not results:
-            surface.blit(self.font_body.render(f"No results recorded for Tier {tier} this week.", True, UITheme.TEXT_MUTED), (rect.x + 20, rect.y + 20))
+            surface.blit(
+                self.font_body.render(f"No results recorded for Tier {tier} this week.", True, UITheme.TEXT_MUTED),
+                (rect.x + 20, rect.y + 20),
+            )
             return
 
         # Table Header
@@ -287,7 +335,9 @@ class WeeklyRoundupModal:
         pygame.draw.rect(surface, (14, 18, 24), th_rect)
         surface.blit(self.font_badge.render("POS", True, UITheme.TEXT_MUTED), (th_rect.x + 10, th_rect.y + 4))
         surface.blit(self.font_badge.render("DRIVER", True, UITheme.TEXT_MUTED), (th_rect.x + 60, th_rect.y + 4))
-        surface.blit(self.font_badge.render("TEAM / CONSTRUCTOR", True, UITheme.TEXT_MUTED), (th_rect.x + 280, th_rect.y + 4))
+        surface.blit(
+            self.font_badge.render("TEAM / CONSTRUCTOR", True, UITheme.TEXT_MUTED), (th_rect.x + 280, th_rect.y + 4)
+        )
         surface.blit(self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED), (th_rect.x + 540, th_rect.y + 4))
 
         for idx, r in enumerate(results[:10]):
@@ -317,9 +367,13 @@ class WeeklyRoundupModal:
             surface.blit(self.font_body.render(d_name, True, d_col), (r_box.x + 60, r_box.y + 4))
 
             # Team Name
-            surface.blit(self.font_body.render(r.get("team_name", ""), True, UITheme.TEXT_MUTED), (r_box.x + 280, r_box.y + 4))
+            surface.blit(
+                self.font_body.render(r.get("team_name", ""), True, UITheme.TEXT_MUTED), (r_box.x + 280, r_box.y + 4)
+            )
 
             # Points
             pts = r.get("points", 0)
             pts_col = (0, 220, 255) if pts > 0 else UITheme.TEXT_MUTED
-            surface.blit(self.font_badge.render(f"+{pts} PTS" if pts > 0 else "-", True, pts_col), (r_box.x + 540, r_box.y + 5))
+            surface.blit(
+                self.font_badge.render(f"+{pts} PTS" if pts > 0 else "-", True, pts_col), (r_box.x + 540, r_box.y + 5)
+            )

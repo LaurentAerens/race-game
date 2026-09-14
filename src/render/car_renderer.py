@@ -1,8 +1,11 @@
 import math
+from typing import Any, List, Optional
+
 import pygame
-from typing import List, Tuple, Optional, Any
+
 from ..core.car import Car
 from .camera import Camera
+
 
 class CarRenderer:
     """
@@ -10,14 +13,22 @@ class CarRenderer:
     Clean solid-filled colored balls with sharp outlines, directional pips,
     clear player indicators, crashed car hazard markers, and physical Safety Car.
     """
+
     def __init__(self):
         self.font_num = pygame.font.SysFont("Arial", 9, bold=True)
         self.font_sc = pygame.font.SysFont("Arial", 9, bold=True)
 
-    def render_cars(self, surface: pygame.Surface, cars: List[Car], camera: Camera, view_rect: pygame.Rect, safety_car: Optional[Any] = None):
+    def render_cars(
+        self,
+        surface: pygame.Surface,
+        cars: List[Car],
+        camera: Camera,
+        view_rect: pygame.Rect,
+        safety_car: Optional[Any] = None,
+    ):
         # Draw non-player cars first, then player cars on top
-        sorted_cars = sorted(cars, key=lambda c: (1 if c.driver.is_player else 0))
-        
+        sorted_cars = sorted(cars, key=lambda c: 1 if c.driver.is_player else 0)
+
         for car in sorted_cars:
             if getattr(car, "wreckage_cleared", False):
                 continue
@@ -29,7 +40,7 @@ class CarRenderer:
 
     def _render_single_dot_car(self, surface: pygame.Surface, car: Car, camera: Camera, view_rect: pygame.Rect):
         sx, sy = camera.world_to_screen(car.world_x, car.world_y, view_rect)
-        
+
         # Frustum culling
         if not (view_rect.x - 15 <= sx <= view_rect.right + 15 and view_rect.y - 15 <= sy <= view_rect.bottom + 15):
             return
@@ -44,14 +55,14 @@ class CarRenderer:
             trail_len = radius * (1.8 + 2.5 * tow)
             perp_h = heading + math.pi / 2.0
             spread = max(1.5, radius * 0.6)
-            
+
             # Left and Right subtle streamlines
             for side in [-1.0, 1.0]:
                 base_x = sx + math.cos(perp_h) * (spread * side)
                 base_y = sy + math.sin(perp_h) * (spread * side)
                 tail_x = base_x - math.cos(heading) * trail_len
                 tail_y = base_y - math.sin(heading) * trail_len
-                
+
                 # Subtle faint stream color
                 stream_col = (160, 210, 240) if tow > 0.6 else (120, 160, 190)
                 pygame.draw.line(surface, stream_col, (int(base_x), int(base_y)), (int(tail_x), int(tail_y)), 1)
@@ -62,7 +73,7 @@ class CarRenderer:
             smoke_rad = int(radius * (0.8 + 0.5 * min(1.0, car.smoke_timer)))
             smoke_x = sx - math.cos(heading) * (radius * 1.1)
             smoke_y = sy - math.sin(heading) * (radius * 1.1)
-            
+
             smoke_surf = pygame.Surface((smoke_rad * 2 + 4, smoke_rad * 2 + 4), pygame.SRCALPHA)
             smoke_color = (210, 215, 220, int(90 * (smoke_alpha / 0.6)))
             pygame.draw.circle(smoke_surf, smoke_color, (smoke_rad + 2, smoke_rad + 2), smoke_rad)

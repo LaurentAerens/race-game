@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 DIFFICULTY_LEVELS = ["VERY_EASY", "EASY", "NORMAL", "HARD", "VERY_HARD"]
 
@@ -18,7 +18,7 @@ DIFFICULTY_CONFIG: Dict[str, Dict[str, Any]] = {
         "innovation_success_mult": 1.30,
         "innovation_gain_mult": 1.30,
         "negative_penalty_mult": 0.60,
-        "starting_cash_bonus": 5000000.0
+        "starting_cash_bonus": 5000000.0,
     },
     "EASY": {
         "name": "Easy",
@@ -35,7 +35,7 @@ DIFFICULTY_CONFIG: Dict[str, Dict[str, Any]] = {
         "innovation_success_mult": 1.15,
         "innovation_gain_mult": 1.15,
         "negative_penalty_mult": 0.80,
-        "starting_cash_bonus": 2500000.0
+        "starting_cash_bonus": 2500000.0,
     },
     "NORMAL": {
         "name": "Normal",
@@ -52,7 +52,7 @@ DIFFICULTY_CONFIG: Dict[str, Dict[str, Any]] = {
         "innovation_success_mult": 1.00,
         "innovation_gain_mult": 1.00,
         "negative_penalty_mult": 1.00,
-        "starting_cash_bonus": 0.0
+        "starting_cash_bonus": 0.0,
     },
     "HARD": {
         "name": "Hard",
@@ -69,7 +69,7 @@ DIFFICULTY_CONFIG: Dict[str, Dict[str, Any]] = {
         "innovation_success_mult": 0.85,
         "innovation_gain_mult": 0.85,
         "negative_penalty_mult": 1.30,
-        "starting_cash_bonus": -2000000.0
+        "starting_cash_bonus": -2000000.0,
     },
     "VERY_HARD": {
         "name": "Very Hard",
@@ -86,14 +86,14 @@ DIFFICULTY_CONFIG: Dict[str, Dict[str, Any]] = {
         "innovation_success_mult": 0.70,
         "innovation_gain_mult": 0.70,
         "negative_penalty_mult": 1.60,
-        "starting_cash_bonus": -4000000.0
-    }
+        "starting_cash_bonus": -4000000.0,
+    },
 }
-
 
 
 class DifficultyManager:
     """Manages career difficulty level and applies dynamic modifiers across all game systems."""
+
     def __init__(self, current_difficulty: str = "NORMAL"):
         if current_difficulty not in DIFFICULTY_CONFIG:
             current_difficulty = "NORMAL"
@@ -126,4 +126,3 @@ class DifficultyManager:
         elif value < 0:
             return value * self.get_modifier("negative_penalty_mult", 1.0)
         return 0.0
-

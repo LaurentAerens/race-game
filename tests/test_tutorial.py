@@ -1,10 +1,11 @@
-import unittest
 import os
 import tempfile
+import unittest
+
 import pygame
 
 from src.database.career_db import CareerDatabase
-from src.management.tutorial_manager import TutorialManager, TUTORIAL_STEPS
+from src.management.tutorial_manager import TUTORIAL_STEPS, TutorialManager
 from src.ui.tutorial_overlay import TutorialOverlay
 
 
@@ -18,7 +19,9 @@ class TestTutorialSystem(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_path = os.path.join(self.temp_dir.name, "test_tutorial_career.db")
         self.db = CareerDatabase(self.db_path)
-        self.db.create_new_career("Tutorial Racing", "#00d2be", "NORMAL", "Vortex EcoTech", "Alex Mercer", enable_tutorial=True)
+        self.db.create_new_career(
+            "Tutorial Racing", "#00d2be", "NORMAL", "Vortex EcoTech", "Alex Mercer", enable_tutorial=True
+        )
         player_team = self.db.get_player_team()
         self.team_id = player_team["id"]
 
@@ -68,7 +71,7 @@ class TestTutorialSystem(unittest.TestCase):
             switched_tabs.append(tab)
 
         tm = TutorialManager(self.db, self.team_id, on_switch_tab=on_tab)
-        
+
         # Advance from Step 0 to Step 1 (FACTORY)
         tm.next_step()
         self.assertEqual(tm.current_step_index, 1)
@@ -126,7 +129,7 @@ class TestTutorialSystem(unittest.TestCase):
     def test_mode_synchronization(self):
         """Entering WEEKEND and RACE modes auto-syncs the tutorial step."""
         tm = TutorialManager(self.db, self.team_id)
-        
+
         # When entering WEEKEND mode
         tm.sync_game_state("WEEKEND")
         self.assertEqual(tm.get_current_step().step_id, "WEEKEND_PRACTICE")
@@ -275,4 +278,3 @@ class TestTutorialSystem(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -1,10 +1,12 @@
-import pygame
-import math
+from typing import Any, Dict, List, Optional, Tuple
+
 import networkx as nx
-from typing import Dict, List, Any, Callable, Tuple, Optional
-from ..theme import UITheme
-from ...management.game_manager import GameManager
+import pygame
+
 from ...management.engineering_manager import EngineeringManager
+from ...management.game_manager import GameManager
+from ..theme import UITheme
+
 
 class FactoryTreeTab:
     """
@@ -13,13 +15,14 @@ class FactoryTreeTab:
     Allows building, upgrading, granular monthly sub-budget controls,
     and clicking into any facility to inspect, configure, and manage 5-15 specialized equipment items.
     """
+
     def __init__(self, screen_width: int, screen_height: int):
         self.width = screen_width
         self.height = screen_height
-        
+
         self.selected_dept: str = "ALL"
         self._init_fonts()
-        
+
         # Pan & Zoom Camera
         self.pan_x: float = 40.0
         self.pan_y: float = 130.0
@@ -29,18 +32,18 @@ class FactoryTreeTab:
 
         # Department Equipment & Personnel Inspector Drawer
         self.inspected_node_id: Optional[str] = None
-        self.inspector_tab: str = "EQUIPMENT" # 'EQUIPMENT' or 'STAFF'
+        self.inspector_tab: str = "EQUIPMENT"  # 'EQUIPMENT' or 'STAFF'
         self.inspector_scroll_y: float = 0.0
         self.requested_hiring_target: Optional[Tuple[str, str, str]] = None
 
-        self.status_message: str = "Click any facility node to inspect its specialized equipment, staff roster, and budget!"
+        self.status_message: str = (
+            "Click any facility node to inspect its specialized equipment, staff roster, and budget!"
+        )
 
-        
         # Build NetworkX Graph
         self.graph = nx.DiGraph()
         self.node_positions: Dict[str, Tuple[float, float]] = {}
         self._build_graph_layout()
-
 
     def _init_fonts(self):
         self.font_title = UITheme.get_font(13, bold=True)
@@ -54,10 +57,9 @@ class FactoryTreeTab:
         self.height = height
         self._init_fonts()
 
-
     def _build_graph_layout(self, db: Optional[Any] = None):
         """
-        Dynamically constructs NetworkX DAG and calculates clean hierarchical layout coordinates 
+        Dynamically constructs NetworkX DAG and calculates clean hierarchical layout coordinates
         from any database input (supports custom modded facilities and arbitrary department trees).
         """
         self.graph.clear()
@@ -69,13 +71,16 @@ class FactoryTreeTab:
             try:
                 with db.get_connection() as conn:
                     cur = conn.cursor()
-                    cur.execute("SELECT id, department, name, description, parent_id, tier, max_tier, base_cost, base_upkeep FROM facility_nodes;")
+                    cur.execute(
+                        "SELECT id, department, name, description, parent_id, tier, max_tier, base_cost, base_upkeep FROM facility_nodes;"
+                    )
                     nodes_data = [dict(r) for r in cur.fetchall()]
             except Exception:
                 nodes_data = []
 
         if not nodes_data:
             from ...database.career_db import ALL_FACILITY_NODES
+
             nodes_data = [
                 {"id": n[0], "department": n[1], "name": n[2], "description": n[3], "parent_id": n[4]}
                 for n in ALL_FACILITY_NODES
@@ -96,7 +101,17 @@ class FactoryTreeTab:
             self.graph.add_edge("eng_aero_model_shop", "eng_windtunnel")
 
         # 2. Group nodes by Department
-        dept_order_pref = ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "MARKETING", "HR", "TRACKSIDE", "DRIVER_PERF", "MANAGEMENT"]
+        dept_order_pref = [
+            "ENGINEERING",
+            "MANUFACTURING",
+            "TESTING",
+            "POWERTRAIN",
+            "MARKETING",
+            "HR",
+            "TRACKSIDE",
+            "DRIVER_PERF",
+            "MANAGEMENT",
+        ]
         dept_nodes = {}
         for n in nodes_data:
             dept = n.get("department", "GENERAL")
@@ -104,7 +119,9 @@ class FactoryTreeTab:
                 dept_nodes[dept] = []
             dept_nodes[dept].append(n["id"])
 
-        sorted_depts = sorted(dept_nodes.keys(), key=lambda d: dept_order_pref.index(d) if d in dept_order_pref else 999)
+        sorted_depts = sorted(
+            dept_nodes.keys(), key=lambda d: dept_order_pref.index(d) if d in dept_order_pref else 999
+        )
 
         # 3. Calculate topological depth (column X) for every node
         depths = {}
@@ -133,7 +150,7 @@ class FactoryTreeTab:
             "mkt_customer_racing": 4,
             "hr_workforce_optimizer": 3,
             "hr_wellness_center": 2,
-            "hr_equipment_procurement": 2
+            "hr_equipment_procurement": 2,
         }
 
         for k, v in apex_overrides.items():
@@ -142,7 +159,6 @@ class FactoryTreeTab:
 
         node_w_spacing = 330.0  # Generous 80px horizontal gap for smooth Bézier curve runway
         node_h_spacing = 125.0  # 35px vertical gap between rows for clean distinction
-
 
         # 4. Lay out departments vertically with clean row offsets & crossing minimization
         current_y_offset = 0.0
@@ -157,17 +173,19 @@ class FactoryTreeTab:
                 cols[col].append(nid)
 
             max_rows_in_dept = max(len(row_list) for row_list in cols.values()) if cols else 1
-            
+
             # Sort each column's nodes by average y-position of their predecessors in the graph
             all_cols = sorted(cols.keys())
             for col in all_cols:
                 nids = cols[col]
                 if col > 0:
+
                     def get_parent_order(nid):
                         parents = [p for p in self.graph.predecessors(nid) if p in self.node_positions]
                         if parents:
                             return sum(self.node_positions[p][1] for p in parents) / len(parents)
                         return 0.0
+
                     nids = sorted(nids, key=get_parent_order)
                     cols[col] = nids
 
@@ -178,7 +196,14 @@ class FactoryTreeTab:
 
             current_y_offset += max_rows_in_dept + 0.6  # padding between departments
 
-    def _draw_bezier_edge(self, surface: pygame.Surface, p1: Tuple[float, float], p2: Tuple[float, float], color: Tuple[int, int, int], width: int):
+    def _draw_bezier_edge(
+        self,
+        surface: pygame.Surface,
+        p1: Tuple[float, float],
+        p2: Tuple[float, float],
+        color: Tuple[int, int, int],
+        width: int,
+    ):
         """Draws a sleek anti-aliased cubic Bézier curve between two node connection ports with port pin dots."""
         x1, y1 = p1
         x2, y2 = p2
@@ -206,7 +231,6 @@ class FactoryTreeTab:
         pygame.draw.circle(surface, color, (int(x1), int(y1)), dot_r)
         pygame.draw.circle(surface, color, (int(x2), int(y2)), dot_r)
 
-
     def _dept_matches(self, node_dept: str, selected_dept: str) -> bool:
         """Checks if a node's department matches the filter, supporting aliases like COMMERCIAL/MARKETING."""
         if selected_dept == "ALL":
@@ -228,15 +252,15 @@ class FactoryTreeTab:
             return True, ""
 
         fac = facilities.get(node_id, {})
-        parent_id = fac.get("parent_id") or (self.graph.nodes.get(node_id, {}).get("parent_id") if node_id in self.graph else None)
+        parent_id = fac.get("parent_id") or (
+            self.graph.nodes.get(node_id, {}).get("parent_id") if node_id in self.graph else None
+        )
         if parent_id:
             p_f = facilities.get(parent_id, {})
             if not p_f.get("is_unlocked") or (p_f.get("current_tier") or 0) < 1:
                 p_name = p_f.get("name") or parent_id
                 return False, f"Requires {p_name}"
         return True, ""
-
-
 
     def get_department_tabs(self) -> List[Tuple[str, str]]:
         """Dynamically discovers all departments present in the DAG + ALL tab."""
@@ -251,7 +275,7 @@ class FactoryTreeTab:
             "HR": "HR & WELFARE",
             "TRACKSIDE": "TRACKSIDE",
             "DRIVER_PERF": "DRIVER PERF",
-            "MANAGEMENT": "MANAGEMENT"
+            "MANAGEMENT": "MANAGEMENT",
         }
         unique_depts = []
         for _, data in self.graph.nodes(data=True):
@@ -261,15 +285,23 @@ class FactoryTreeTab:
             if d not in unique_depts:
                 unique_depts.append(d)
 
-        pref = ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE", "DRIVER_PERF", "MANAGEMENT"]
+        pref = [
+            "ENGINEERING",
+            "MANUFACTURING",
+            "TESTING",
+            "POWERTRAIN",
+            "COMMERCIAL",
+            "HR",
+            "TRACKSIDE",
+            "DRIVER_PERF",
+            "MANAGEMENT",
+        ]
         sorted_depts = sorted(unique_depts, key=lambda d: pref.index(d) if d in pref else 999)
-        
+
         tabs = [("ALL", "ALL DEPARTMENTS")]
         for d in sorted_depts:
             tabs.append((d, dept_labels.get(d, d.replace("_", " ").upper())))
         return tabs
-
-
 
     def _truncate_text(self, font: pygame.font.Font, text: str, max_w: float) -> str:
         """Truncates text with ellipsis if it exceeds maximum pixel width."""
@@ -282,25 +314,37 @@ class FactoryTreeTab:
             t = t[:-1]
         return t + "..."
 
-    def _get_facility_benefit_info(self, node_id: str, dept: str, description: str, tier: Optional[int], is_unlocked: bool, eq_items: List[Dict[str, Any]], gm: GameManager, dev_gain_mult: float = 1.0, negative_penalty_mult: float = 1.0) -> Dict[str, Any]:
+    def _get_facility_benefit_info(
+        self,
+        node_id: str,
+        dept: str,
+        description: str,
+        tier: Optional[int],
+        is_unlocked: bool,
+        eq_items: List[Dict[str, Any]],
+        gm: GameManager,
+        dev_gain_mult: float = 1.0,
+        negative_penalty_mult: float = 1.0,
+    ) -> Dict[str, Any]:
         """Dynamically computes unique authentic benefits, passive revenues, marketability, or component perf/rel rates scaled by staff performance (0.0 to 5.0x)."""
         safe_tier = int(tier or 1)
         t_val = max(1, safe_tier) if is_unlocked else 1
         tier = safe_tier
-
 
         # Staff Multiplier (0.0 when unstaffed, up to 5.0x with star specialists & leadership)
         staff_mult = 1.0
         is_unstaffed = False
         if gm and hasattr(gm, "staff_manager") and hasattr(gm, "team_id"):
             try:
-                s_out = gm.staff_manager.calculate_facility_staff_output(gm.team_id, node_id, tier if is_unlocked else 1, dev_gain_mult)
+                s_out = gm.staff_manager.calculate_facility_staff_output(
+                    gm.team_id, node_id, tier if is_unlocked else 1, dev_gain_mult
+                )
                 staff_mult = s_out.get("staff_mult", 1.0)
                 is_unstaffed = s_out.get("is_unstaffed", False)
             except Exception:
                 staff_mult = 1.0
                 is_unstaffed = False
-        
+
         # 1. Commercial / Marketing nodes (Massive Marketability & Appeal Drivers)
         if node_id == "mkt_press":
             mkt = 4 * t_val
@@ -314,7 +358,9 @@ class FactoryTreeTab:
                 "insp_title": "PRESS OFFICE & PUBLIC RELATIONS:",
                 "insp_line1": f"Marketability Rating: +{mkt} Points to Team Reach",
                 "insp_line2": "Crisis Communications: Protects team reputation after poor races",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{4*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{4 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_brand_design":
             mkt = 6 * t_val
@@ -328,7 +374,9 @@ class FactoryTreeTab:
                 "insp_title": "BRAND STRATEGY & LIVERY DESIGN:",
                 "insp_line1": f"Sponsor Multiplier: +{val}% extra cash on all sponsor deals",
                 "insp_line2": f"Marketability Bonus: +{mkt} Points to Team Reach",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Multiplier increases to +{5*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Multiplier increases to +{5 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_digital":
             mkt = 8 * t_val
@@ -341,7 +389,9 @@ class FactoryTreeTab:
                 "insp_title": "DIGITAL & SOCIAL MEDIA IMPACT:",
                 "insp_line1": f"Marketability Bonus: +{mkt} Points to Team Reach",
                 "insp_line2": "Viral Social Growth: Significantly boosts sponsor appeal rating",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{8*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{8 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_merch":
             mkt = 5 * t_val
@@ -354,7 +404,9 @@ class FactoryTreeTab:
                 "insp_title": "MERCHANDISE & OFFICIAL TEAM APPAREL:",
                 "insp_line1": f"Marketability Rating: +{mkt} Points from fan apparel in grandstands",
                 "insp_line2": "Side Income: Generates modest monthly profit scaled by race performance",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{5*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{5 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_fan_club":
             mkt = 5 * t_val
@@ -367,7 +419,9 @@ class FactoryTreeTab:
                 "insp_title": "FAN CLUB & COMMUNITY LOYALTY:",
                 "insp_line1": f"Marketability Rating: +{mkt} Points from dedicated global fan base",
                 "insp_line2": "Side Income: Member subscription dues scaled by team success",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{5*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{5 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_studio":
             mkt = 12 * t_val
@@ -380,7 +434,9 @@ class FactoryTreeTab:
                 "insp_title": "MEDIA BROADCAST STUDIO & SOUNDSTAGE:",
                 "insp_line1": f"Marketability Surge: +{mkt} Points from broadcast docuseries",
                 "insp_line2": "Fan Attachment: Increases fan engagement and sponsor visibility",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{12*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{12 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_hospitality":
             app = 10 * t_val
@@ -393,7 +449,9 @@ class FactoryTreeTab:
                 "insp_title": "VIP PADDOCK CLUB & EXECUTIVE HOSPITALITY:",
                 "insp_line1": f"Sponsor Appeal Rating: +{app} Points to corporate appeal",
                 "insp_line2": "Executive Suites: Unlocks high-tier tier-1 multi-million sponsor deals",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Sponsor appeal bonus increases to +{10*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Sponsor appeal bonus increases to +{10 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_licensing":
             mkt = 6 * t_val
@@ -406,7 +464,9 @@ class FactoryTreeTab:
                 "insp_title": "BRAND LICENSING & IP PARTNERSHIPS:",
                 "insp_line1": f"Marketability Rating: +{mkt} Points to Global Brand IP",
                 "insp_line2": "IP Royalties: Steady monthly royalties from scale models & video games",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{6*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{6 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_esports":
             mkt = 6 * t_val
@@ -419,7 +479,9 @@ class FactoryTreeTab:
                 "insp_title": "ESPORTS RACING RIG & STREAMING CHANNELS:",
                 "insp_line1": f"Marketability Rating: +{mkt} Points from youth & sim racing fans",
                 "insp_line2": "Youth Demographic: Expands team appeal across younger motorsport fans",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{6*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{6 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mkt_heritage":
             mkt = 8 * t_val
@@ -432,7 +494,7 @@ class FactoryTreeTab:
                 "insp_title": "HERITAGE TROPHY MUSEUM & ARCHIVE:",
                 "insp_line1": f"Marketability Base: +{mkt} Points to team prestige",
                 "insp_line2": "Legacy Exhibition: Dynamic museum entry fees scale with team race wins",
-                "insp_line3": "Scales dynamically (+4 pts per championship title won)!"
+                "insp_line3": "Scales dynamically (+4 pts per championship title won)!",
             }
         elif node_id == "mkt_customer_racing":
             app = 15 * t_val
@@ -445,12 +507,18 @@ class FactoryTreeTab:
                 "insp_title": "CUSTOMER RACING & CLIENT SALES:",
                 "insp_line1": f"Elite Prestige Bonus: +{app} Sponsor Appeal Points",
                 "insp_line2": "VIP Track Days: Track days for high-net-worth clients provide modest side profits",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Sponsor appeal bonus increases to +{15*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Sponsor appeal bonus increases to +{15 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
 
         # 2. HR & Workforce Automation Nodes
         elif node_id == "hr_recruitment":
-            t_desc = "T1: Auto-Fills Open Specialist Desks" if t_val == 1 else "T2: Auto-Intern Pipeline ($2k Min-Wage Check)"
+            t_desc = (
+                "T1: Auto-Fills Open Specialist Desks"
+                if t_val == 1
+                else "T2: Auto-Intern Pipeline ($2k Min-Wage Check)"
+            )
             return {
                 "type": "HR",
                 "tag": "RECRUITMENT",
@@ -460,7 +528,9 @@ class FactoryTreeTab:
                 "insp_title": "RECRUITMENT & HIRING BUREAU (Tier 1 & 2):",
                 "insp_line1": "Tier 1: Automatically recruits best-matching applicants into open facility desks",
                 "insp_line2": "Tier 2: Automatically assigns 6-mo intern tryouts (with $2k reserve) & signs top potential",
-                "insp_line3": "ON TIER 2 UPGRADE: Unlocks automated European intern tryouts & graduation signing" if t_val < 2 else "[ MAXIMUM TIER 2 REACHED ]"
+                "insp_line3": "ON TIER 2 UPGRADE: Unlocks automated European intern tryouts & graduation signing"
+                if t_val < 2
+                else "[ MAXIMUM TIER 2 REACHED ]",
             }
         elif node_id == "hr_headhunting" or node_id == "hr_headhunter":
             return {
@@ -472,7 +542,7 @@ class FactoryTreeTab:
                 "insp_title": "EXECUTIVE HEADHUNTING BUREAU:",
                 "insp_line1": "Autonomous Poaching: Scouts rival paddocks for best-value engineers & directors",
                 "insp_line2": "Strategic Talent Acquisition: Fills under-leveraged posts within payroll budget",
-                "insp_line3": f"Tier {t_val} Bureau: Scans deeper rival paddock candidate tiers"
+                "insp_line3": f"Tier {t_val} Bureau: Scans deeper rival paddock candidate tiers",
             }
         elif node_id == "hr_payroll":
             return {
@@ -484,19 +554,21 @@ class FactoryTreeTab:
                 "insp_title": "PAYROLL & WAGE CALIBRATION DESK:",
                 "insp_line1": "Wage Calibration: Automatically grants market raises when room budget allows",
                 "insp_line2": "Morale Retention: Guarantees 100% morale satisfaction and prevents resignations",
-                "insp_line3": f"Tier {t_val} Desk: Real-time market wage index tracking"
+                "insp_line3": f"Tier {t_val} Desk: Real-time market wage index tracking",
             }
         elif node_id == "hr_teambuilding" or node_id == "hr_welfare":
             return {
                 "type": "HR",
                 "tag": "WELFARE",
                 "tag_color": (255, 120, 200),
-                "benefit_str": f"Culture & Morale Buffer (+{2*t_val} Morale)",
+                "benefit_str": f"Culture & Morale Buffer (+{2 * t_val} Morale)",
                 "detail_str": f"Tier {t_val}: Buffers underpaid wage discontent (25-35%)",
                 "insp_title": "TEAM CULTURE & WELFARE COMPLEX:",
-                "insp_line1": f"Wage Discontent Buffer: Underpaid staff tolerate up to {20 + 6*t_val}% wage deficits",
+                "insp_line1": f"Wage Discontent Buffer: Underpaid staff tolerate up to {20 + 6 * t_val}% wage deficits",
                 "insp_line2": "Morale Recovery: Weekly morale regeneration boosted across all personnel",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Buffer increases by an additional +6%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Buffer increases by an additional +6%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "hr_leadership_institute":
             return {
@@ -506,9 +578,11 @@ class FactoryTreeTab:
                 "benefit_str": f"+{18 * t_val}% Weekly Head/Director XP",
                 "detail_str": f"Tier {t_val}: Leadership & Communication training",
                 "insp_title": "LEADERSHIP DEVELOPMENT INSTITUTE:",
-                "insp_line1": f"Management Growth: Accelerates weekly Leadership (+{0.18*t_val:.2f}) & Comm (+{0.14*t_val:.2f})",
+                "insp_line1": f"Management Growth: Accelerates weekly Leadership (+{0.18 * t_val:.2f}) & Comm (+{0.14 * t_val:.2f})",
                 "insp_line2": "Synergy Multiplier: Strengthens Department Head coordination and Category Director boost",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Growth multiplier increases to +{18*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Growth multiplier increases to +{18 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "hr_performance_review":
             clarity = "Exact Stats" if t_val >= 3 else ("±4 pts" if t_val == 2 else "±10 pts")
@@ -521,7 +595,9 @@ class FactoryTreeTab:
                 "insp_title": "PERFORMANCE REVIEW & ANALYTICS LAB:",
                 "insp_line1": f"Fog-of-War Clarity: Narrows candidate and staff stat ranges (Current: {clarity})",
                 "insp_line2": "Scouting Precision: Eliminates guesswork when evaluating potential prospects",
-                "insp_line3": "ON TIER 3 UPGRADE: Unlocks 100% exact effective stat clarity" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED: 100% EXACT CLARITY ]"
+                "insp_line3": "ON TIER 3 UPGRADE: Unlocks 100% exact effective stat clarity"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED: 100% EXACT CLARITY ]",
             }
         elif node_id == "hr_performance_cull":
             return {
@@ -533,7 +609,7 @@ class FactoryTreeTab:
                 "insp_title": "TALENT RETENTION & EXIT REVIEW:",
                 "insp_line1": "Age-Curve Benchmarking: Evaluates performance against demographic peak curve",
                 "insp_line2": "Budget Protection: Automatically dismisses underperforming elder dead weight",
-                "insp_line3": f"Tier {t_val} Review: Automated severance and contract termination"
+                "insp_line3": f"Tier {t_val} Review: Automated severance and contract termination",
             }
         elif node_id == "hr_tech_academy":
             return {
@@ -543,9 +619,11 @@ class FactoryTreeTab:
                 "benefit_str": f"+{12 * t_val}% Engineering Growth",
                 "detail_str": f"Tier {t_val}: Weekly Engineering stat & potential gain",
                 "insp_title": "TECHNICAL ENGINEERING ACADEMY:",
-                "insp_line1": f"Engineering Mastery: Accelerates weekly Engineering stat gains (+{0.12*t_val:.2f}/wk)",
+                "insp_line1": f"Engineering Mastery: Accelerates weekly Engineering stat gains (+{0.12 * t_val:.2f}/wk)",
                 "insp_line2": "Potential Realization: Converts hidden potential into active engineering skill",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Growth multiplier increases to +{12*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Growth multiplier increases to +{12 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "hr_craft_workshop":
             return {
@@ -555,9 +633,11 @@ class FactoryTreeTab:
                 "benefit_str": f"+{12 * t_val}% Craftsmanship Growth",
                 "detail_str": f"Tier {t_val}: Weekly Craftsmanship & Composure gain",
                 "insp_title": "CRAFTSMANSHIP & MASTER GUILD:",
-                "insp_line1": f"Fabrication Skill: Accelerates Craftsmanship (+{0.12*t_val:.2f}/wk) & Composure (+{0.08*t_val:.2f}/wk)",
+                "insp_line1": f"Fabrication Skill: Accelerates Craftsmanship (+{0.12 * t_val:.2f}/wk) & Composure (+{0.08 * t_val:.2f}/wk)",
                 "insp_line2": "Manufacturing Quality: Boosts manufacturing and testing staff performance",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Growth multiplier increases to +{12*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Growth multiplier increases to +{12 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "hr_workforce_optimizer":
             return {
@@ -569,7 +649,7 @@ class FactoryTreeTab:
                 "insp_title": "WORKFORCE SUCCESSION & OPTIMIZATION SUITE:",
                 "insp_line1": "Continuous Upgrading: Scans recruitment queue for strictly superior specialists",
                 "insp_line2": "Seamless Replacement: Replaces inferior staff for the same or lower wage",
-                "insp_line3": f"Tier {t_val} Optimizer: Unlocks automated talent replacement heuristics"
+                "insp_line3": f"Tier {t_val} Optimizer: Unlocks automated talent replacement heuristics",
             }
         elif node_id == "hr_wellness_center":
             return {
@@ -581,7 +661,7 @@ class FactoryTreeTab:
                 "insp_title": "STAFF WELLNESS & LONGEVITY CENTER:",
                 "insp_line1": "Career Extension: Extends peak productivity age from 50 to 54",
                 "insp_line2": "Decline Protection: Reduces post-50 stat degradation rate by 60%",
-                "insp_line3": f"Tier {t_val} Wellness: Medical and ergonomic physical health suites"
+                "insp_line3": f"Tier {t_val} Wellness: Medical and ergonomic physical health suites",
             }
         elif node_id == "hr_equipment_procurement":
             return {
@@ -593,7 +673,7 @@ class FactoryTreeTab:
                 "insp_title": "AUTONOMOUS RIG PROCUREMENT SUITE:",
                 "insp_line1": "Autonomous Procurement: Automatically buys/upgrades equipment rigs using room savings",
                 "insp_line2": "Treasury Protection: Never spends central team bank treasury",
-                "insp_line3": f"Tier {t_val} Procurement: Automated equipment procurement algorithms"
+                "insp_line3": f"Tier {t_val} Procurement: Automated equipment procurement algorithms",
             }
         elif node_id == "mgmt_boardroom":
             return {
@@ -605,7 +685,9 @@ class FactoryTreeTab:
                 "insp_title": "EXECUTIVE BOARDROOM & FACTORY LEADERSHIP:",
                 "insp_line1": f"Universal Leadership Aura: +{5 * t_val} effective Leadership across all factory staff",
                 "insp_line2": f"Weekly Development: +{0.15 * t_val:.2f}/wk Leadership progression for everyone in factory",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Leadership aura increases to +{5*(t_val+1)} (+{0.15*(t_val+1):.2f}/wk)" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Leadership aura increases to +{5 * (t_val + 1)} (+{0.15 * (t_val + 1):.2f}/wk)"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
 
         # 3. Trackside & Driver Performance
@@ -619,7 +701,9 @@ class FactoryTreeTab:
                 "insp_title": "PIT CREW REACTION TRAINING RIG:",
                 "insp_line1": f"Pit Stop Duration: Reduces baseline pit stop time by -{0.15 * t_val:.2f}s",
                 "insp_line2": "Error Reduction: Decreases probability of pit crew mistakes / wheel jams",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Stop time discount increases to -{0.15*(t_val+1):.2f}s" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Stop time discount increases to -{0.15 * (t_val + 1):.2f}s"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "track_wheelguns":
             return {
@@ -631,7 +715,7 @@ class FactoryTreeTab:
                 "insp_title": "CARBON ULTRA-FAST WHEELGUNS:",
                 "insp_line1": "Elite Pit Speed: Unlocks sub-2.2s world-class pit stop capability",
                 "insp_line2": "Laser Guidance: Optical alignment guides instant wheel-nut lock",
-                "insp_line3": f"Tier {t_val} Hardware: Maximizes track position gained in pit lane"
+                "insp_line3": f"Tier {t_val} Hardware: Maximizes track position gained in pit lane",
             }
         elif node_id == "track_telemetry":
             return {
@@ -643,7 +727,7 @@ class FactoryTreeTab:
                 "insp_title": "TRACK TELEMETRY & STRATEGY SERVER:",
                 "insp_line1": "Live Race Data: High-precision real-time tire degradation & temps",
                 "insp_line2": "Pit Wall Strategy: Real-time Monte Carlo undercut strategy models",
-                "insp_line3": f"Tier {t_val} Sensors: Powers trackside data integration across the paddock"
+                "insp_line3": f"Tier {t_val} Sensors: Powers trackside data integration across the paddock",
             }
         elif node_id == "track_fast_repair":
             return {
@@ -655,7 +739,7 @@ class FactoryTreeTab:
                 "insp_title": "RAPID REPAIR GANTRY:",
                 "insp_line1": f"Front Wing Swaps: Cuts pit replacement duration from 4.0s to {max(2.0, 4.0 - 0.6 * t_val):.1f}s",
                 "insp_line2": f"Emergency Repairs: Cuts on-the-fly box time from 14.0s to {max(7.0, 14.0 - 2.0 * t_val):.1f}s",
-                "insp_line3": f"Repaired Durability: Restores damaged parts up to {min(80.0, 55.0 + 7.0 * t_val):.0f}% durability"
+                "insp_line3": f"Repaired Durability: Restores damaged parts up to {min(80.0, 55.0 + 7.0 * t_val):.0f}% durability",
             }
         elif node_id == "track_jack_release":
             return {
@@ -667,7 +751,7 @@ class FactoryTreeTab:
                 "insp_title": "ACTIVE JACK & RELEASE SYSTEM:",
                 "insp_line1": f"Pneumatic Lifting: Reduces base pit stop duration by -{0.15 * t_val:.2f}s",
                 "insp_line2": "Optical Traffic Gantry: Automated zero-lag release scanner eliminating mistakes",
-                "insp_line3": f"Tier {t_val} Rig: Eliminates pit release cross-threads and unsafe releases"
+                "insp_line3": f"Tier {t_val} Rig: Eliminates pit release cross-threads and unsafe releases",
             }
         elif node_id == "track_rival_intel":
             return {
@@ -679,7 +763,7 @@ class FactoryTreeTab:
                 "insp_title": "PADDOCK RECON UNIT:",
                 "insp_line1": f"Competitor Intelligence: +{40 * t_val}% chance to roll competitor design pitches",
                 "insp_line2": "Acoustic & Paddock Scouts: Intercepts rival tire degradation and engine modes",
-                "insp_line3": f"Tier {t_val} Intel: Boosts competitor pitch success rate by +{6.0 * t_val:.1f}%"
+                "insp_line3": f"Tier {t_val} Intel: Boosts competitor pitch success rate by +{6.0 * t_val:.1f}%",
             }
         elif node_id == "track_reverse_eng":
             return {
@@ -691,7 +775,7 @@ class FactoryTreeTab:
                 "insp_title": "OPTICAL TELEMETRY INTERCEPT:",
                 "insp_line1": f"Reverse Engineering: Increases knowledge gain from copycat ideas by +{25 * t_val}%",
                 "insp_line2": "Dynamic LIDAR: Profiles competitor underfloor suction and ride height transients",
-                "insp_line3": "Automated CAD AI: Reduces innovation lockout duration on competitor breakthroughs"
+                "insp_line3": "Automated CAD AI: Reduces innovation lockout duration on competitor breakthroughs",
             }
         elif node_id == "track_weather_station":
             return {
@@ -703,7 +787,7 @@ class FactoryTreeTab:
                 "insp_title": "DOPPLER METEOROLOGICAL RADAR:",
                 "insp_line1": f"Extended Lookahead: Extends rain radar forecast from 6 to {6 + 2 * t_val} laps ahead",
                 "insp_line2": "Micro-Barometric Array: Predicts incoming rain arrival lap with sub-lap precision",
-                "insp_line3": "Supercomputer Tracking: Eliminates forecast fog-of-war on track wetness accumulation"
+                "insp_line3": "Supercomputer Tracking: Eliminates forecast fog-of-war on track wetness accumulation",
             }
         elif node_id == "track_setup_telemetry":
             return {
@@ -715,7 +799,7 @@ class FactoryTreeTab:
                 "insp_title": "TRACKSIDE SETUP ANALYTICS:",
                 "insp_line1": "Practice Guidance: Displays optimal setup target range brackets on FP sliders",
                 "insp_line2": f"Bracket Precision: Narrows uncertainty range down to ±{max(3, 18 - t_val * 4.5):.1f} points",
-                "insp_line3": "Laser Ride Sensors: Reveals exact aerodynamic and mechanical sweet spots"
+                "insp_line3": "Laser Ride Sensors: Reveals exact aerodynamic and mechanical sweet spots",
             }
         elif node_id == "track_virtual_sim":
             return {
@@ -727,7 +811,7 @@ class FactoryTreeTab:
                 "insp_title": "PRE-WEEKEND VIRTUAL RIG:",
                 "insp_line1": f"Setup Baseline: FP1 car setup starts within ±{max(3, 18 - t_val * 4.5):.1f} of optimal sweet spot",
                 "insp_line2": f"Confidence Boost: Car setup confidence begins at {25.0 + t_val * 10.0:.0f}% instead of 25%",
-                "insp_line3": "Hardware-in-Loop: Saves practice run laps so drivers can focus on race programs"
+                "insp_line3": "Hardware-in-Loop: Saves practice run laps so drivers can focus on race programs",
             }
         elif node_id == "track_comm_uplink":
             return {
@@ -739,7 +823,7 @@ class FactoryTreeTab:
                 "insp_title": "REAL-TIME FACTORY MISSION CONTROL:",
                 "insp_line1": f"Knowledge Multiplier: +{15 * t_val}% post-race telemetry knowledge on ALL components",
                 "insp_line2": f"Reliability Boost: +{0.12 * t_val:.2f}% post-race reliability progress across all parts",
-                "insp_line3": "Mission Control Bridge: Real-time trackside data feeds factory design office"
+                "insp_line3": "Mission Control Bridge: Real-time trackside data feeds factory design office",
             }
         elif node_id == "driver_sim":
             return {
@@ -751,7 +835,9 @@ class FactoryTreeTab:
                 "insp_title": "DRIVER SIMULATOR TRAINING:",
                 "insp_line1": f"Track Familiarity: +{15 * t_val}% setup preparation & confidence",
                 "insp_line2": f"Young Driver Boost: +{6 * t_val}% feeder driver progression via off-peak sim time",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Preparation bonus increases to +{15*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Preparation bonus increases to +{15 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_motion_sim":
             return {
@@ -763,7 +849,9 @@ class FactoryTreeTab:
                 "insp_title": "HEXAPOD DRIVER-IN-THE-LOOP SIM:",
                 "insp_line1": f"Senior XP Multiplier: +{25 * t_val}% faster driver stat progression",
                 "insp_line2": f"Young Driver Boost: +{8 * t_val}% feeder driver progression via shared pro telemetry",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Driver XP bonus increases to +{25*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Driver XP bonus increases to +{25 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_vr_cognitive":
             return {
@@ -775,7 +863,9 @@ class FactoryTreeTab:
                 "insp_title": "NEURO-REFLEX & COGNITIVE LAB:",
                 "insp_line1": f"Reflex Progression: +{30 * t_val}% weekly growth on Race Starts, Defending & Consistency",
                 "insp_line2": f"Young Driver Boost: +{8 * t_val}% reaction growth for academy feeder drivers",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Reaction growth increases to +{30*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Reaction growth increases to +{30 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_gym_conditioning":
             return {
@@ -787,7 +877,9 @@ class FactoryTreeTab:
                 "insp_title": "BIOMETRIC ATHLETIC GYM & HEAT CHAMBER:",
                 "insp_line1": f"Endurance Progression: +{25 * t_val}% weekly growth on Tire Management & Wet Weather",
                 "insp_line2": f"Young Driver Boost: +{6 * t_val}% physical stamina growth for junior drivers",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Endurance growth increases to +{25*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Endurance growth increases to +{25 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_physio_recovery":
             return {
@@ -799,7 +891,9 @@ class FactoryTreeTab:
                 "insp_title": "PHYSIO & ATHLETIC LONGEVITY CLINIC:",
                 "insp_line1": f"Age Decay Mitigation: Reduces weekly age 30+ physical stat decline by {35 * t_val}%",
                 "insp_line2": f"Young Driver Boost: +{5 * t_val}% athletic resilience foundation for juniors",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Age decline protection increases to -{35*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Age decline protection increases to -{35 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_media_pr_coach":
             return {
@@ -811,7 +905,9 @@ class FactoryTreeTab:
                 "insp_title": "MEDIA & PRESS CONFERENCE STUDIO:",
                 "insp_line1": f"Marketability Growth: +{35 * t_val}% weekly progression on driver Marketability",
                 "insp_line2": f"Young Driver Boost: +{25 * t_val}% marketability & interview poise for juniors",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Marketability bonus increases to +{35*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Marketability bonus increases to +{35 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_radio_comms_lab":
             return {
@@ -823,7 +919,9 @@ class FactoryTreeTab:
                 "insp_title": "TACTICAL RADIO & ENGINEERING COMMS LAB:",
                 "insp_line1": f"Comms Progression: +{35 * t_val}% growth on Communication & Technical Understanding",
                 "insp_line2": f"Young Driver Boost: +{25 * t_val}% radio shorthand and engineer protocol training",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Feedback and growth bonuses increase" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Feedback and growth bonuses increase"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_commercial_suite":
             return {
@@ -835,7 +933,7 @@ class FactoryTreeTab:
                 "insp_title": "BRAND AMBASSADOR & SPONSOR SUITE:",
                 "insp_line1": f"Sponsor Appeal: +{5 * t_val} flat points added to global team Sponsor Appeal",
                 "insp_line2": f"Young Driver Boost: +{15 * t_val}% partner presentation & marketability growth",
-                "insp_line3": "Backer Patience: Pay-driver sponsors show +15% more patience during contract talks"
+                "insp_line3": "Backer Patience: Pay-driver sponsors show +15% more patience during contract talks",
             }
         elif node_id == "driver_academy":
             return {
@@ -847,7 +945,7 @@ class FactoryTreeTab:
                 "insp_title": "JUNIOR DRIVER ACADEMY:",
                 "insp_line1": "Talent Scouting: Scouts high-potential junior drivers in Tier 4 & 5",
                 "insp_line2": "Scholarship Contracts: Secure future star drivers at low rookie salaries",
-                "insp_line3": f"Tier {t_val} Academy: Increases discovery chance of prodigy talent"
+                "insp_line3": f"Tier {t_val} Academy: Increases discovery chance of prodigy talent",
             }
         elif node_id == "driver_karting_scholarship":
             return {
@@ -859,7 +957,9 @@ class FactoryTreeTab:
                 "insp_title": "GRASSROOTS KARTING SCHOLARSHIP:",
                 "insp_line1": f"Potential Floor: Raises junior scout candidate minimum potential by +{4 * t_val} points",
                 "insp_line2": "Guaranteed Prodigy: Unlocks guaranteed generational talent in scout candidate batches",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Potential floor increases to +{4*(t_val+1)}" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Potential floor increases to +{4 * (t_val + 1)}"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "driver_f4_bootcamp":
             return {
@@ -871,7 +971,9 @@ class FactoryTreeTab:
                 "insp_title": "SINGLE-SEATER JUNIOR BOOT CAMP:",
                 "insp_line1": f"Feeder Development: Academy drivers gain +{35 * t_val}% faster weekly attribute growth",
                 "insp_line2": "Instant Promotion: Seamless transition from feeder series to Primary seat without morale penalty",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Feeder XP boost increases to +{35*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Feeder XP boost increases to +{35 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
 
         # 4. Manufacturing & Testing (Multi-Component & Cross-Cutting Production)
@@ -880,65 +982,97 @@ class FactoryTreeTab:
             p_rate = 0.8 * t_val * eff_s
             tot_p = 4.0 * t_val * eff_s
             r_rate = 0.4 * t_val * eff_s
-            b_str = f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]" if eff_s > 0 else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            b_str = (
+                f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]"
+                if eff_s > 0
+                else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            )
             return {
                 "type": "AERODYNAMICS",
                 "tag": "AERO 5-PARTS",
                 "tag_color": (0, 200, 255),
                 "benefit_str": b_str,
-                "detail_str": f"Tier {t_val}: Wings, Floor, Susp, Brakes (No Engine)" if eff_s > 0 else "Recruit staff in Personnel to activate output",
+                "detail_str": f"Tier {t_val}: Wings, Floor, Susp, Brakes (No Engine)"
+                if eff_s > 0
+                else "Recruit staff in Personnel to activate output",
                 "insp_title": "WIND TUNNEL AERODYNAMIC PRODUCTION (5 Parts):",
                 "insp_line1": f"Base (Tier {t_val}): +{p_rate:.1f} Perf & +{r_rate:.1f}% Rel per part (+{tot_p:.1f} total across 5 parts)",
                 "insp_line2": "IMPACTS: Front Wing, Rear Wing, Floor, Suspension, Brakes (No Engine)",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{0.8*(t_val+1):.1f} Perf/part (+{4.0*(t_val+1):.1f} tot)" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{0.8 * (t_val + 1):.1f} Perf/part (+{4.0 * (t_val + 1):.1f} tot)"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "eng_cfd":
             eff_s = staff_mult if is_unlocked and not is_unstaffed else 0.0
             p_rate = 1.2 * t_val * eff_s
             tot_p = 3.6 * t_val * eff_s
-            b_str = f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]" if eff_s > 0 else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            b_str = (
+                f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]"
+                if eff_s > 0
+                else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            )
             return {
                 "type": "AERODYNAMICS",
                 "tag": "AERO 3-PARTS",
                 "tag_color": (0, 200, 255),
                 "benefit_str": b_str,
-                "detail_str": f"Tier {t_val}: Front Wing, Rear Wing, Floor" if eff_s > 0 else "Recruit staff in Personnel to activate output",
+                "detail_str": f"Tier {t_val}: Front Wing, Rear Wing, Floor"
+                if eff_s > 0
+                else "Recruit staff in Personnel to activate output",
                 "insp_title": "COMPUTATIONAL FLUID DYNAMICS CLUSTER (3 Parts):",
                 "insp_line1": f"Aero Multiplier: +{12 * t_val}% weekly aerodynamic insight (+{p_rate:.1f} Perf/part)",
                 "insp_line2": "IMPACTS: Front Wing, Rear Wing, Floor",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Aero multiplier increases to +{12*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Aero multiplier increases to +{12 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "eng_aero_scanning":
             eff_s = staff_mult if is_unlocked and not is_unstaffed else 0.0
             p_rate = 1.0 * t_val * eff_s
             tot_p = 3.0 * t_val * eff_s
-            b_str = f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]" if eff_s > 0 else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            b_str = (
+                f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]"
+                if eff_s > 0
+                else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            )
             return {
                 "type": "AERODYNAMICS",
                 "tag": "AERO 3-PARTS",
                 "tag_color": (0, 200, 255),
                 "benefit_str": b_str,
-                "detail_str": f"Tier {t_val}: Front Wing, Rear Wing, Floor" if eff_s > 0 else "Recruit staff in Personnel to activate output",
+                "detail_str": f"Tier {t_val}: Front Wing, Rear Wing, Floor"
+                if eff_s > 0
+                else "Recruit staff in Personnel to activate output",
                 "insp_title": "AERO PIV SCANNER & FLOW TELEMETRY (3 Parts):",
                 "insp_line1": f"Flow Precision: +{10 * t_val}% aero surface correlation (+{p_rate:.1f} Perf/part)",
                 "insp_line2": "IMPACTS: Front Wing, Rear Wing, Floor",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{1.0*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{1.0 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "eng_aero_model_shop":
             eff_s = staff_mult if is_unlocked and not is_unstaffed else 0.0
             p_rate = 0.8 * t_val * eff_s
             tot_p = 2.4 * t_val * eff_s
-            b_str = f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]" if eff_s > 0 else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            b_str = (
+                f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]"
+                if eff_s > 0
+                else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            )
             return {
                 "type": "AERODYNAMICS",
                 "tag": "AERO 3-PARTS",
                 "tag_color": (0, 200, 255),
                 "benefit_str": b_str,
-                "detail_str": f"Tier {t_val}: Front Wing, Rear Wing, Floor" if eff_s > 0 else "Recruit staff in Personnel to activate output",
+                "detail_str": f"Tier {t_val}: Front Wing, Rear Wing, Floor"
+                if eff_s > 0
+                else "Recruit staff in Personnel to activate output",
                 "insp_title": "AERO 60% SCALE MODEL SHOP (3 Parts):",
                 "insp_line1": f"Scale Model Speed: +{8 * t_val}% faster scale prototype turnaround",
                 "insp_line2": "IMPACTS: Front Wing, Rear Wing, Floor",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{0.8*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{0.8 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mfg_cleanroom_autoclave":
             return {
@@ -950,7 +1084,7 @@ class FactoryTreeTab:
                 "insp_title": "CLEANROOM & PRESSURIZED AUTOCLAVES (Lightweighting Trade-Off):",
                 "insp_line1": f"Lightweight Performance: +{1.5 * t_val:.1f} Performance per part (-{2.5 * t_val:.1f}kg chassis weight)",
                 "insp_line2": f"Structural Margin: -{0.3 * t_val:.1f}% Reliability per part (Pushes carbon layup to the limit)",
-                "insp_line3": "SYNERGY: Pair with QA & NDT Lab or Materials Lab to eliminate reliability risk!"
+                "insp_line3": "SYNERGY: Pair with QA & NDT Lab or Materials Lab to eliminate reliability risk!",
             }
         elif node_id == "mfg_paint_bay":
             return {
@@ -962,39 +1096,55 @@ class FactoryTreeTab:
                 "insp_title": "PAINT & LIVERY BAY (Thin Topcoat Trade-Off):",
                 "insp_line1": f"Weight Savings: +{0.8 * t_val:.1f} Performance per part (-{1.5 * t_val:.1f}kg lightweight livery)",
                 "insp_line2": f"Weather Resistance: -{0.2 * t_val:.1f}% Reliability per part (Ultra-thin micro-coating)",
-                "insp_line3": "SYNERGY: Pair with QA & NDT Lab for zero-risk lightweight livery!"
+                "insp_line3": "SYNERGY: Pair with QA & NDT Lab for zero-risk lightweight livery!",
             }
         elif node_id == "eng_comp_materials":
             eff_s = staff_mult if is_unlocked and not is_unstaffed else 0.0
             p_rate = 1.5 * t_val * eff_s
             tot_p = 3.0 * t_val * eff_s
-            b_str = f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]" if eff_s > 0 else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            b_str = (
+                f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]"
+                if eff_s > 0
+                else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            )
             return {
                 "type": "CHASSIS",
                 "tag": "CHASSIS 2-PARTS",
                 "tag_color": (170, 255, 0),
                 "benefit_str": b_str,
-                "detail_str": f"Tier {t_val}: Suspension & Brakes" if eff_s > 0 else "Recruit staff in Personnel to activate output",
+                "detail_str": f"Tier {t_val}: Suspension & Brakes"
+                if eff_s > 0
+                else "Recruit staff in Personnel to activate output",
                 "insp_title": "COMPOSITE MATERIALS LAB (2 Parts):",
-                "insp_line1": f"Carbon Strength: +{15 * t_val}% structural insight (+{p_rate:.1f} Perf & +{0.8*t_val:.1f}% Rel/part)",
+                "insp_line1": f"Carbon Strength: +{15 * t_val}% structural insight (+{p_rate:.1f} Perf & +{0.8 * t_val:.1f}% Rel/part)",
                 "insp_line2": "IMPACTS: Suspension, Brakes (Reinforces composite structural margins)",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{1.5*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{1.5 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mfg_cnc_machining":
             eff_s = staff_mult if is_unlocked and not is_unstaffed else 0.0
             p_rate = 1.0 * t_val * eff_s
             tot_p = 3.0 * t_val * eff_s
-            b_str = f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]" if eff_s > 0 else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            b_str = (
+                f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) [{staff_mult:.1f}x Staff]"
+                if eff_s > 0
+                else "Rate: +0.0/part (+0.0 tot) [Unstaffed: 0x]"
+            )
             return {
                 "type": "MANUFACTURING",
                 "tag": "PRECISION 3-PARTS",
                 "tag_color": (255, 140, 0),
                 "benefit_str": b_str,
-                "detail_str": f"Tier {t_val}: Suspension, Brakes, Engine" if eff_s > 0 else "Recruit staff in Personnel to activate output",
+                "detail_str": f"Tier {t_val}: Suspension, Brakes, Engine"
+                if eff_s > 0
+                else "Recruit staff in Personnel to activate output",
                 "insp_title": "5-AXIS CNC MACHINING SHOP (3 Parts):",
                 "insp_line1": f"Milling Precision: +{10 * t_val}% metallic part accuracy (+{p_rate:.1f} Perf/part)",
                 "insp_line2": "IMPACTS: Suspension, Brakes, Engine Tuning",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{1.0*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{1.0 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
 
         elif node_id == "eng_kinematics_lab":
@@ -1007,7 +1157,9 @@ class FactoryTreeTab:
                 "insp_title": "SUSPENSION KINEMATICS RIG (2 Parts):",
                 "insp_line1": f"Tire Degradation: Reduces tire wear by -{6 * t_val}% (+{1.2 * t_val:.1f} Perf/part)",
                 "insp_line2": "IMPACTS: Suspension, Brakes",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Tire deg reduction increases to -{6*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Tire deg reduction increases to -{6 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "test_shaker_rig":
             return {
@@ -1019,7 +1171,9 @@ class FactoryTreeTab:
                 "insp_title": "7-POST HYDRAULIC SHAKER RIG (Suspension):",
                 "insp_line1": f"Kerb Compliance: +{15 * t_val}% high-speed bump stability (+{1.5 * t_val:.1f} Perf)",
                 "insp_line2": "IMPACTS: Suspension (1 Part Dedicated)",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Kerb compliance increases to +{15*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Kerb compliance increases to +{15 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mfg_additive_metal":
             p_rate = 0.9 * t_val
@@ -1033,7 +1187,9 @@ class FactoryTreeTab:
                 "insp_title": "ADDITIVE METAL 3D PRINTING (3 Parts):",
                 "insp_line1": f"Titanium Printing: +{9 * t_val}% lightweight metallic parts (+{p_rate:.1f} Perf/part)",
                 "insp_line2": "IMPACTS: Suspension, Brakes, ERS",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{0.9*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{0.9 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "test_torsional_rig":
             return {
@@ -1045,7 +1201,7 @@ class FactoryTreeTab:
                 "insp_title": "CHASSIS TORSIONAL RIGIDITY TEST CELL (Stiffness & Reliability):",
                 "insp_line1": f"Tub Rigidity: +{15 * t_val}% chassis aero-platform stiffness (+{1.2 * t_val:.1f}% Rel / +{0.8 * t_val:.1f} Perf)",
                 "insp_line2": "IMPACTS: Chassis Tub, Suspension, Aero Floor",
-                "insp_line3": "SYNERGY: Eliminates aero deflection and reinforces suspension mounting points!"
+                "insp_line3": "SYNERGY: Eliminates aero deflection and reinforces suspension mounting points!",
             }
         elif node_id == "eng_dyno":
             p_rate = 1.8 * t_val
@@ -1057,9 +1213,9 @@ class FactoryTreeTab:
                 "benefit_str": f"+{1.8 * t_val:.1f} Perf | +{1.8 * t_val:.1f}% Rel [2 Parts]",
                 "detail_str": f"Tier {t_val}: Stress testing counter-balances tuning",
                 "insp_title": "ENGINE DYNAMOMETER CELLS (Reliability Bench):",
-                "insp_line1": f"Power Unit R&D: +{18 * t_val}% weekly powertrain insight (+{p_rate:.1f} Perf & +{1.8*t_val:.1f}% Rel/part)",
+                "insp_line1": f"Power Unit R&D: +{18 * t_val}% weekly powertrain insight (+{p_rate:.1f} Perf & +{1.8 * t_val:.1f}% Rel/part)",
                 "insp_line2": "IMPACTS: Engine, ERS (Extreme thermal cycle and RPM stress testing)",
-                "insp_line3": "SYNERGY: Completely counter-balances the reliability penalty of high-boost Engine Tuning!"
+                "insp_line3": "SYNERGY: Completely counter-balances the reliability penalty of high-boost Engine Tuning!",
             }
         elif node_id == "eng_thermal_rig":
             p_rate = 1.1 * t_val
@@ -1071,9 +1227,11 @@ class FactoryTreeTab:
                 "benefit_str": f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) | 3 Parts",
                 "detail_str": f"Tier {t_val}: Engine, ERS, Brakes",
                 "insp_title": "THERMAL CHAMBER & COOLING BENCH (3 Parts):",
-                "insp_line1": f"Thermal Management: +{11 * t_val}% thermal insight (+{p_rate:.1f} Perf & +{0.9*t_val:.1f}% Rel/part)",
+                "insp_line1": f"Thermal Management: +{11 * t_val}% thermal insight (+{p_rate:.1f} Perf & +{0.9 * t_val:.1f}% Rel/part)",
                 "insp_line2": "IMPACTS: Engine, ERS, Brakes",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{1.1*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{1.1 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mfg_electronics":
             p_rate = 1.4 * t_val
@@ -1085,9 +1243,11 @@ class FactoryTreeTab:
                 "benefit_str": f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) | 2 Parts",
                 "detail_str": f"Tier {t_val}: ERS & Engine Electrics",
                 "insp_title": "ELECTRONICS & WIRING HARNESS LAB (2 Parts):",
-                "insp_line1": f"Electrical Reliability: +{14 * t_val}% insight (+{p_rate:.1f} Perf & +{1.0*t_val:.1f}% Rel/part)",
+                "insp_line1": f"Electrical Reliability: +{14 * t_val}% insight (+{p_rate:.1f} Perf & +{1.0 * t_val:.1f}% Rel/part)",
                 "insp_line2": "IMPACTS: ERS, Engine",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{1.4*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{1.4 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mfg_exotic_welding":
             p_rate = 1.3 * t_val
@@ -1099,9 +1259,11 @@ class FactoryTreeTab:
                 "benefit_str": f"Rate: +{p_rate:.1f}/part (+{tot_p:.1f} tot) | 2 Parts",
                 "detail_str": f"Tier {t_val}: Engine Exhaust & ERS",
                 "insp_title": "EXOTIC ALLOY WELDING FACILITY (2 Parts):",
-                "insp_line1": f"Inconel Fabrication: +{13 * t_val}% insight (+{p_rate:.1f} Perf & +{0.8*t_val:.1f}% Rel/part)",
+                "insp_line1": f"Inconel Fabrication: +{13 * t_val}% insight (+{p_rate:.1f} Perf & +{0.8 * t_val:.1f}% Rel/part)",
                 "insp_line2": "IMPACTS: Engine, ERS",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Production increases to +{1.3*(t_val+1):.1f} Perf/part" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Production increases to +{1.3 * (t_val + 1):.1f} Perf/part"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "test_qa_ndt":
             return {
@@ -1113,7 +1275,7 @@ class FactoryTreeTab:
                 "insp_title": "QA & NON-DESTRUCTIVE TESTING (Engineering Trade-Off):",
                 "insp_line1": f"Reliability Surge: +{2.0 * t_val:.1f}% Reliability per part (Blocks flawed concept failures)",
                 "insp_line2": f"Conservative Screening: -{0.4 * t_val:.1f} Performance per part (Rejects bleeding-edge radical designs)",
-                "insp_line3": "SYNERGY: Pair with Cleanroom Autoclave or Rapid Proto to eliminate reliability risk!"
+                "insp_line3": "SYNERGY: Pair with Cleanroom Autoclave or Rapid Proto to eliminate reliability risk!",
             }
         elif node_id == "eng_cad_office":
             return {
@@ -1125,7 +1287,9 @@ class FactoryTreeTab:
                 "insp_title": "CAD DESIGN OFFICE & FEA MODELING (ALL 7 Parts):",
                 "insp_line1": f"R&D Success Multiplier: +{5 * t_val}% increased success chance across all part builds",
                 "insp_line2": "IMPACTS: All 7 Car Components (Minimizes packaging flaws)",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Success rate bonus increases to +{5*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Success rate bonus increases to +{5 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "mfg_rapid_proto":
             return {
@@ -1137,7 +1301,9 @@ class FactoryTreeTab:
                 "insp_title": "RAPID PROTOTYPING & ADDITIVE FABRICATION (ALL 7 Parts):",
                 "insp_line1": f"Development Speed: +{8 * t_val}% faster concept turnaround across all parts",
                 "insp_line2": "IMPACTS: All 7 Car Components",
-                "insp_line3": f"ON TIER {t_val+1} UPGRADE: Speed bonus increases to +{8*(t_val+1)}%" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+                "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Speed bonus increases to +{8 * (t_val + 1)}%"
+                if t_val < 3
+                else "[ MAXIMUM TIER 3 REACHED ]",
             }
         elif node_id == "eng_works_powertrain":
             return {
@@ -1149,7 +1315,7 @@ class FactoryTreeTab:
                 "insp_title": "WORKS POWER UNIT FACTORY (Engine & ERS):",
                 "insp_line1": "Constructor Status: Unlocks bespoke in-house V6 turbo engine builds",
                 "insp_line2": "IMPACTS: Engine, ERS (Eliminates seasonal customer engine supplier fees)",
-                "insp_line3": "Full Power Unit Control: Build custom ICE, Turbo, MGU-K, and MGU-H"
+                "insp_line3": "Full Power Unit Control: Build custom ICE, Turbo, MGU-K, and MGU-H",
             }
 
         # 5. Core direct single-component R&D facilities (Brakes, Wings, Suspension, Engine Tuning, Floor, ERS)
@@ -1160,7 +1326,7 @@ class FactoryTreeTab:
             "eng_floor": ("Floor Only", "FLOOR"),
             "eng_suspension": ("Suspension Only", "SUSPENSION"),
             "eng_tuning": ("Engine Only", "ENGINE"),
-            "eng_ers": ("ERS Only", "ERS")
+            "eng_ers": ("ERS Only", "ERS"),
         }
         lbl_info = comp_labels.get(node_id, ("Component", "COMPONENT"))
         part_tag = lbl_info[0]
@@ -1174,8 +1340,12 @@ class FactoryTreeTab:
                 active_eq_count += 1
                 p_lvl = float(eq.get("perf_bonus_per_level") or 0.0)
                 r_lvl = float(eq.get("rel_bonus_per_level") or 0.0)
-                eq_p_cur += (p_lvl * dev_gain_mult if p_lvl > 0 else p_lvl * negative_penalty_mult) * eq["current_level"]
-                eq_r_cur += (r_lvl * dev_gain_mult if r_lvl > 0 else r_lvl * negative_penalty_mult) * eq["current_level"]
+                eq_p_cur += (p_lvl * dev_gain_mult if p_lvl > 0 else p_lvl * negative_penalty_mult) * eq[
+                    "current_level"
+                ]
+                eq_r_cur += (r_lvl * dev_gain_mult if r_lvl > 0 else r_lvl * negative_penalty_mult) * eq[
+                    "current_level"
+                ]
 
         # Dedicated single-component facility rate (Concentrated on 1 part)
         if node_id == "eng_tuning":
@@ -1192,18 +1362,22 @@ class FactoryTreeTab:
         next_base_p = base_p_unit * (1.0 + tier * 0.65)
         next_base_r = base_r_unit * (1.0 + tier * 0.65)
 
-        tot_p = (cur_base_p + eq_p_cur * eff_s)
-        tot_r = (cur_base_r + eq_r_cur * eff_s)
+        tot_p = cur_base_p + eq_p_cur * eff_s
+        tot_r = cur_base_r + eq_r_cur * eff_s
 
         r_sign = "+" if tot_r >= 0 else ""
         eq_sign = "+" if eq_r_cur >= 0 else ""
 
         if eff_s <= 0.0:
-            b_str = f"Rate: +0.0 Perf | +0.0% Rel [Unstaffed: 0x]"
+            b_str = "Rate: +0.0 Perf | +0.0% Rel [Unstaffed: 0x]"
             d_str = f"Impacts: {part_tag} (Recruit staff in Personnel to activate)"
         else:
             b_str = f"Rate: +{tot_p:.1f} Perf | {r_sign}{tot_r:.1f}% Rel [{staff_mult:.1f}x Staff]"
-            d_str = f"Impacts: {part_tag} (1 Part Dedicated | {staff_mult:.1f}x Multiplier)" if node_id != "eng_tuning" else f"High-boost tuning ({staff_mult:.1f}x Staff)"
+            d_str = (
+                f"Impacts: {part_tag} (1 Part Dedicated | {staff_mult:.1f}x Multiplier)"
+                if node_id != "eng_tuning"
+                else f"High-boost tuning ({staff_mult:.1f}x Staff)"
+            )
 
         return {
             "type": "PERF_REL",
@@ -1220,16 +1394,27 @@ class FactoryTreeTab:
             "active_eq_count": active_eq_count,
             "benefit_str": b_str,
             "detail_str": d_str,
-            "insp_title": f"{part_name} DEDICATED PRODUCTION (1 Part Only):" if node_id != "eng_tuning" else "ENGINE TUNING & ECU REMAPPING (High-Boost Trade-Off):",
+            "insp_title": f"{part_name} DEDICATED PRODUCTION (1 Part Only):"
+            if node_id != "eng_tuning"
+            else "ENGINE TUNING & ECU REMAPPING (High-Boost Trade-Off):",
             "insp_line1": f"Base (Tier {t_val}): +{cur_base_p:.1f} Perf, {r_sign}{cur_base_r:.1f}% Rel  |  Equip ({active_eq_count} active): +{eq_p_cur:.2f} Perf, {eq_sign}{eq_r_cur:.2f}% Rel",
-            "insp_line2": f"IMPACTS: {part_name} ONLY (Concentrated dedicated development)" if node_id != "eng_tuning" else "IMPACTS: Engine Only (Pushes powertrain closer to limits)",
-            "insp_line3": f"ON TIER {t_val+1} UPGRADE: Base increases to +{next_base_p:.1f} Perf & {r_sign}{next_base_r:.1f}% Rel" if t_val < 3 else "[ MAXIMUM TIER 3 REACHED ]"
+            "insp_line2": f"IMPACTS: {part_name} ONLY (Concentrated dedicated development)"
+            if node_id != "eng_tuning"
+            else "IMPACTS: Engine Only (Pushes powertrain closer to limits)",
+            "insp_line3": f"ON TIER {t_val + 1} UPGRADE: Base increases to +{next_base_p:.1f} Perf & {r_sign}{next_base_r:.1f}% Rel"
+            if t_val < 3
+            else "[ MAXIMUM TIER 3 REACHED ]",
         }
 
-
-
-
-    def _get_node_telemetry_rates(self, node_id: str, tier: Optional[int], eq_items: List[Dict[str, Any]], dev_gain_mult: float = 1.0, negative_penalty_mult: float = 1.0, staff_mult: float = 1.0) -> Dict[str, Any]:
+    def _get_node_telemetry_rates(
+        self,
+        node_id: str,
+        tier: Optional[int],
+        eq_items: List[Dict[str, Any]],
+        dev_gain_mult: float = 1.0,
+        negative_penalty_mult: float = 1.0,
+        staff_mult: float = 1.0,
+    ) -> Dict[str, Any]:
         """Calculates facility base rate, active equipment rate sum, and upgrade delta scaled by staff_mult."""
         t_val = int(tier or 0)
         # Active Equipment Sums
@@ -1279,19 +1464,25 @@ class FactoryTreeTab:
             "next_tot_p": next_tot_p,
             "next_tot_r": next_tot_r,
             "diff_base_p": next_base_p - cur_base_p,
-            "diff_base_r": next_base_r - cur_base_r
+            "diff_base_r": next_base_r - cur_base_r,
         }
 
-
-
-    def handle_click(self, mx: int, my: int, gm: GameManager, em: EngineeringManager, cost_mult: float = 1.0, upkeep_mult: float = 1.0) -> bool:
+    def handle_click(
+        self,
+        mx: int,
+        my: int,
+        gm: GameManager,
+        em: EngineeringManager,
+        cost_mult: float = 1.0,
+        upkeep_mult: float = 1.0,
+    ) -> bool:
         # =====================================================================
         # A. Clicks inside Equipment Inspector Drawer (if open)
         # =====================================================================
         if self.inspected_node_id:
             drawer_x = self.width - 550
             drawer_rect = pygame.Rect(drawer_x, 60, 526, self.height - 75)
-            
+
             if drawer_rect.collidepoint(mx, my):
                 # Close button
                 close_btn = pygame.Rect(drawer_x + 526 - 70, 68, 60, 22)
@@ -1300,13 +1491,15 @@ class FactoryTreeTab:
                     return True
 
                 # Budget +/- buttons inside drawer (aligned on right of fin_rect)
-                status = gm.db.get_department_financial_status(gm.team_id, self.inspected_node_id, upkeep_mult=upkeep_mult)
+                status = gm.db.get_department_financial_status(
+                    gm.team_id, self.inspected_node_id, upkeep_mult=upkeep_mult
+                )
                 sub_budget = status["monthly_budget"]
                 min_op_cost = status.get("min_operational_cost", 0.0)
                 fin_rect = pygame.Rect(drawer_x + 12, 100, 502, 50)
                 d_minus = pygame.Rect(fin_rect.x + fin_rect.width - 64, fin_rect.y + 6, 26, 20)
                 d_plus = pygame.Rect(fin_rect.x + fin_rect.width - 32, fin_rect.y + 6, 26, 20)
-                
+
                 if d_minus.collidepoint(mx, my):
                     new_b = max(min_op_cost, sub_budget - 5000.0)
                     em.set_subnode_budget(gm.team_id, self.inspected_node_id, new_b, upkeep_mult=upkeep_mult)
@@ -1316,7 +1509,6 @@ class FactoryTreeTab:
                     em.set_subnode_budget(gm.team_id, self.inspected_node_id, new_b, upkeep_mult=upkeep_mult)
                     return True
 
-
                 # Sweep to treasury button inside inspector
                 savings_val = status.get("savings_balance", 0.0)
                 if savings_val > 0:
@@ -1325,7 +1517,6 @@ class FactoryTreeTab:
                         success, msg, amt = gm.db.sweep_facility_savings_to_treasury(gm.team_id, self.inspected_node_id)
                         self.status_message = msg
                         return True
-
 
                 # Facility Upgrade Button inside drawer
                 prod_rect = pygame.Rect(drawer_x + 12, 156, 502, 92)
@@ -1358,7 +1549,7 @@ class FactoryTreeTab:
                     # Equipment list item clicks
                     eq_items = gm.db.get_facility_equipment(gm.team_id, self.inspected_node_id)
                     eq_list_rect = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
-                    
+
                     if eq_list_rect.collidepoint(mx, my):
                         item_y_start = eq_list_rect.y + self.inspector_scroll_y
                         card_h = 82
@@ -1387,14 +1578,16 @@ class FactoryTreeTab:
                     # Personnel Room Roster Action Clicks
                     p_data = gm.staff_manager.get_facility_personnel(gm.team_id, self.inspected_node_id, cur_t)
                     staff_list = p_data["staff"]
-                    
+
                     staff_list_rect = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
                     if staff_list_rect.collidepoint(mx, my):
                         curr_y = staff_list_rect.y + self.inspector_scroll_y
-                        
+
                         # Vacant Head Appoint click
                         if not p_data["head"]:
-                            app_head_btn = pygame.Rect(staff_list_rect.x + 6 + staff_list_rect.width - 12 - 145, curr_y + 38, 135, 22)
+                            app_head_btn = pygame.Rect(
+                                staff_list_rect.x + 6 + staff_list_rect.width - 12 - 145, curr_y + 38, 135, 22
+                            )
                             if app_head_btn.collidepoint(mx, my):
                                 self.requested_hiring_target = (self.inspected_node_id, "HEAD", "Head of Department")
                                 return True
@@ -1406,17 +1599,19 @@ class FactoryTreeTab:
                             s_rect = pygame.Rect(staff_list_rect.x + 6, curr_y, staff_list_rect.width - 12, 54)
                             p_btn = pygame.Rect(s_rect.x + s_rect.width - 165, s_rect.y + 24, 80, 20)
                             if p_btn.collidepoint(mx, my):
-                                success, msg = gm.staff_manager.promote_to_department_head(gm.team_id, s["id"], self.inspected_node_id)
+                                success, msg = gm.staff_manager.promote_to_department_head(
+                                    gm.team_id, s["id"], self.inspected_node_id
+                                )
                                 self.status_message = msg
                                 return True
-                            
+
                             r_btn = pygame.Rect(s_rect.x + s_rect.width - 80, s_rect.y + 24, 74, 20)
                             if r_btn.collidepoint(mx, my):
                                 new_sal = round(s.get("salary_monthly", 8000.0) * 1.25, 0)
                                 success, msg = gm.staff_manager.offer_raise(s["id"], new_sal)
                                 self.status_message = msg
                                 return True
-                            
+
                             curr_y += 60
 
                         # Vacant Desk Slots Hire click
@@ -1432,16 +1627,21 @@ class FactoryTreeTab:
                         # Intern Tryout click
                         curr_y += 24
                         if not p_data["intern"]:
-                            int_btn = pygame.Rect(staff_list_rect.x + 6 + staff_list_rect.width - 12 - 145, curr_y + 14, 135, 26)
+                            int_btn = pygame.Rect(
+                                staff_list_rect.x + 6 + staff_list_rect.width - 12 - 145, curr_y + 14, 135, 26
+                            )
                             if int_btn.collidepoint(mx, my):
-                                self.requested_hiring_target = (self.inspected_node_id, "INTERN", "6-Month Intern Tryout")
+                                self.requested_hiring_target = (
+                                    self.inspected_node_id,
+                                    "INTERN",
+                                    "6-Month Intern Tryout",
+                                )
                                 return True
 
                 return True
             else:
                 # Click outside drawer -> close drawer and allow canvas/tab interaction
                 self.inspected_node_id = None
-
 
         # =====================================================================
         # B. Department Filter Tabs (Top)
@@ -1459,8 +1659,10 @@ class FactoryTreeTab:
                     self.zoom = 1.0
                 else:
                     matching_pts = [
-                        pos for nid, pos in self.node_positions.items() 
-                        if nid in self.graph and self._dept_matches(self.graph.nodes[nid].get("department", "GENERAL"), dept_key)
+                        pos
+                        for nid, pos in self.node_positions.items()
+                        if nid in self.graph
+                        and self._dept_matches(self.graph.nodes[nid].get("department", "GENERAL"), dept_key)
                     ]
                     if matching_pts:
                         min_x = min(p[0] for p in matching_pts)
@@ -1491,7 +1693,6 @@ class FactoryTreeTab:
 
             if not self._dept_matches(f.get("department", "GENERAL"), self.selected_dept):
                 continue
-
 
             sx = self.pan_x + gx * self.zoom
             sy = self.pan_y + gy * self.zoom
@@ -1527,7 +1728,6 @@ class FactoryTreeTab:
                     self.status_message = f"Set {f['name']} budget to ${new_budget:,.0f}/mo."
                     return True
 
-
                 # Upgrade Tier button
                 if cur_tier < max_tier:
                     upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 64 * self.zoom, 70 * self.zoom, 20 * self.zoom)
@@ -1558,19 +1758,16 @@ class FactoryTreeTab:
                     self.inspector_scroll_y = 0.0
                     return True
 
-
         return False
-
-
 
     def handle_mouse_drag(self, event: pygame.event.Event):
         """Allows dragging to pan around the graph or wheel scrolling inside the inspector."""
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.inspected_node_id:
                 # Scroll inside inspector drawer
-                if event.button == 4: # Scroll up
+                if event.button == 4:  # Scroll up
                     self.inspector_scroll_y = min(0.0, self.inspector_scroll_y + 35.0)
-                elif event.button == 5: # Scroll down
+                elif event.button == 5:  # Scroll down
                     self.inspector_scroll_y = max(-650.0, self.inspector_scroll_y - 35.0)
             else:
                 if event.button == 1 and event.pos[1] > 120:
@@ -1591,7 +1788,16 @@ class FactoryTreeTab:
             self.pan_y += dy
             self.drag_start = event.pos
 
-    def render(self, surface: pygame.Surface, gm: GameManager, em: EngineeringManager, cost_mult: float = 1.0, upkeep_mult: float = 1.0, dev_gain_mult: float = 1.0, negative_penalty_mult: float = 1.0):
+    def render(
+        self,
+        surface: pygame.Surface,
+        gm: GameManager,
+        em: EngineeringManager,
+        cost_mult: float = 1.0,
+        upkeep_mult: float = 1.0,
+        dev_gain_mult: float = 1.0,
+        negative_penalty_mult: float = 1.0,
+    ):
         # Auto-refresh DAG layout if needed (e.g. initial build or when custom nodes are added/deleted in DB)
         current_node_count = 0
         try:
@@ -1610,13 +1816,14 @@ class FactoryTreeTab:
         tab_w = max(90, (self.width - 48) // len(depts))
         for idx, (dept_key, label) in enumerate(depts):
             d_rect = pygame.Rect(24 + idx * tab_w, 64, tab_w - 4, 24)
-            is_sel = (dept_key == self.selected_dept)
+            is_sel = dept_key == self.selected_dept
             pygame.draw.rect(surface, (35, 55, 75) if is_sel else (20, 26, 34), d_rect, border_radius=3)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, d_rect, width=1, border_radius=3)
-            
+            pygame.draw.rect(
+                surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, d_rect, width=1, border_radius=3
+            )
+
             lbl = self.font_btn.render(label, True, UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED)
             surface.blit(lbl, (d_rect.x + (d_rect.width - lbl.get_width()) // 2, d_rect.y + 5))
-
 
         # Reset View Button
         btn_reset = pygame.Rect(self.width - 120, 96, 96, 22)
@@ -1644,7 +1851,9 @@ class FactoryTreeTab:
                 continue
 
             if self.selected_dept != "ALL":
-                if not self._dept_matches(u_f.get("department", "GENERAL"), self.selected_dept) or not self._dept_matches(v_f.get("department", "GENERAL"), self.selected_dept):
+                if not self._dept_matches(
+                    u_f.get("department", "GENERAL"), self.selected_dept
+                ) or not self._dept_matches(v_f.get("department", "GENERAL"), self.selected_dept):
                     continue
 
             p1 = self.node_positions[u]
@@ -1665,8 +1874,6 @@ class FactoryTreeTab:
 
             self._draw_bezier_edge(surface, (x1, y1), (x2, y2), line_col, line_w)
 
-
-
         # 3. Draw NetworkX Nodes (Interactive Cards)
         for node_id, (gx, gy) in self.node_positions.items():
             f = facilities.get(node_id)
@@ -1681,7 +1888,12 @@ class FactoryTreeTab:
             sw = 250 * self.zoom
             sh = 90 * self.zoom
 
-            if sx + sw < canvas_rect.x or sx > canvas_rect.x + canvas_rect.width or sy + sh < canvas_rect.y or sy > canvas_rect.y + canvas_rect.height:
+            if (
+                sx + sw < canvas_rect.x
+                or sx > canvas_rect.x + canvas_rect.width
+                or sy + sh < canvas_rect.y
+                or sy > canvas_rect.y + canvas_rect.height
+            ):
                 continue
 
             card_rect = pygame.Rect(sx, sy, sw, sh)
@@ -1691,7 +1903,7 @@ class FactoryTreeTab:
             sub_budget = f.get("monthly_sub_budget") or 0.0
 
             # Background box
-            is_inspected = (self.inspected_node_id == node_id)
+            is_inspected = self.inspected_node_id == node_id
             bg_col = (26, 36, 50) if is_inspected else ((20, 28, 38) if is_unlocked else (14, 18, 24))
             border_col = (255, 215, 0) if is_inspected else ((0, 220, 255) if is_unlocked else (50, 60, 75))
             pygame.draw.rect(surface, bg_col, card_rect, border_radius=4)
@@ -1708,41 +1920,64 @@ class FactoryTreeTab:
                 "HR": (255, 120, 200),
                 "TRACKSIDE": (0, 240, 140),
                 "DRIVER_PERF": (255, 100, 60),
-                "MANAGEMENT": (180, 120, 255)
+                "MANAGEMENT": (180, 120, 255),
             }
             bar_col = dept_cols.get(f["department"], (100, 100, 100))
-            pygame.draw.rect(surface, bar_col, (sx, sy, 5 * self.zoom, sh), border_top_left_radius=4, border_bottom_left_radius=4)
+            pygame.draw.rect(
+                surface, bar_col, (sx, sy, 5 * self.zoom, sh), border_top_left_radius=4, border_bottom_left_radius=4
+            )
 
             # Compute Facility Benefit Information
             node_eq = gm.db.get_facility_equipment(gm.team_id, node_id, upkeep_mult=upkeep_mult)
             b_info = self._get_facility_benefit_info(
-                node_id, f.get("department", "GENERAL"), f.get("description", ""), 
-                cur_tier if is_unlocked else 1, is_unlocked, node_eq, gm, dev_gain_mult, negative_penalty_mult
+                node_id,
+                f.get("department", "GENERAL"),
+                f.get("description", ""),
+                cur_tier if is_unlocked else 1,
+                is_unlocked,
+                node_eq,
+                gm,
+                dev_gain_mult,
+                negative_penalty_mult,
             )
 
             # Row 1: Node Title (left) & Tier Badge (right)
-            disp_name = self._truncate_text(self.font_card_title, f['name'], sw - 68 * self.zoom)
-            surface.blit(self.font_card_title.render(disp_name, True, UITheme.TEXT_WHITE if is_unlocked else (180, 190, 200)), (sx + 10 * self.zoom, sy + 6 * self.zoom))
+            disp_name = self._truncate_text(self.font_card_title, f["name"], sw - 68 * self.zoom)
+            surface.blit(
+                self.font_card_title.render(disp_name, True, UITheme.TEXT_WHITE if is_unlocked else (180, 190, 200)),
+                (sx + 10 * self.zoom, sy + 6 * self.zoom),
+            )
 
             if is_unlocked:
                 tier_str = f"TIER {cur_tier}/{max_tier}"
-                surface.blit(self.font_badge.render(f"[{tier_str}]", True, (255, 215, 0)), (sx + sw - 56 * self.zoom, sy + 6 * self.zoom))
+                surface.blit(
+                    self.font_badge.render(f"[{tier_str}]", True, (255, 215, 0)),
+                    (sx + sw - 56 * self.zoom, sy + 6 * self.zoom),
+                )
 
                 # Row 2: Unique Facility Benefit Output (Unobstructed full row, truncated to fit card)
                 disp_benefit = self._truncate_text(self.font_badge, b_info["benefit_str"], sw - 18 * self.zoom)
-                surface.blit(self.font_badge.render(disp_benefit, True, b_info["tag_color"]), (sx + 10 * self.zoom, sy + 26 * self.zoom))
-                
+                surface.blit(
+                    self.font_badge.render(disp_benefit, True, b_info["tag_color"]),
+                    (sx + 10 * self.zoom, sy + 26 * self.zoom),
+                )
+
                 # Row 3: Detail / Breakdown & Upkeep (Unobstructed full row, strictly truncated to fit card)
                 upk_str = f"{b_info['detail_str']} | Upk ${f['base_upkeep'] * cur_tier:,.0f}/mo"
                 disp_upk = self._truncate_text(self.font_body, upk_str, sw - 18 * self.zoom)
-                surface.blit(self.font_body.render(disp_upk, True, UITheme.TEXT_MUTED), (sx + 10 * self.zoom, sy + 46 * self.zoom))
+                surface.blit(
+                    self.font_body.render(disp_upk, True, UITheme.TEXT_MUTED),
+                    (sx + 10 * self.zoom, sy + 46 * self.zoom),
+                )
 
                 # Row 4: Budget Controls (left/middle) & Upgrade Button (right)
                 b_lbl = self.font_badge.render("BUD:", True, UITheme.TEXT_MUTED)
                 surface.blit(b_lbl, (sx + 10 * self.zoom, sy + 66 * self.zoom))
 
-                bud_str = f"${sub_budget/1000:.0f}k/mo" if sub_budget >= 1000 else f"${sub_budget:,.0f}/mo"
-                surface.blit(self.font_badge.render(bud_str, True, (0, 220, 255)), (sx + 36 * self.zoom, sy + 66 * self.zoom))
+                bud_str = f"${sub_budget / 1000:.0f}k/mo" if sub_budget >= 1000 else f"${sub_budget:,.0f}/mo"
+                surface.blit(
+                    self.font_badge.render(bud_str, True, (0, 220, 255)), (sx + 36 * self.zoom, sy + 66 * self.zoom)
+                )
 
                 minus_btn = pygame.Rect(sx + 88 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
                 plus_btn = pygame.Rect(sx + 112 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
@@ -1761,7 +1996,7 @@ class FactoryTreeTab:
                     upg_cost = f["base_cost"] * (1.5 if next_t == 2 else 2.5) * cost_mult
                     upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 64 * self.zoom, 70 * self.zoom, 20 * self.zoom)
                     pygame.draw.rect(surface, (40, 65, 90), upg_btn, border_radius=2)
-                    upg_cost_str = f"${upg_cost/1000000:.1f}M" if upg_cost >= 1000000 else f"${upg_cost/1000:.0f}k"
+                    upg_cost_str = f"${upg_cost / 1000000:.1f}M" if upg_cost >= 1000000 else f"${upg_cost / 1000:.0f}k"
                     upg_lbl = self.font_btn.render(f"UPG {upg_cost_str}", True, (0, 220, 255))
                     surface.blit(upg_lbl, (upg_btn.x + (upg_btn.width - upg_lbl.get_width()) // 2, upg_btn.y + 3))
                 else:
@@ -1770,20 +2005,28 @@ class FactoryTreeTab:
 
             else:
                 # Row 1 (Right): UNBUILT Badge
-                surface.blit(self.font_badge.render("[UNBUILT]", True, (160, 170, 180)), (sx + sw - 62 * self.zoom, sy + 6 * self.zoom))
+                surface.blit(
+                    self.font_badge.render("[UNBUILT]", True, (160, 170, 180)),
+                    (sx + sw - 62 * self.zoom, sy + 6 * self.zoom),
+                )
 
                 # Row 2: Unique Facility Benefit Preview (Unobstructed full row, truncated to fit card)
                 disp_benefit = self._truncate_text(self.font_badge, b_info["benefit_str"], sw - 18 * self.zoom)
-                surface.blit(self.font_badge.render(disp_benefit, True, b_info["tag_color"]), (sx + 10 * self.zoom, sy + 26 * self.zoom))
-                
+                surface.blit(
+                    self.font_badge.render(disp_benefit, True, b_info["tag_color"]),
+                    (sx + 10 * self.zoom, sy + 26 * self.zoom),
+                )
+
                 # Row 3: Detail / Base Upkeep (Unobstructed full row, strictly truncated to fit card)
                 cost_str = f"{b_info['detail_str']} | Upkeep: ${f['base_upkeep']:,.0f}/mo"
                 disp_cost = self._truncate_text(self.font_body, cost_str, sw - 18 * self.zoom)
-                surface.blit(self.font_body.render(disp_cost, True, (140, 150, 160)), (sx + 10 * self.zoom, sy + 46 * self.zoom))
+                surface.blit(
+                    self.font_body.render(disp_cost, True, (140, 150, 160)), (sx + 10 * self.zoom, sy + 46 * self.zoom)
+                )
 
                 # Row 4: Cost (left) & BUILD Button (right)
                 b_cost = f["base_cost"] * cost_mult
-                b_cost_str = f"${b_cost/1000000:.1f}M" if b_cost >= 1000000 else f"${b_cost/1000:.0f}k"
+                b_cost_str = f"${b_cost / 1000000:.1f}M" if b_cost >= 1000000 else f"${b_cost / 1000:.0f}k"
                 cost_lbl = self.font_badge.render(f"Cost: {b_cost_str}", True, (255, 180, 40))
                 surface.blit(cost_lbl, (sx + 10 * self.zoom, sy + 66 * self.zoom))
 
@@ -1801,11 +2044,8 @@ class FactoryTreeTab:
 
                 surface.blit(b_txt, (build_btn.x + (build_btn.width - b_txt.get_width()) // 2, build_btn.y + 3))
 
-
-
         # Restore Canvas Clip
         surface.set_clip(prev_clip)
-
 
         # =====================================================================
         # 4. Render Department Equipment Inspector Drawer (Right Side)
@@ -1820,10 +2060,10 @@ class FactoryTreeTab:
             fac_info = facilities.get(self.inspected_node_id, {})
             hdr_rect = pygame.Rect(drawer_x, 60, 526, 36)
             pygame.draw.rect(surface, (20, 30, 45), hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
-            
+
             title_txt = f"{fac_info.get('name', 'Facility')} (Tier {fac_info.get('current_tier', 1)}/3)"
             surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (drawer_x + 14, 70))
-            
+
             # Close button
             close_btn = pygame.Rect(drawer_x + 526 - 70, 68, 60, 22)
             pygame.draw.rect(surface, (180, 40, 40), close_btn, border_radius=3)
@@ -1831,7 +2071,9 @@ class FactoryTreeTab:
             surface.blit(c_lbl, (close_btn.x + (close_btn.width - c_lbl.get_width()) // 2, close_btn.y + 4))
 
             # Financial Health & Budget Status Card
-            fin_status = gm.db.get_department_financial_status(gm.team_id, self.inspected_node_id, upkeep_mult=upkeep_mult)
+            fin_status = gm.db.get_department_financial_status(
+                gm.team_id, self.inspected_node_id, upkeep_mult=upkeep_mult
+            )
             fin_rect = pygame.Rect(drawer_x + 12, 98, 502, 54)
             pygame.draw.rect(surface, (20, 26, 36), fin_rect, border_radius=3)
             pygame.draw.rect(surface, (45, 60, 80), fin_rect, width=1, border_radius=3)
@@ -1848,13 +2090,17 @@ class FactoryTreeTab:
             surface.blit(self.font_btn.render("+", True, UITheme.TEXT_WHITE), (d_plus.x + 7, d_plus.y + 1))
 
             upk_detail = f"Min Op Demand: ${fin_status['min_operational_cost']:,.0f}/mo (Maint: ${fin_status['facility_upkeep']:,.0f} | Eq: ${fin_status['equipment_upkeep']:,.0f} | Wages: ${fin_status['staff_salaries']:,.0f})"
-            surface.blit(self.font_body.render(upk_detail, True, UITheme.TEXT_MUTED), (fin_rect.x + 10, fin_rect.y + 22))
-
+            surface.blit(
+                self.font_body.render(upk_detail, True, UITheme.TEXT_MUTED), (fin_rect.x + 10, fin_rect.y + 22)
+            )
 
             # Department Savings Account row & Sweep button
             savings_amt = fin_status.get("savings_balance", 0.0)
             sav_txt = f"💰 Dept Savings: ${savings_amt:,.0f}"
-            surface.blit(self.font_badge.render(sav_txt, True, (0, 255, 160) if savings_amt > 0 else (140, 150, 160)), (fin_rect.x + 10, fin_rect.y + 37))
+            surface.blit(
+                self.font_badge.render(sav_txt, True, (0, 255, 160) if savings_amt > 0 else (140, 150, 160)),
+                (fin_rect.x + 10, fin_rect.y + 37),
+            )
 
             if savings_amt > 0:
                 sweep_btn = pygame.Rect(fin_rect.x + fin_rect.width - 180, fin_rect.y + 33, 172, 17)
@@ -1871,48 +2117,109 @@ class FactoryTreeTab:
             pygame.draw.rect(surface, (0, 180, 220), prod_rect, width=1, border_radius=3)
 
             insp_b = self._get_facility_benefit_info(
-                self.inspected_node_id, fac_info.get('department', 'GENERAL'), fac_info.get('description', ''),
-                int(fac_info.get('current_tier') or 1), bool(fac_info.get('is_unlocked')), eq_items, gm, dev_gain_mult, negative_penalty_mult
+                self.inspected_node_id,
+                fac_info.get("department", "GENERAL"),
+                fac_info.get("description", ""),
+                int(fac_info.get("current_tier") or 1),
+                bool(fac_info.get("is_unlocked")),
+                eq_items,
+                gm,
+                dev_gain_mult,
+                negative_penalty_mult,
             )
 
-
             # Production Card Title
-            surface.blit(self.font_card_title.render(insp_b["insp_title"], True, (255, 215, 0)), (prod_rect.x + 10, prod_rect.y + 6))
+            surface.blit(
+                self.font_card_title.render(insp_b["insp_title"], True, (255, 215, 0)),
+                (prod_rect.x + 10, prod_rect.y + 6),
+            )
 
             # Breakdown Line 1
-            surface.blit(self.font_body.render(insp_b["insp_line1"], True, (200, 220, 240)), (prod_rect.x + 10, prod_rect.y + 26))
+            surface.blit(
+                self.font_body.render(insp_b["insp_line1"], True, (200, 220, 240)), (prod_rect.x + 10, prod_rect.y + 26)
+            )
 
             # Breakdown Line 2 (Highlighted Total Output / Advantage)
-            surface.blit(self.font_card_title.render(insp_b["insp_line2"], True, (0, 255, 160)), (prod_rect.x + 10, prod_rect.y + 46))
+            surface.blit(
+                self.font_card_title.render(insp_b["insp_line2"], True, (0, 255, 160)),
+                (prod_rect.x + 10, prod_rect.y + 46),
+            )
 
             # Breakdown Line 3 (Upgrade Impact)
-            surface.blit(self.font_badge.render(insp_b["insp_line3"], True, (255, 180, 40)), (prod_rect.x + 10, prod_rect.y + 68))
+            surface.blit(
+                self.font_badge.render(insp_b["insp_line3"], True, (255, 180, 40)), (prod_rect.x + 10, prod_rect.y + 68)
+            )
 
             # Sub-Tab Bar (Equipment Rigs vs Room Personnel Roster)
             is_pure_operational = self.inspected_node_id in ("hr_recruitment", "hr_headhunting", "hr_payroll")
             if is_pure_operational:
                 self.inspector_tab = "STAFF"
                 tab_staff_rect = pygame.Rect(drawer_x + 12, 248, 502, 24)
-                pygame.draw.rect(surface, (25, 35, 50), tab_staff_rect, border_top_left_radius=3, border_top_right_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255), tab_staff_rect, width=1, border_top_left_radius=3, border_top_right_radius=3)
+                pygame.draw.rect(
+                    surface, (25, 35, 50), tab_staff_rect, border_top_left_radius=3, border_top_right_radius=3
+                )
+                pygame.draw.rect(
+                    surface, (0, 220, 255), tab_staff_rect, width=1, border_top_left_radius=3, border_top_right_radius=3
+                )
                 staff_tab_lbl = self.font_badge.render("👥 OPERATIONAL ROSTER & STAFF", True, (0, 220, 255))
-                surface.blit(staff_tab_lbl, (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5))
+                surface.blit(
+                    staff_tab_lbl,
+                    (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5),
+                )
             else:
                 tab_eq_rect = pygame.Rect(drawer_x + 12, 248, 246, 24)
                 tab_staff_rect = pygame.Rect(drawer_x + 264, 248, 250, 24)
 
-                eq_active = (self.inspector_tab == "EQUIPMENT")
-                pygame.draw.rect(surface, (25, 35, 50) if eq_active else (14, 18, 26), tab_eq_rect, border_top_left_radius=3, border_top_right_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255) if eq_active else (40, 50, 65), tab_eq_rect, width=1, border_top_left_radius=3, border_top_right_radius=3)
-                eq_tab_lbl = self.font_badge.render(f"🛠️ EQUIPMENT RIGS ({len(eq_items)})", True, (0, 220, 255) if eq_active else (140, 150, 160))
-                surface.blit(eq_tab_lbl, (tab_eq_rect.x + (tab_eq_rect.width - eq_tab_lbl.get_width()) // 2, tab_eq_rect.y + 5))
+                eq_active = self.inspector_tab == "EQUIPMENT"
+                pygame.draw.rect(
+                    surface,
+                    (25, 35, 50) if eq_active else (14, 18, 26),
+                    tab_eq_rect,
+                    border_top_left_radius=3,
+                    border_top_right_radius=3,
+                )
+                pygame.draw.rect(
+                    surface,
+                    (0, 220, 255) if eq_active else (40, 50, 65),
+                    tab_eq_rect,
+                    width=1,
+                    border_top_left_radius=3,
+                    border_top_right_radius=3,
+                )
+                eq_tab_lbl = self.font_badge.render(
+                    f"🛠️ EQUIPMENT RIGS ({len(eq_items)})", True, (0, 220, 255) if eq_active else (140, 150, 160)
+                )
+                surface.blit(
+                    eq_tab_lbl, (tab_eq_rect.x + (tab_eq_rect.width - eq_tab_lbl.get_width()) // 2, tab_eq_rect.y + 5)
+                )
 
-                pygame.draw.rect(surface, (25, 35, 50) if not eq_active else (14, 18, 26), tab_staff_rect, border_top_left_radius=3, border_top_right_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255) if not eq_active else (40, 50, 65), tab_staff_rect, width=1, border_top_left_radius=3, border_top_right_radius=3)
-                staff_tab_lbl = self.font_badge.render("👥 ROOM ROSTER & STAFF", True, (0, 220, 255) if not eq_active else (140, 150, 160))
-                surface.blit(staff_tab_lbl, (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5))
+                pygame.draw.rect(
+                    surface,
+                    (25, 35, 50) if not eq_active else (14, 18, 26),
+                    tab_staff_rect,
+                    border_top_left_radius=3,
+                    border_top_right_radius=3,
+                )
+                pygame.draw.rect(
+                    surface,
+                    (0, 220, 255) if not eq_active else (40, 50, 65),
+                    tab_staff_rect,
+                    width=1,
+                    border_top_left_radius=3,
+                    border_top_right_radius=3,
+                )
+                staff_tab_lbl = self.font_badge.render(
+                    "👥 ROOM ROSTER & STAFF", True, (0, 220, 255) if not eq_active else (140, 150, 160)
+                )
+                surface.blit(
+                    staff_tab_lbl,
+                    (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5),
+                )
 
-            surface.blit(staff_tab_lbl, (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5))
+            surface.blit(
+                staff_tab_lbl,
+                (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5),
+            )
 
             # Scrollable Canvas
             eq_canvas = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
@@ -1941,72 +2248,104 @@ class FactoryTreeTab:
                     pygame.draw.rect(surface, border_col, item_rect, width=1, border_radius=3)
 
                     # Equipment Title & Level
-                    if eq['current_level'] > 0:
+                    if eq["current_level"] > 0:
                         lvl_str = f"Lv {eq['current_level']}/{eq['max_level']}"
                     else:
                         lvl_str = "UNINSTALLED"
-                    surface.blit(self.font_card_title.render(eq["name"], True, UITheme.TEXT_WHITE if not is_locked else (120, 130, 140)), (item_rect.x + 8, item_rect.y + 6))
-                    
-                    lvl_badge = self.font_badge.render(f"[{lvl_str}]", True, (255, 215, 0) if is_active else (140, 140, 140))
-                    surface.blit(lvl_badge, (item_rect.x + item_rect.width - lvl_badge.get_width() - 8, item_rect.y + 6))
+                    surface.blit(
+                        self.font_card_title.render(
+                            eq["name"], True, UITheme.TEXT_WHITE if not is_locked else (120, 130, 140)
+                        ),
+                        (item_rect.x + 8, item_rect.y + 6),
+                    )
+
+                    lvl_badge = self.font_badge.render(
+                        f"[{lvl_str}]", True, (255, 215, 0) if is_active else (140, 140, 140)
+                    )
+                    surface.blit(
+                        lvl_badge, (item_rect.x + item_rect.width - lvl_badge.get_width() - 8, item_rect.y + 6)
+                    )
 
                     # Description
-                    surface.blit(self.font_body.render(eq["description"], True, UITheme.TEXT_MUTED), (item_rect.x + 8, item_rect.y + 22))
+                    surface.blit(
+                        self.font_body.render(eq["description"], True, UITheme.TEXT_MUTED),
+                        (item_rect.x + 8, item_rect.y + 22),
+                    )
 
                     # Current Impact and Next Upgrade Impact
-                    p_lvl = float(eq.get('perf_bonus_per_level') or 0.0)
-                    r_lvl = float(eq.get('rel_bonus_per_level') or 0.0)
+                    p_lvl = float(eq.get("perf_bonus_per_level") or 0.0)
+                    r_lvl = float(eq.get("rel_bonus_per_level") or 0.0)
                     p_mult = dev_gain_mult if p_lvl > 0 else negative_penalty_mult
                     r_mult = dev_gain_mult if r_lvl > 0 else negative_penalty_mult
                     p_unit = p_lvl * p_mult
                     r_unit = r_lvl * r_mult
 
-                    cur_p = p_unit * eq['current_level']
-                    cur_r = r_unit * eq['current_level']
+                    cur_p = p_unit * eq["current_level"]
+                    cur_r = r_unit * eq["current_level"]
                     cur_r_sign = "+" if cur_r >= 0 else ""
 
-                    next_lvl = eq['current_level'] + 1
+                    next_lvl = eq["current_level"] + 1
                     next_p = p_unit * next_lvl
                     next_r = r_unit * next_lvl
                     next_r_sign = "+" if next_r >= 0 else ""
                     d_r_sign = "+" if r_unit >= 0 else ""
 
-                    if eq['current_level'] > 0:
+                    if eq["current_level"] > 0:
                         cur_impact_str = f"Current: +{cur_p:.2f} Perf | {cur_r_sign}{cur_r:.2f}% Rel"
                     else:
                         cur_impact_str = "Current: +0.00 Perf | +0.00% Rel"
 
-                    if eq['current_level'] < eq['max_level']:
-                        if eq['current_level'] == 0:
+                    if eq["current_level"] < eq["max_level"]:
+                        if eq["current_level"] == 0:
                             upg_impact_str = f"-> Next: +{next_p:.2f} Perf | {next_r_sign}{next_r:.2f}% Rel"
                         else:
                             upg_impact_str = f"-> Next: +{next_p:.2f} (+{p_unit:.2f}) | {next_r_sign}{next_r:.2f}% ({d_r_sign}{r_unit:.2f}%)"
                     else:
                         upg_impact_str = "-> [MAX LEVEL]"
 
-                    surface.blit(self.font_body.render(cur_impact_str, True, (0, 240, 140) if is_active else (140, 140, 140)), (item_rect.x + 8, item_rect.y + 38))
-                    surface.blit(self.font_body.render(upg_impact_str, True, (0, 220, 255) if eq['current_level'] < eq['max_level'] else (255, 215, 0)), (item_rect.x + 220, item_rect.y + 38))
+                    surface.blit(
+                        self.font_body.render(cur_impact_str, True, (0, 240, 140) if is_active else (140, 140, 140)),
+                        (item_rect.x + 8, item_rect.y + 38),
+                    )
+                    surface.blit(
+                        self.font_body.render(
+                            upg_impact_str,
+                            True,
+                            (0, 220, 255) if eq["current_level"] < eq["max_level"] else (255, 215, 0),
+                        ),
+                        (item_rect.x + 220, item_rect.y + 38),
+                    )
 
                     # Upkeep and Action Buttons
-                    next_upk = eq['base_upkeep'] * next_lvl * upkeep_mult
-                    if eq['current_level'] > 0:
+                    next_upk = eq["base_upkeep"] * next_lvl * upkeep_mult
+                    if eq["current_level"] > 0:
                         upk_str = f"Upkeep: ${eq['current_upkeep']:,.0f}/mo (Next: ${next_upk:,.0f}/mo)"
                     else:
                         upk_str = f"Upkeep: $0/mo (On Buy: ${next_upk:,.0f}/mo)"
-                    surface.blit(self.font_badge.render(upk_str, True, UITheme.TEXT_MUTED), (item_rect.x + 8, item_rect.y + 56))
+                    surface.blit(
+                        self.font_badge.render(upk_str, True, UITheme.TEXT_MUTED), (item_rect.x + 8, item_rect.y + 56)
+                    )
 
                     # Action Buttons
                     if is_locked:
-                        lock_lbl = self.font_badge.render(f"[ LOCKED: Tier {eq['unlocked_at_facility_tier']} ]", True, (255, 80, 80))
-                        surface.blit(lock_lbl, (item_rect.x + item_rect.width - lock_lbl.get_width() - 8, item_rect.y + 52))
+                        lock_lbl = self.font_badge.render(
+                            f"[ LOCKED: Tier {eq['unlocked_at_facility_tier']} ]", True, (255, 80, 80)
+                        )
+                        surface.blit(
+                            lock_lbl, (item_rect.x + item_rect.width - lock_lbl.get_width() - 8, item_rect.y + 52)
+                        )
                     else:
                         # Active Toggle Button (only when installed)
                         if eq["current_level"] > 0:
                             togg_btn = pygame.Rect(item_rect.x + item_rect.width - 160, item_rect.y + 52, 68, 22)
                             togg_col = (0, 140, 80) if is_active else (120, 40, 40)
                             pygame.draw.rect(surface, togg_col, togg_btn, border_radius=2)
-                            t_lbl = self.font_btn.render("ACTIVE" if is_active else "SHUTDOWN", True, UITheme.TEXT_WHITE)
-                            surface.blit(t_lbl, (togg_btn.x + (togg_btn.width - t_lbl.get_width()) // 2, togg_btn.y + 4))
+                            t_lbl = self.font_btn.render(
+                                "ACTIVE" if is_active else "SHUTDOWN", True, UITheme.TEXT_WHITE
+                            )
+                            surface.blit(
+                                t_lbl, (togg_btn.x + (togg_btn.width - t_lbl.get_width()) // 2, togg_btn.y + 4)
+                            )
 
                         # Manual Install / Upgrade Button
                         if eq["current_level"] < eq["max_level"]:
@@ -2014,19 +2353,29 @@ class FactoryTreeTab:
                             btn_col = (0, 140, 90) if eq["current_level"] == 0 else (35, 60, 85)
                             pygame.draw.rect(surface, btn_col, upg_btn, border_radius=2)
                             cost_scaled = eq["next_upgrade_cost"] * cost_mult
-                            cost_str = f"${cost_scaled/1000000:.1f}M" if cost_scaled >= 1000000 else f"${cost_scaled/1000:.0f}k"
+                            cost_str = (
+                                f"${cost_scaled / 1000000:.1f}M"
+                                if cost_scaled >= 1000000
+                                else f"${cost_scaled / 1000:.0f}k"
+                            )
                             btn_txt = f"BUY {cost_str}" if eq["current_level"] == 0 else f"UPG {cost_str}"
-                            u_lbl = self.font_btn.render(btn_txt, True, (255, 255, 255) if eq["current_level"] == 0 else (0, 220, 255))
+                            u_lbl = self.font_btn.render(
+                                btn_txt, True, (255, 255, 255) if eq["current_level"] == 0 else (0, 220, 255)
+                            )
                             surface.blit(u_lbl, (upg_btn.x + (upg_btn.width - u_lbl.get_width()) // 2, upg_btn.y + 4))
                         else:
                             m_lbl = self.font_badge.render("[ MAX LVL ]", True, (255, 215, 0))
-                            surface.blit(m_lbl, (item_rect.x + item_rect.width - m_lbl.get_width() - 8, item_rect.y + 52))
+                            surface.blit(
+                                m_lbl, (item_rect.x + item_rect.width - m_lbl.get_width() - 8, item_rect.y + 52)
+                            )
 
             elif self.inspector_tab == "STAFF":
                 # Render Personnel Room Roster
-                cur_tier_val = fac_info.get('current_tier', 1)
+                cur_tier_val = fac_info.get("current_tier", 1)
                 p_data = gm.staff_manager.get_facility_personnel(gm.team_id, self.inspected_node_id, cur_tier_val)
-                p_out = gm.staff_manager.calculate_facility_staff_output(gm.team_id, self.inspected_node_id, cur_tier_val, dev_gain_mult)
+                p_out = gm.staff_manager.calculate_facility_staff_output(
+                    gm.team_id, self.inspected_node_id, cur_tier_val, dev_gain_mult
+                )
                 head = p_data["head"]
                 staff_list = p_data["staff"]
                 intern = p_data["intern"]
@@ -2037,25 +2386,51 @@ class FactoryTreeTab:
                 # 1. Department Head Card
                 head_card_rect = pygame.Rect(eq_canvas.x + 6, curr_y, eq_canvas.width - 12, 68)
                 pygame.draw.rect(surface, (20, 30, 44), head_card_rect, border_radius=3)
-                pygame.draw.rect(surface, (255, 215, 0) if head else (180, 80, 80), head_card_rect, width=1, border_radius=3)
+                pygame.draw.rect(
+                    surface, (255, 215, 0) if head else (180, 80, 80), head_card_rect, width=1, border_radius=3
+                )
 
                 if head:
                     h_name_str = f"👑 HEAD OF DEPARTMENT: {head['name']} (Age {head['age']})"
-                    surface.blit(self.font_card_title.render(h_name_str, True, (255, 215, 0)), (head_card_rect.x + 8, head_card_rect.y + 6))
-                    
-                    is_h_match = (head.get("specialty") == target_spec)
+                    surface.blit(
+                        self.font_card_title.render(h_name_str, True, (255, 215, 0)),
+                        (head_card_rect.x + 8, head_card_rect.y + 6),
+                    )
+
+                    is_h_match = head.get("specialty") == target_spec
                     spec_badge_txt = f"Specialty: {head.get('specialty')} {'[MATCH +50%]' if is_h_match else ''}"
-                    surface.blit(self.font_badge.render(spec_badge_txt, True, (0, 240, 140) if is_h_match else (200, 200, 200)), (head_card_rect.x + 8, head_card_rect.y + 24))
-                    
+                    surface.blit(
+                        self.font_badge.render(spec_badge_txt, True, (0, 240, 140) if is_h_match else (200, 200, 200)),
+                        (head_card_rect.x + 8, head_card_rect.y + 24),
+                    )
+
                     lead_str = f"Leadership: {head.get('stat_leadership', 50):.0f} | Force Multiplier: {p_out['head_mult']:.2f}x | Salary: ${head.get('salary_monthly', 8000):,.0f}/mo"
-                    surface.blit(self.font_body.render(lead_str, True, (180, 210, 240)), (head_card_rect.x + 8, head_card_rect.y + 44))
+                    surface.blit(
+                        self.font_body.render(lead_str, True, (180, 210, 240)),
+                        (head_card_rect.x + 8, head_card_rect.y + 44),
+                    )
                 else:
-                    surface.blit(self.font_card_title.render("👑 DEPARTMENT HEAD: ⚠️ VACANT", True, (255, 100, 100)), (head_card_rect.x + 8, head_card_rect.y + 8))
-                    surface.blit(self.font_body.render("Operating in Unsupervised Mode (1.00x Base Output | 0% Leadership Bonus)", True, (180, 180, 180)), (head_card_rect.x + 8, head_card_rect.y + 28))
-                    
-                    app_head_btn = pygame.Rect(head_card_rect.x + head_card_rect.width - 145, head_card_rect.y + 38, 135, 22)
+                    surface.blit(
+                        self.font_card_title.render("👑 DEPARTMENT HEAD: ⚠️ VACANT", True, (255, 100, 100)),
+                        (head_card_rect.x + 8, head_card_rect.y + 8),
+                    )
+                    surface.blit(
+                        self.font_body.render(
+                            "Operating in Unsupervised Mode (1.00x Base Output | 0% Leadership Bonus)",
+                            True,
+                            (180, 180, 180),
+                        ),
+                        (head_card_rect.x + 8, head_card_rect.y + 28),
+                    )
+
+                    app_head_btn = pygame.Rect(
+                        head_card_rect.x + head_card_rect.width - 145, head_card_rect.y + 38, 135, 22
+                    )
                     pygame.draw.rect(surface, (140, 100, 20), app_head_btn, border_radius=2)
-                    surface.blit(self.font_btn.render("➕ APPOINT HEAD", True, (255, 215, 0)), (app_head_btn.x + 14, app_head_btn.y + 4))
+                    surface.blit(
+                        self.font_btn.render("➕ APPOINT HEAD", True, (255, 215, 0)),
+                        (app_head_btn.x + 14, app_head_btn.y + 4),
+                    )
 
                 curr_y += 76
 
@@ -2069,14 +2444,22 @@ class FactoryTreeTab:
                     pygame.draw.rect(surface, (16, 22, 30), s_rect, border_radius=3)
                     pygame.draw.rect(surface, (40, 52, 68), s_rect, width=1, border_radius=3)
 
-                    is_s_match = (s.get("specialty") == target_spec)
-                    s_title = f"👤 {s['name']} (Age {s['age']}) | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}"
-                    surface.blit(self.font_card_title.render(s_title, True, (0, 240, 140) if is_s_match else UITheme.TEXT_WHITE), (s_rect.x + 8, s_rect.y + 6))
+                    is_s_match = s.get("specialty") == target_spec
+                    s_title = (
+                        f"👤 {s['name']} (Age {s['age']}) | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}"
+                    )
+                    surface.blit(
+                        self.font_card_title.render(s_title, True, (0, 240, 140) if is_s_match else UITheme.TEXT_WHITE),
+                        (s_rect.x + 8, s_rect.y + 6),
+                    )
 
-                    is_mentoring = (intern and intern.get("intern_mentor_id") == s.get("id"))
+                    is_mentoring = intern and intern.get("intern_mentor_id") == s.get("id")
                     mentor_str = " [MENTORING INTERN (-15%)]" if is_mentoring else ""
                     stat_info = f"Eng: {s.get('stat_engineering', 35):.0f} | Craft: {s.get('stat_craftsmanship', 35):.0f} | Morale: {s.get('morale', 85):.0f}%{mentor_str}"
-                    surface.blit(self.font_body.render(stat_info, True, (255, 160, 40) if is_mentoring else UITheme.TEXT_MUTED), (s_rect.x + 8, s_rect.y + 26))
+                    surface.blit(
+                        self.font_body.render(stat_info, True, (255, 160, 40) if is_mentoring else UITheme.TEXT_MUTED),
+                        (s_rect.x + 8, s_rect.y + 26),
+                    )
 
                     # Promote to Head Button
                     p_btn = pygame.Rect(s_rect.x + s_rect.width - 165, s_rect.y + 24, 80, 20)
@@ -2098,11 +2481,19 @@ class FactoryTreeTab:
                     pygame.draw.rect(surface, (12, 18, 26), v_rect, border_radius=3)
                     pygame.draw.rect(surface, (0, 140, 180), v_rect, width=1, border_radius=3)
                     desk_num = len(staff_list) + v_idx + 1
-                    surface.blit(self.font_body.render(f"➕ Open Desk #{desk_num} (Available for Specialist)", True, (0, 220, 255)), (v_rect.x + 10, v_rect.y + 10))
+                    surface.blit(
+                        self.font_body.render(
+                            f"➕ Open Desk #{desk_num} (Available for Specialist)", True, (0, 220, 255)
+                        ),
+                        (v_rect.x + 10, v_rect.y + 10),
+                    )
 
                     hire_v_btn = pygame.Rect(v_rect.x + v_rect.width - 130, v_rect.y + 6, 120, 24)
                     pygame.draw.rect(surface, (0, 140, 80), hire_v_btn, border_radius=2)
-                    surface.blit(self.font_btn.render("➕ HIRE TO DESK", True, UITheme.TEXT_WHITE), (hire_v_btn.x + 10, hire_v_btn.y + 5))
+                    surface.blit(
+                        self.font_btn.render("➕ HIRE TO DESK", True, UITheme.TEXT_WHITE),
+                        (hire_v_btn.x + 10, hire_v_btn.y + 5),
+                    )
 
                     curr_y += 42
 
@@ -2119,20 +2510,29 @@ class FactoryTreeTab:
                 if intern:
                     is_done = bool(intern.get("is_potential_revealed"))
                     i_title = f"🎓 {intern['name']} (Age {intern['age']}) | Month {intern.get('intern_months_completed', 0)}/6"
-                    surface.blit(self.font_card_title.render(i_title, True, (180, 140, 255)), (i_rect.x + 8, i_rect.y + 6))
-                    
+                    surface.blit(
+                        self.font_card_title.render(i_title, True, (180, 140, 255)), (i_rect.x + 8, i_rect.y + 6)
+                    )
+
                     if is_done:
                         pot_str = f"Tryout Complete! True Potential: {intern.get('stat_potential', 70)}/100 (Ready for Full Contract)"
                         surface.blit(self.font_body.render(pot_str, True, (0, 255, 160)), (i_rect.x + 8, i_rect.y + 26))
                     else:
                         m_info = "Shadowing Staff Mentor (Mentor takes -15% guidance penalty)"
-                        surface.blit(self.font_body.render(m_info, True, (200, 180, 220)), (i_rect.x + 8, i_rect.y + 26))
+                        surface.blit(
+                            self.font_body.render(m_info, True, (200, 180, 220)), (i_rect.x + 8, i_rect.y + 26)
+                        )
                 else:
-                    surface.blit(self.font_body.render("No active intern tryout in this room.", True, (130, 140, 150)), (i_rect.x + 10, i_rect.y + 16))
+                    surface.blit(
+                        self.font_body.render("No active intern tryout in this room.", True, (130, 140, 150)),
+                        (i_rect.x + 10, i_rect.y + 16),
+                    )
                     int_btn = pygame.Rect(i_rect.x + i_rect.width - 145, i_rect.y + 14, 135, 26)
                     pygame.draw.rect(surface, (120, 60, 180), int_btn, border_radius=2)
-                    surface.blit(self.font_btn.render("➕ ASSIGN INTERN", True, UITheme.TEXT_WHITE), (int_btn.x + 12, int_btn.y + 6))
-
+                    surface.blit(
+                        self.font_btn.render("➕ ASSIGN INTERN", True, UITheme.TEXT_WHITE),
+                        (int_btn.x + 12, int_btn.y + 6),
+                    )
 
             surface.set_clip(drawer_prev_clip)
 
@@ -2141,5 +2541,7 @@ class FactoryTreeTab:
 
         pygame.draw.rect(surface, (18, 24, 30), stat_bar, border_radius=3)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, stat_bar, width=1, border_radius=3)
-        surface.blit(self.font_badge.render(f"FACTORY LOG: {self.status_message}", True, UITheme.ACCENT_CYAN), (stat_bar.x + 10, stat_bar.y + 6))
-
+        surface.blit(
+            self.font_badge.render(f"FACTORY LOG: {self.status_message}", True, UITheme.ACCENT_CYAN),
+            (stat_bar.x + 10, stat_bar.y + 6),
+        )

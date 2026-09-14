@@ -1,9 +1,12 @@
 import os
+from typing import Any, Dict, List, Optional
+
 import pygame
-from typing import List, Dict, Optional, Any, Tuple
-from ..ui.theme import UITheme
-from ..database.db_manager import DatabaseManager
+
 from ..database.career_db import CareerDatabase
+from ..database.db_manager import DatabaseManager
+from ..ui.theme import UITheme
+
 
 class DatabaseEditor:
     """
@@ -14,7 +17,13 @@ class DatabaseEditor:
     Supports both Exhibition Database ('race_game.db') and Career Database ('career.db').
     """
 
-    def __init__(self, screen_width: int, screen_height: int, exhibition_db_path: str = "race_game.db", career_db_path: str = "career.db"):
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        exhibition_db_path: str = "race_game.db",
+        career_db_path: str = "career.db",
+    ):
         self.screen_width = screen_width
         self.screen_height = screen_height
 
@@ -42,7 +51,7 @@ class DatabaseEditor:
         self.selected_node_idx: int = 0
         self.node_scroll_y: int = 0
         self.show_node_modal: bool = False
-        self.modal_mode: str = "CREATE" # "CREATE" or "EDIT"
+        self.modal_mode: str = "CREATE"  # "CREATE" or "EDIT"
         self.edit_node_id: str = ""
         self.edit_node_dept: str = "ENGINEERING"
         self.edit_node_name: str = ""
@@ -123,7 +132,7 @@ class DatabaseEditor:
                     "braking_efficiency": float(raw_car["braking_efficiency"]),
                     "tire_preservation": float(raw_car["tire_preservation"]),
                     "fuel_efficiency": float(raw_car["fuel_efficiency"]),
-                    "reliability": float(raw_car["reliability"])
+                    "reliability": float(raw_car["reliability"]),
                 }
             self.drivers = self.exhibition_db.get_drivers(team_id)
             self.facilities = []
@@ -136,7 +145,7 @@ class DatabaseEditor:
                 "braking_efficiency": 80.0 + (3 - tier_val) * 7.0,
                 "tire_preservation": 82.0,
                 "fuel_efficiency": 82.0,
-                "reliability": 88.0
+                "reliability": 88.0,
             }
             self.facilities = self.career_db.get_team_facilities(team_id)
             self.all_nodes = self.career_db.get_all_facility_nodes()
@@ -166,7 +175,7 @@ class DatabaseEditor:
                 "defending": float(d.get("defending", 80.0)),
                 "tire_management": float(d.get("tire_management", 80.0)),
                 "consistency": float(d.get("consistency", 85.0)),
-                "wet_skill": float(d.get("wet_skill", 80.0))
+                "wet_skill": float(d.get("wet_skill", 80.0)),
             }
         else:
             self.driver_stats = {
@@ -176,7 +185,7 @@ class DatabaseEditor:
                 "tire_management": float(d.get("tire_management", 75)),
                 "defending": float(d.get("defending", 75)),
                 "fuel_efficiency": float(d.get("fuel_efficiency", 75)),
-                "wet_weather": float(d.get("wet_weather", 75))
+                "wet_weather": float(d.get("wet_weather", 75)),
             }
 
     def handle_event(self, event: pygame.event.Event):
@@ -360,8 +369,13 @@ class DatabaseEditor:
                 if c_rect.collidepoint(mx, my):
                     track_title = c_file.replace(".json", "").replace("_", " ").title() + " GP"
                     self.career_db.update_calendar_round(
-                        rnd_num, track_title, c_file, sel_r["total_laps"], sel_r["weather_profile"],
-                        tier=self.selected_calendar_tier, characteristic=cur_char
+                        rnd_num,
+                        track_title,
+                        c_file,
+                        sel_r["total_laps"],
+                        sel_r["weather_profile"],
+                        tier=self.selected_calendar_tier,
+                        characteristic=cur_char,
                     )
                     self.calendar_rounds = self.career_db.get_calendar_rounds(self.selected_calendar_tier)
                     self.set_status(f"Round {rnd_num} circuit set to {c_file}!")
@@ -372,8 +386,13 @@ class DatabaseEditor:
                 char_btn = pygame.Rect(400 + c_idx * 96, 250, 88, 26)
                 if char_btn.collidepoint(mx, my):
                     self.career_db.update_calendar_round(
-                        rnd_num, sel_r["track_name"], sel_r["circuit_file"], sel_r["total_laps"], sel_r["weather_profile"],
-                        tier=self.selected_calendar_tier, characteristic=char_name
+                        rnd_num,
+                        sel_r["track_name"],
+                        sel_r["circuit_file"],
+                        sel_r["total_laps"],
+                        sel_r["weather_profile"],
+                        tier=self.selected_calendar_tier,
+                        characteristic=char_name,
                     )
                     self.calendar_rounds = self.career_db.get_calendar_rounds(self.selected_calendar_tier)
                     self.set_status(f"Round {rnd_num} characteristic set to {char_name}!")
@@ -386,8 +405,13 @@ class DatabaseEditor:
                 cur_w = sel_r.get("weather_profile", "DYNAMIC")
                 next_w = weathers[(weathers.index(cur_w) + 1) % len(weathers)] if cur_w in weathers else "DYNAMIC"
                 self.career_db.update_calendar_round(
-                    rnd_num, sel_r["track_name"], sel_r["circuit_file"], sel_r["total_laps"], next_w,
-                    tier=self.selected_calendar_tier, characteristic=cur_char
+                    rnd_num,
+                    sel_r["track_name"],
+                    sel_r["circuit_file"],
+                    sel_r["total_laps"],
+                    next_w,
+                    tier=self.selected_calendar_tier,
+                    characteristic=cur_char,
                 )
                 self.calendar_rounds = self.career_db.get_calendar_rounds(self.selected_calendar_tier)
                 self.set_status(f"Round {rnd_num} weather set to {next_w}!")
@@ -399,16 +423,26 @@ class DatabaseEditor:
             if btn_laps_minus.collidepoint(mx, my):
                 new_laps = max(5, sel_r["total_laps"] - 2)
                 self.career_db.update_calendar_round(
-                    rnd_num, sel_r["track_name"], sel_r["circuit_file"], new_laps, sel_r["weather_profile"],
-                    tier=self.selected_calendar_tier, characteristic=cur_char
+                    rnd_num,
+                    sel_r["track_name"],
+                    sel_r["circuit_file"],
+                    new_laps,
+                    sel_r["weather_profile"],
+                    tier=self.selected_calendar_tier,
+                    characteristic=cur_char,
                 )
                 self.calendar_rounds = self.career_db.get_calendar_rounds(self.selected_calendar_tier)
                 return
             elif btn_laps_plus.collidepoint(mx, my):
                 new_laps = min(60, sel_r["total_laps"] + 2)
                 self.career_db.update_calendar_round(
-                    rnd_num, sel_r["track_name"], sel_r["circuit_file"], new_laps, sel_r["weather_profile"],
-                    tier=self.selected_calendar_tier, characteristic=cur_char
+                    rnd_num,
+                    sel_r["track_name"],
+                    sel_r["circuit_file"],
+                    new_laps,
+                    sel_r["weather_profile"],
+                    tier=self.selected_calendar_tier,
+                    characteristic=cur_char,
                 )
                 self.calendar_rounds = self.career_db.get_calendar_rounds(self.selected_calendar_tier)
                 return
@@ -428,7 +462,9 @@ class DatabaseEditor:
         if btn_add.collidepoint(mx, my):
             first_track = self.available_circuit_files[0] if self.available_circuit_files else "emerald_ring.json"
             t_name = first_track.replace(".json", "").replace("_", " ").title() + " Super Prix"
-            new_rnd = self.career_db.add_calendar_round(t_name, first_track, 15, "DYNAMIC", tier=self.selected_calendar_tier)
+            new_rnd = self.career_db.add_calendar_round(
+                t_name, first_track, 15, "DYNAMIC", tier=self.selected_calendar_tier
+            )
             self.calendar_rounds = self.career_db.get_calendar_rounds(self.selected_calendar_tier)
             self.selected_round_idx = len(self.calendar_rounds) - 1
             self.set_status(f"Added Round {new_rnd} ({t_name}) to Season Calendar!")
@@ -528,7 +564,9 @@ class DatabaseEditor:
     def _handle_node_modal_clicks(self, mx: int, my: int):
         modal_w = 580
         modal_h = 420
-        modal_rect = pygame.Rect((self.screen_width - modal_w) // 2, (self.screen_height - modal_h) // 2, modal_w, modal_h)
+        modal_rect = pygame.Rect(
+            (self.screen_width - modal_w) // 2, (self.screen_height - modal_h) // 2, modal_w, modal_h
+        )
 
         # Close button or click outside
         btn_close = pygame.Rect(modal_rect.right - 34, modal_rect.y + 10, 24, 24)
@@ -558,7 +596,16 @@ class DatabaseEditor:
         # Department Cycle
         btn_dept = pygame.Rect(modal_rect.x + 160, f_y + 108, 180, 26)
         if btn_dept.collidepoint(mx, my):
-            depts = ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE", "DRIVER_PERF"]
+            depts = [
+                "ENGINEERING",
+                "MANUFACTURING",
+                "TESTING",
+                "POWERTRAIN",
+                "COMMERCIAL",
+                "HR",
+                "TRACKSIDE",
+                "DRIVER_PERF",
+            ]
             cur_idx = depts.index(self.edit_node_dept) if self.edit_node_dept in depts else 0
             self.edit_node_dept = depts[(cur_idx + 1) % len(depts)]
             return
@@ -567,7 +614,11 @@ class DatabaseEditor:
         btn_parent = pygame.Rect(modal_rect.x + 160, f_y + 144, 220, 26)
         if btn_parent.collidepoint(mx, my):
             candidate_parents = [None] + [n["id"] for n in self.all_nodes if n["id"] != self.edit_node_id][:15]
-            cur_p_idx = candidate_parents.index(self.edit_node_parent_id) if self.edit_node_parent_id in candidate_parents else 0
+            cur_p_idx = (
+                candidate_parents.index(self.edit_node_parent_id)
+                if self.edit_node_parent_id in candidate_parents
+                else 0
+            )
             self.edit_node_parent_id = candidate_parents[(cur_p_idx + 1) % len(candidate_parents)]
             return
 
@@ -596,7 +647,7 @@ class DatabaseEditor:
         if btn_confirm.collidepoint(mx, my):
             clean_name = self.edit_node_name.strip() or "Custom Facility"
             clean_desc = self.edit_node_desc.strip() or "Modded team facility node"
-            clean_id = self.edit_node_id.strip() or f"custom_{len(self.all_nodes)+1}"
+            clean_id = self.edit_node_id.strip() or f"custom_{len(self.all_nodes) + 1}"
             cost_val = self.edit_node_cost_m * 1000000.0
             upkeep_val = self.edit_node_upkeep_k * 1000.0
 
@@ -612,7 +663,7 @@ class DatabaseEditor:
                     base_cost=cost_val,
                     base_upkeep=upkeep_val,
                     staff_capacity=8,
-                    unlock_league_tier=3
+                    unlock_league_tier=3,
                 )
                 self.set_status(f"Created custom node '{clean_name}' in {self.edit_node_dept}!")
             else:
@@ -623,7 +674,7 @@ class DatabaseEditor:
                     description=clean_desc,
                     parent_id=self.edit_node_parent_id,
                     base_cost=cost_val,
-                    base_upkeep=upkeep_val
+                    base_upkeep=upkeep_val,
                 )
                 self.set_status(f"Updated node '{clean_name}' definitions!")
 
@@ -652,9 +703,7 @@ class DatabaseEditor:
         else:
             if self.drivers and self.selected_driver_idx < len(self.drivers):
                 d = self.drivers[self.selected_driver_idx]
-                self.career_db.update_driver_stats(
-                    d["id"], d["name"], d.get("number", 1), self.driver_stats
-                )
+                self.career_db.update_driver_stats(d["id"], d["name"], d.get("number", 1), self.driver_stats)
             self.set_status(f"Updated career driver stats for {team['name']}!")
 
     def set_status(self, msg: str):
@@ -668,7 +717,9 @@ class DatabaseEditor:
     def render(self, surface: pygame.Surface):
         btn_exh = pygame.Rect(20, 52, 170, 26)
         btn_car = pygame.Rect(195, 52, 170, 26)
-        UITheme.draw_button(surface, btn_exh, "EXHIBITION (RACE_GAME.DB)", self.font_badge, is_active=(self.db_mode == "EXHIBITION"))
+        UITheme.draw_button(
+            surface, btn_exh, "EXHIBITION (RACE_GAME.DB)", self.font_badge, is_active=(self.db_mode == "EXHIBITION")
+        )
         UITheme.draw_button(surface, btn_car, "CAREER DATABASE", self.font_badge, is_active=(self.db_mode == "CAREER"))
 
         tab_car = pygame.Rect(380, 52, 100, 26)
@@ -676,9 +727,15 @@ class DatabaseEditor:
         tab_cal = pygame.Rect(600, 52, 140, 26)
         tab_fac = pygame.Rect(745, 52, 135, 26)
         UITheme.draw_button(surface, tab_car, "CAR SPECS", self.font_badge, is_active=(self.active_subtab == "CAR"))
-        UITheme.draw_button(surface, tab_drv, "DRIVER SKILLS", self.font_badge, is_active=(self.active_subtab == "DRIVER"))
-        UITheme.draw_button(surface, tab_cal, "CALENDAR / TRACKS", self.font_badge, is_active=(self.active_subtab == "CALENDAR"))
-        UITheme.draw_button(surface, tab_fac, "FACTORY LAYOUT", self.font_badge, is_active=(self.active_subtab == "FACTORY"))
+        UITheme.draw_button(
+            surface, tab_drv, "DRIVER SKILLS", self.font_badge, is_active=(self.active_subtab == "DRIVER")
+        )
+        UITheme.draw_button(
+            surface, tab_cal, "CALENDAR / TRACKS", self.font_badge, is_active=(self.active_subtab == "CALENDAR")
+        )
+        UITheme.draw_button(
+            surface, tab_fac, "FACTORY LAYOUT", self.font_badge, is_active=(self.active_subtab == "FACTORY")
+        )
 
         if self.active_subtab == "CALENDAR":
             self._render_calendar_tab(surface)
@@ -699,7 +756,7 @@ class DatabaseEditor:
 
         item_y = team_panel.y + 32
         for idx, t in enumerate(self.teams[:14]):
-            is_sel = (idx == self.selected_team_idx)
+            is_sel = idx == self.selected_team_idx
             row_rect = pygame.Rect(team_panel.x + 6, item_y, team_panel.width - 12, 32)
             bg_col = (30, 42, 58) if is_sel else (18, 22, 28)
             border_col = UITheme.ACCENT_CYAN if is_sel else (35, 42, 52)
@@ -717,7 +774,10 @@ class DatabaseEditor:
 
             pygame.draw.circle(surface, swatch_col, (row_rect.x + 16, row_rect.y + 16), 7)
             t_name = t["name"]
-            surface.blit(self.font_bold.render(t_name, True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED), (row_rect.x + 32, row_rect.y + 8))
+            surface.blit(
+                self.font_bold.render(t_name, True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED),
+                (row_rect.x + 32, row_rect.y + 8),
+            )
 
             if t.get("is_player"):
                 p_badge = self.font_badge.render("PLAYER", True, (0, 240, 140))
@@ -730,16 +790,20 @@ class DatabaseEditor:
 
         if self.teams and self.selected_team_idx < len(self.teams):
             sel_team = self.teams[self.selected_team_idx]
-            
+
             r_hdr = pygame.Rect(right_panel.x, right_panel.y, right_panel.width, 36)
             pygame.draw.rect(surface, UITheme.PANEL_HEADER, r_hdr, border_top_left_radius=4, border_top_right_radius=4)
-            surface.blit(self.font_title.render(f"EDITING: {sel_team['name']}", True, (255, 215, 0)), (r_hdr.x + 14, r_hdr.y + 8))
+            surface.blit(
+                self.font_title.render(f"EDITING: {sel_team['name']}", True, (255, 215, 0)), (r_hdr.x + 14, r_hdr.y + 8)
+            )
 
             if self.active_subtab == "DRIVER":
                 for d_idx, d in enumerate(self.drivers[:4]):
                     d_btn = pygame.Rect(right_panel.x + 14 + d_idx * 160, right_panel.y + 46, 150, 28)
-                    is_d_sel = (d_idx == self.selected_driver_idx)
-                    UITheme.draw_button(surface, d_btn, f"#{d.get('number', 1)} {d['name'][:12]}", self.font_badge, is_active=is_d_sel)
+                    is_d_sel = d_idx == self.selected_driver_idx
+                    UITheme.draw_button(
+                        surface, d_btn, f"#{d.get('number', 1)} {d['name'][:12]}", self.font_badge, is_active=is_d_sel
+                    )
 
             cur_attrs = self.car_attrs if self.active_subtab == "CAR" else self.driver_stats
             keys = list(cur_attrs.keys())
@@ -797,14 +861,16 @@ class DatabaseEditor:
         stat_rect = pygame.Rect(20, self.screen_height - 50, stat_w, 34)
         pygame.draw.rect(surface, (16, 22, 30), stat_rect, border_radius=4)
         pygame.draw.rect(surface, (35, 45, 60), stat_rect, width=1, border_radius=4)
-        stat_txt = self.font_body.render(self.status_msg, True, (0, 240, 180) if self.status_timer > 0 else UITheme.TEXT_MUTED)
+        stat_txt = self.font_body.render(
+            self.status_msg, True, (0, 240, 180) if self.status_timer > 0 else UITheme.TEXT_MUTED
+        )
         surface.blit(stat_txt, (stat_rect.x + 12, stat_rect.y + 9))
 
     def _render_calendar_tab(self, surface: pygame.Surface):
         # Tier Selector Chips (y = 58)
         for t in range(1, 6):
             t_rect = pygame.Rect(20 + (t - 1) * 74, 58, 68, 24)
-            is_t_sel = (t == self.selected_calendar_tier)
+            is_t_sel = t == self.selected_calendar_tier
             UITheme.draw_button(surface, t_rect, f"TIER {t}", self.font_badge, is_active=is_t_sel)
 
         # 1. Left panel: List of rounds
@@ -813,12 +879,21 @@ class DatabaseEditor:
 
         hdr_rect = pygame.Rect(cal_panel.x, cal_panel.y, cal_panel.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_section.render(f"TIER {self.selected_calendar_tier} CALENDAR ({len(self.calendar_rounds)} ROUNDS)", True, UITheme.ACCENT_CYAN), (hdr_rect.x + 10, hdr_rect.y + 6))
+        surface.blit(
+            self.font_section.render(
+                f"TIER {self.selected_calendar_tier} CALENDAR ({len(self.calendar_rounds)} ROUNDS)",
+                True,
+                UITheme.ACCENT_CYAN,
+            ),
+            (hdr_rect.x + 10, hdr_rect.y + 6),
+        )
 
         item_y = cal_panel.y + 34
         for idx, r in enumerate(self.calendar_rounds[:16]):
-            is_sel = (idx == self.selected_round_idx)
-            row_rect = pygame.Rect(cal_panel.x + 6, item_y, cal_panel.width - 12, 28 if len(self.calendar_rounds) > 12 else 32)
+            is_sel = idx == self.selected_round_idx
+            row_rect = pygame.Rect(
+                cal_panel.x + 6, item_y, cal_panel.width - 12, 28 if len(self.calendar_rounds) > 12 else 32
+            )
             bg_col = (30, 44, 62) if is_sel else (18, 22, 28)
             border_col = UITheme.ACCENT_CYAN if is_sel else (35, 42, 52)
             pygame.draw.rect(surface, bg_col, row_rect, border_radius=3)
@@ -827,19 +902,26 @@ class DatabaseEditor:
             r_num_txt = self.font_badge.render(f"R{r['round']}", True, (255, 215, 0) if is_sel else UITheme.TEXT_MUTED)
             surface.blit(r_num_txt, (row_rect.x + 6, row_rect.y + 6))
 
-            name_display = r['track_name'][:18]
-            surface.blit(self.font_bold.render(name_display, True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED), (row_rect.x + 32, row_rect.y + 6))
+            name_display = r["track_name"][:18]
+            surface.blit(
+                self.font_bold.render(name_display, True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED),
+                (row_rect.x + 32, row_rect.y + 6),
+            )
 
             # Characteristic badge
             c_code = r.get("characteristic", "BAL")[:3].upper()
-            c_col = (255, 120, 90) if c_code == "SPE" else ((255, 210, 60) if c_code == "BRA" else ((80, 220, 255) if c_code == "AER" else (80, 230, 140)))
+            c_col = (
+                (255, 120, 90)
+                if c_code == "SPE"
+                else ((255, 210, 60) if c_code == "BRA" else ((80, 220, 255) if c_code == "AER" else (80, 230, 140)))
+            )
             c_badge = self.font_badge.render(c_code, True, c_col)
             surface.blit(c_badge, (row_rect.right - 68, row_rect.y + 6))
 
             lap_badge = self.font_badge.render(f"{r['total_laps']}L", True, UITheme.ACCENT_CYAN)
             surface.blit(lap_badge, (row_rect.right - 34, row_rect.y + 6))
 
-            item_y += (30 if len(self.calendar_rounds) > 12 else 35)
+            item_y += 30 if len(self.calendar_rounds) > 12 else 35
 
         # 2. Right panel: Round configuration & track swapper
         right_panel = pygame.Rect(395, 90, self.screen_width - 415, self.screen_height - 150)
@@ -851,7 +933,14 @@ class DatabaseEditor:
 
             r_hdr = pygame.Rect(right_panel.x, right_panel.y, right_panel.width, 36)
             pygame.draw.rect(surface, UITheme.PANEL_HEADER, r_hdr, border_top_left_radius=4, border_top_right_radius=4)
-            surface.blit(self.font_title.render(f"TIER {self.selected_calendar_tier} - ROUND {r_num}: {sel_r['track_name'].upper()}", True, (255, 215, 0)), (r_hdr.x + 14, r_hdr.y + 8))
+            surface.blit(
+                self.font_title.render(
+                    f"TIER {self.selected_calendar_tier} - ROUND {r_num}: {sel_r['track_name'].upper()}",
+                    True,
+                    (255, 215, 0),
+                ),
+                (r_hdr.x + 14, r_hdr.y + 8),
+            )
 
             # Delete Round button (top right)
             if len(self.calendar_rounds) > 1:
@@ -862,23 +951,28 @@ class DatabaseEditor:
                 surface.blit(d_lbl, (btn_del.x + (btn_del.width - d_lbl.get_width()) // 2, btn_del.y + 6))
 
             # Track file picker section
-            surface.blit(self.font_bold.render("ASSIGN CIRCUIT FILE (.JSON):", True, UITheme.TEXT_WHITE), (right_panel.x + 20, right_panel.y + 48))
+            surface.blit(
+                self.font_bold.render("ASSIGN CIRCUIT FILE (.JSON):", True, UITheme.TEXT_WHITE),
+                (right_panel.x + 20, right_panel.y + 48),
+            )
 
             c_y = right_panel.y + 75
             for c_idx, c_file in enumerate(self.available_circuit_files[:8]):
                 col = c_idx % 2
                 row = c_idx // 2
                 c_rect = pygame.Rect(right_panel.x + 20 + col * 240, c_y + row * 34, 230, 26)
-                is_active_circuit = (c_file == sel_r.get("circuit_file"))
+                is_active_circuit = c_file == sel_r.get("circuit_file")
                 UITheme.draw_button(surface, c_rect, c_file, self.font_badge, is_active=is_active_circuit)
 
             # Characteristic selector section
             char_y = right_panel.y + 220
-            surface.blit(self.font_bold.render("TRACK CHARACTERISTIC:", True, UITheme.TEXT_WHITE), (right_panel.x + 20, char_y))
+            surface.blit(
+                self.font_bold.render("TRACK CHARACTERISTIC:", True, UITheme.TEXT_WHITE), (right_panel.x + 20, char_y)
+            )
             cur_char = sel_r.get("characteristic", "BALANCED")
             for c_idx, char_name in enumerate(["BALANCED", "SPEED", "BRAKES", "AERO"]):
                 char_rect = pygame.Rect(right_panel.x + 20 + c_idx * 96, char_y + 25, 88, 26)
-                is_active_char = (char_name == cur_char)
+                is_active_char = char_name == cur_char
                 UITheme.draw_button(surface, char_rect, char_name, self.font_badge, is_active=is_active_char)
 
             # Weather selector section
@@ -894,7 +988,9 @@ class DatabaseEditor:
 
             # Lap count adjust section
             l_y = right_panel.y + 350
-            surface.blit(self.font_bold.render("RACE DISTANCE (LAPS):", True, UITheme.TEXT_WHITE), (right_panel.x + 20, l_y))
+            surface.blit(
+                self.font_bold.render("RACE DISTANCE (LAPS):", True, UITheme.TEXT_WHITE), (right_panel.x + 20, l_y)
+            )
             btn_l_minus = pygame.Rect(right_panel.x + 20, l_y + 25, 34, 26)
             btn_l_plus = pygame.Rect(right_panel.x + 60, l_y + 25, 34, 26)
             UITheme.draw_button(surface, btn_l_minus, "-", self.font_bold)
@@ -915,11 +1011,13 @@ class DatabaseEditor:
 
         hdr_rect = pygame.Rect(team_panel.x, team_panel.y, team_panel.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_section.render("SELECT TEAM", True, UITheme.ACCENT_CYAN), (hdr_rect.x + 10, hdr_rect.y + 6))
+        surface.blit(
+            self.font_section.render("SELECT TEAM", True, UITheme.ACCENT_CYAN), (hdr_rect.x + 10, hdr_rect.y + 6)
+        )
 
         item_y = team_panel.y + 34
         for idx, t in enumerate(self.teams[:14]):
-            is_sel = (idx == self.selected_team_idx)
+            is_sel = idx == self.selected_team_idx
             row_rect = pygame.Rect(team_panel.x + 6, item_y, team_panel.width - 12, 32)
             bg_col = (30, 44, 62) if is_sel else (18, 22, 28)
             border_col = UITheme.ACCENT_CYAN if is_sel else (35, 42, 52)
@@ -933,7 +1031,10 @@ class DatabaseEditor:
                 swatch_col = (0, 210, 190)
 
             pygame.draw.circle(surface, swatch_col, (row_rect.x + 14, row_rect.y + 16), 6)
-            surface.blit(self.font_bold.render(t["name"][:14], True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED), (row_rect.x + 26, row_rect.y + 8))
+            surface.blit(
+                self.font_bold.render(t["name"][:14], True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED),
+                (row_rect.x + 26, row_rect.y + 8),
+            )
 
             if t.get("is_player"):
                 p_badge = self.font_badge.render("YOU", True, (0, 240, 140))
@@ -948,7 +1049,14 @@ class DatabaseEditor:
         sel_team = self.teams[self.selected_team_idx] if self.teams else {"name": "Team"}
         f_hdr = pygame.Rect(fac_panel.x, fac_panel.y, fac_panel.width, 36)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, f_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_title.render(f"HQ TECH TREE & CUSTOM NODES: {sel_team['name'].upper()} ({len(self.all_nodes)} TOTAL NODES)", True, (255, 215, 0)), (f_hdr.x + 14, f_hdr.y + 8))
+        surface.blit(
+            self.font_title.render(
+                f"HQ TECH TREE & CUSTOM NODES: {sel_team['name'].upper()} ({len(self.all_nodes)} TOTAL NODES)",
+                True,
+                (255, 215, 0),
+            ),
+            (f_hdr.x + 14, f_hdr.y + 8),
+        )
 
         # Top-right "+ ADD CUSTOM NODE" button
         btn_add_node = pygame.Rect(self.screen_width - 190, 96, 170, 26)
@@ -976,7 +1084,11 @@ class DatabaseEditor:
 
             # Department Tag
             dept_name = n.get("department", "DEPT")
-            dept_col = (0, 200, 220) if dept_name == "ENGINEERING" else ((255, 180, 50) if dept_name == "MANUFACTURING" else (180, 100, 240))
+            dept_col = (
+                (0, 200, 220)
+                if dept_name == "ENGINEERING"
+                else ((255, 180, 50) if dept_name == "MANUFACTURING" else (180, 100, 240))
+            )
             dept_txt = self.font_badge.render(f"[{dept_name[:4]}]", True, dept_col)
             surface.blit(dept_txt, (row_rect.x + 8, row_rect.y + 10))
 
@@ -1001,7 +1113,9 @@ class DatabaseEditor:
             cur_tier = tf.get("current_tier", 0)
             max_tier = n.get("max_tier", 3)
             btn_tier = pygame.Rect(self.screen_width - 215, row_y + 5, 75, 24)
-            UITheme.draw_button(surface, btn_tier, f"LVL {cur_tier} / {max_tier}", self.font_badge, is_active=(cur_tier > 0))
+            UITheme.draw_button(
+                surface, btn_tier, f"LVL {cur_tier} / {max_tier}", self.font_badge, is_active=(cur_tier > 0)
+            )
 
             # Edit Node Button
             btn_edit = pygame.Rect(self.screen_width - 135, row_y + 5, 50, 24)
@@ -1016,7 +1130,11 @@ class DatabaseEditor:
 
         # Render Scroll Indicator if more nodes exist
         if len(self.all_nodes) > 11:
-            scroll_txt = self.font_badge.render(f"Nodes {self.node_scroll_y + 1}-{min(len(self.all_nodes), self.node_scroll_y + 11)} of {len(self.all_nodes)} (Scroll with mouse wheel)", True, UITheme.TEXT_MUTED)
+            scroll_txt = self.font_badge.render(
+                f"Nodes {self.node_scroll_y + 1}-{min(len(self.all_nodes), self.node_scroll_y + 11)} of {len(self.all_nodes)} (Scroll with mouse wheel)",
+                True,
+                UITheme.TEXT_MUTED,
+            )
             surface.blit(scroll_txt, (fac_panel.x + 14, fac_panel.bottom - 22))
 
         # Render Custom Node Creation / Editing Modal if open
@@ -1030,14 +1148,18 @@ class DatabaseEditor:
 
         modal_w = 580
         modal_h = 420
-        modal_rect = pygame.Rect((self.screen_width - modal_w) // 2, (self.screen_height - modal_h) // 2, modal_w, modal_h)
+        modal_rect = pygame.Rect(
+            (self.screen_width - modal_w) // 2, (self.screen_height - modal_h) // 2, modal_w, modal_h
+        )
         pygame.draw.rect(surface, (18, 24, 34), modal_rect, border_radius=6)
         pygame.draw.rect(surface, (0, 220, 240), modal_rect, width=2, border_radius=6)
 
         # Header
         m_hdr = pygame.Rect(modal_rect.x, modal_rect.y, modal_rect.width, 40)
         pygame.draw.rect(surface, (26, 34, 48), m_hdr, border_top_left_radius=6, border_top_right_radius=6)
-        title_text = "CREATE NEW CUSTOM FACILITY NODE" if self.modal_mode == "CREATE" else f"EDIT NODE: {self.edit_node_id}"
+        title_text = (
+            "CREATE NEW CUSTOM FACILITY NODE" if self.modal_mode == "CREATE" else f"EDIT NODE: {self.edit_node_id}"
+        )
         surface.blit(self.font_card_title.render(title_text, True, (255, 215, 0)), (m_hdr.x + 16, m_hdr.y + 10))
 
         # Close button
@@ -1062,7 +1184,9 @@ class DatabaseEditor:
         name_col = (0, 220, 255) if self.active_input == "NAME" else (40, 50, 65)
         pygame.draw.rect(surface, (12, 16, 22), name_box, border_radius=3)
         pygame.draw.rect(surface, name_col, name_box, width=1, border_radius=3)
-        surface.blit(self.font_body.render(self.edit_node_name, True, (255, 255, 255)), (name_box.x + 8, name_box.y + 5))
+        surface.blit(
+            self.font_body.render(self.edit_node_name, True, (255, 255, 255)), (name_box.x + 8, name_box.y + 5)
+        )
 
         # 3. Description
         f_y += 36
@@ -1071,7 +1195,9 @@ class DatabaseEditor:
         desc_col = (0, 220, 255) if self.active_input == "DESC" else (40, 50, 65)
         pygame.draw.rect(surface, (12, 16, 22), desc_box, border_radius=3)
         pygame.draw.rect(surface, desc_col, desc_box, width=1, border_radius=3)
-        surface.blit(self.font_body.render(self.edit_node_desc[:45], True, (255, 255, 255)), (desc_box.x + 8, desc_box.y + 5))
+        surface.blit(
+            self.font_body.render(self.edit_node_desc[:45], True, (255, 255, 255)), (desc_box.x + 8, desc_box.y + 5)
+        )
 
         # 4. Department
         f_y += 36
@@ -1093,7 +1219,9 @@ class DatabaseEditor:
         btn_cost_p = pygame.Rect(modal_rect.x + 200, f_y, 30, 24)
         UITheme.draw_button(surface, btn_cost_m, "-", self.font_bold)
         UITheme.draw_button(surface, btn_cost_p, "+", self.font_bold)
-        surface.blit(self.font_bold.render(f"${self.edit_node_cost_m:.1f}M", True, (255, 215, 0)), (modal_rect.x + 245, f_y + 4))
+        surface.blit(
+            self.font_bold.render(f"${self.edit_node_cost_m:.1f}M", True, (255, 215, 0)), (modal_rect.x + 245, f_y + 4)
+        )
 
         f_y += 36
         surface.blit(self.font_bold.render("UPKEEP ($k/mo):", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, f_y + 4))
@@ -1101,7 +1229,10 @@ class DatabaseEditor:
         btn_upk_p = pygame.Rect(modal_rect.x + 200, f_y, 30, 24)
         UITheme.draw_button(surface, btn_upk_m, "-", self.font_bold)
         UITheme.draw_button(surface, btn_upk_p, "+", self.font_bold)
-        surface.blit(self.font_bold.render(f"${self.edit_node_upkeep_k:.0f}k", True, (0, 220, 255)), (modal_rect.x + 245, f_y + 4))
+        surface.blit(
+            self.font_bold.render(f"${self.edit_node_upkeep_k:.0f}k", True, (0, 220, 255)),
+            (modal_rect.x + 245, f_y + 4),
+        )
 
         # Bottom Confirm Button
         btn_confirm = pygame.Rect(modal_rect.x + 160, modal_rect.bottom - 50, 260, 36)

@@ -1,12 +1,15 @@
-import unittest
+import gc
 import os
 import tempfile
-import gc
+import unittest
+
 import pygame
+
 from src.database.career_db import CareerDatabase
-from src.management.game_manager import GameManager
 from src.management.driver_manager import DriverManager
+from src.management.game_manager import GameManager
 from src.ui.management_hub.tab_database_explorer import DatabaseExplorerTab
+
 
 class TestDatabaseExplorer(unittest.TestCase):
     @classmethod
@@ -58,12 +61,20 @@ class TestDatabaseExplorer(unittest.TestCase):
         for tier in range(1, 6):
             c_standings = self.cdb.get_historical_constructor_standings(season_num=0, tier=tier)
             self.assertEqual(len(c_standings), 10, f"Tier {tier} must have 10 constructors in historical standings")
-            self.assertEqual(c_standings[0]["championship_position"], 1, "P1 constructor must have championship_position = 1")
-            self.assertGreater(c_standings[0]["points"], c_standings[-1]["points"], "Points must follow descending hierarchy")
+            self.assertEqual(
+                c_standings[0]["championship_position"], 1, "P1 constructor must have championship_position = 1"
+            )
+            self.assertGreater(
+                c_standings[0]["points"], c_standings[-1]["points"], "Points must follow descending hierarchy"
+            )
 
             d_standings = self.cdb.get_historical_driver_standings(season_num=0, tier=tier)
-            self.assertGreaterEqual(len(d_standings), 10, f"Tier {tier} must have at least 10 drivers in historical standings")
-            self.assertEqual(d_standings[0]["championship_position"], 1, "P1 driver must have championship_position = 1")
+            self.assertGreaterEqual(
+                len(d_standings), 10, f"Tier {tier} must have at least 10 drivers in historical standings"
+            )
+            self.assertEqual(
+                d_standings[0]["championship_position"], 1, "P1 driver must have championship_position = 1"
+            )
 
     def test_historical_races_and_classifications(self):
         """Verify race schedules, winners, and full classifications can be inspected for past seasons."""
@@ -151,12 +162,13 @@ class TestDatabaseExplorer(unittest.TestCase):
         tab.render(surface, gm)
 
         # 5. Test subtab click
-        handled = tab.handle_click(30, 75, gm) # Click first subtab
+        handled = tab.handle_click(30, 75, gm)  # Click first subtab
         self.assertTrue(handled or tab.active_subtab == "SEASON_ARCHIVE")
 
     def test_cross_element_click_navigation(self):
         """Verify that clicking driver or constructor elements navigates to their respective dossiers."""
         import pygame
+
         from src.ui.management_hub.tab_database_explorer import DatabaseExplorerTab
 
         gm = GameManager(self.test_db_path)
@@ -198,17 +210,33 @@ class TestDatabaseExplorer(unittest.TestCase):
         """Verify drivers in driver_market and scout_prospects resolve into valid dossiers with graceful 0-start stats."""
         dm = DriverManager(self.cdb)
         gm = GameManager(self.test_db_path)
-        
+
         # 1. Market Driver Dossier
         market_drivers = dm.get_market_drivers(team_tier=3)
         self.assertGreater(len(market_drivers), 0, "Market drivers should exist")
         m_drv = market_drivers[0]
         profile = self.cdb.get_driver_profile(f"market_{m_drv['id']}")
-        self.assertIsNotNone(profile, f"Market driver {m_drv['name']} (ID {m_drv['id']}) must resolve to a valid profile")
+        self.assertIsNotNone(
+            profile, f"Market driver {m_drv['name']} (ID {m_drv['id']}) must resolve to a valid profile"
+        )
         self.assertEqual(profile["name"], m_drv["name"])
         self.assertIn("career_totals", profile)
-        self.assertIn(profile["career_totals"]["best_finish"], ["N/A", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"])
-        self.assertIn(profile["ai_analysis"]["trajectory_arc"], ["ROOKIE PROSPECT", "UNTESTED PRODIGY", "GENERATIONAL PRODIGY", "RISING TALENT", "VETERAN CAMPAIGNER", "PROVEN RACE WINNER", "MIDFIELD STALWART"])
+        self.assertIn(
+            profile["career_totals"]["best_finish"],
+            ["N/A", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"],
+        )
+        self.assertIn(
+            profile["ai_analysis"]["trajectory_arc"],
+            [
+                "ROOKIE PROSPECT",
+                "UNTESTED PRODIGY",
+                "GENERATIONAL PRODIGY",
+                "RISING TALENT",
+                "VETERAN CAMPAIGNER",
+                "PROVEN RACE WINNER",
+                "MIDFIELD STALWART",
+            ],
+        )
 
         # Also verify driver_type='MARKET' parameter lookup
         profile_kw = self.cdb.get_driver_profile(m_drv["id"], driver_type="MARKET")
@@ -220,11 +248,15 @@ class TestDatabaseExplorer(unittest.TestCase):
         self.assertGreater(len(scout_prospects), 0, "Scout prospects should exist")
         s_drv = scout_prospects[0]
         s_profile = self.cdb.get_driver_profile(f"scout_{s_drv['id']}")
-        self.assertIsNotNone(s_profile, f"Scout candidate {s_drv['name']} (ID {s_drv['id']}) must resolve to a valid profile")
+        self.assertIsNotNone(
+            s_profile, f"Scout candidate {s_drv['name']} (ID {s_drv['id']}) must resolve to a valid profile"
+        )
         self.assertEqual(s_profile["career_totals"]["starts"], 0)
         self.assertEqual(s_profile["career_totals"]["best_finish"], "N/A")
         self.assertIn(s_profile["ai_analysis"]["trajectory_arc"], ["ROOKIE PROSPECT", "UNTESTED PRODIGY"])
-        self.assertEqual(len(s_profile["season_history"]), 0, "Zero-race prospect should have empty history without error")
+        self.assertEqual(
+            len(s_profile["season_history"]), 0, "Zero-race prospect should have empty history without error"
+        )
 
         # Also verify driver_type='SCOUT' parameter lookup
         s_profile_kw = self.cdb.get_driver_profile(s_drv["id"], driver_type="SCOUT")
@@ -233,10 +265,11 @@ class TestDatabaseExplorer(unittest.TestCase):
 
     def test_driver_market_to_database_explorer_navigation_and_return(self):
         """Verify clicking DOSSIER in driver market/academy navigates to Database Explorer and returns cleanly."""
-        from src.ui.management_hub.tab_drivers_academy import DriversAcademyTab
         from src.ui.management_hub.tab_database_explorer import DatabaseExplorerTab
+        from src.ui.management_hub.tab_drivers_academy import DriversAcademyTab
 
         captured_driver_id = []
+
         def on_view_dossier(driver_id: int):
             captured_driver_id.append(driver_id)
 
@@ -322,11 +355,14 @@ class TestDatabaseExplorer(unittest.TestCase):
         first_row_y = cur_y + 24
         # Constructor cell is at x = detail_box.x + 12 + 220 = 632
         handled_table_team = tab.handle_click(650, first_row_y + 10, gm)
-        self.assertTrue(handled_table_team, "Clicking constructor column in driver season history table must jump to Constructor Dossier")
+        self.assertTrue(
+            handled_table_team,
+            "Clicking constructor column in driver season history table must jump to Constructor Dossier",
+        )
         self.assertEqual(tab.active_subtab, "CONSTRUCTORS")
         self.assertEqual(tab.previous_subtab, "DRIVERS")
         self.assertEqual(tab.team_selected_tier, first_sh["tier"])
 
+
 if __name__ == "__main__":
     unittest.main()
-

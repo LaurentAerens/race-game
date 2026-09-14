@@ -1,9 +1,12 @@
+from typing import Callable
+
 import pygame
-from typing import Callable, Optional
-from .track_editor import TrackEditor
-from .database_editor import DatabaseEditor
+
 from ..core.circuit import Circuit
 from ..ui.theme import UITheme
+from .database_editor import DatabaseEditor
+from .track_editor import TrackEditor
+
 
 class AdminHub:
     """
@@ -14,7 +17,15 @@ class AdminHub:
     - Back to Title Menu navigation
     """
 
-    def __init__(self, screen_width: int, screen_height: int, on_back_to_menu: Callable[[], None], on_test_race: Callable[[Circuit], None], exhibition_db_path: str = "race_game.db", career_db_path: str = "career.db"):
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        on_back_to_menu: Callable[[], None],
+        on_test_race: Callable[[Circuit], None],
+        exhibition_db_path: str = "race_game.db",
+        career_db_path: str = "career.db",
+    ):
         self.width = screen_width
         self.height = screen_height
         self.on_back_to_menu = on_back_to_menu
@@ -23,7 +34,9 @@ class AdminHub:
         self.active_tab: str = "TRACK"  # "TRACK" or "DATABASE"
 
         self.track_editor = TrackEditor(screen_width, screen_height, on_test_race=self.on_test_race)
-        self.database_editor = DatabaseEditor(screen_width, screen_height, exhibition_db_path=exhibition_db_path, career_db_path=career_db_path)
+        self.database_editor = DatabaseEditor(
+            screen_width, screen_height, exhibition_db_path=exhibition_db_path, career_db_path=career_db_path
+        )
 
         self._init_fonts()
 
@@ -98,4 +111,6 @@ class AdminHub:
         tab_db = pygame.Rect(348, 9, 165, 28)
 
         UITheme.draw_button(surface, tab_track, "TRACK DESIGNER", self.font_btn, is_active=(self.active_tab == "TRACK"))
-        UITheme.draw_button(surface, tab_db, "DATABASE EDITOR", self.font_btn, is_active=(self.active_tab == "DATABASE"))
+        UITheme.draw_button(
+            surface, tab_db, "DATABASE EDITOR", self.font_btn, is_active=(self.active_tab == "DATABASE")
+        )

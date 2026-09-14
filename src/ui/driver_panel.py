@@ -1,10 +1,14 @@
+from typing import Callable, List
+
 import pygame
-from typing import List, Callable, Optional
+
 from ..core.car import Car
 from .theme import UITheme
 
+
 class DriverStrategyPanel:
     """Tactical command bar for player's drivers (Pace, Fuel, ERS, Box)."""
+
     def __init__(self, x: int, y: int, width: int, height: int, on_box_click: Callable[[Car], None]):
         self.rect = pygame.Rect(x, y, width, height)
         self.on_box_click = on_box_click
@@ -31,7 +35,7 @@ class DriverStrategyPanel:
                 cx = self.rect.x + 8 + i * (card_w + 8)
                 cy = self.rect.y + 6
                 mode_locked = getattr(car, "is_mode_locked", False)
-                
+
                 # Column layouts
                 strat_x = cx + 152
                 box_w = 68
@@ -39,7 +43,7 @@ class DriverStrategyPanel:
                 avail_strat_w = box_x - strat_x - 10
                 btn_w = max(42, min(54, (avail_strat_w - 3 * 5) // 4))
                 btn_gap = 5
-                
+
                 # Check Pace buttons
                 pace_modes = ["CONSERVE", "NORMAL", "PUSH", "ATTACK"]
                 for p_idx, p_mode in enumerate(pace_modes):
@@ -78,13 +82,13 @@ class DriverStrategyPanel:
 
     def render(self, surface: pygame.Surface, player_cars: List[Car], league_tier: int = 3):
         UITheme.draw_panel(surface, self.rect)
-        
+
         card_w = (self.rect.width - 20) // 2
         for i, car in enumerate(player_cars[:2]):
             cx = self.rect.x + 8 + i * (card_w + 8)
             cy = self.rect.y + 6
             c_rect = pygame.Rect(cx, cy, card_w, self.rect.height - 12)
-            
+
             # Sub card background
             pygame.draw.rect(surface, (28, 33, 44), c_rect, border_radius=4)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, c_rect, width=1, border_radius=4)
@@ -93,7 +97,9 @@ class DriverStrategyPanel:
             style_label = car.driver.driving_style.replace("_", " ")
             flag_tag = " [FLAG LOCKED]" if getattr(car, "is_mode_locked", False) else ""
             title_col = (255, 204, 0) if getattr(car, "is_mode_locked", False) else UITheme.ACCENT_CYAN
-            t_surf = self.font_title.render(f"P{car.position:02d} #{car.driver.number} {car.driver.name} [{style_label}]{flag_tag}", True, title_col)
+            t_surf = self.font_title.render(
+                f"P{car.position:02d} #{car.driver.number} {car.driver.name} [{style_label}]{flag_tag}", True, title_col
+            )
             surface.blit(t_surf, (cx + 8, cy + 4))
 
             # Left Telemetry Data Column (cx + 8 to cx + 144)
@@ -113,7 +119,7 @@ class DriverStrategyPanel:
             else:
                 ers_text = f"{int(car.ers_pct)}% [{car.ers_mode[:4]}]"
                 ers_col = UITheme.ACCENT_GREEN if car.ers_mode == "AUTO" else UITheme.TEXT_WHITE
-            
+
             e_lbl = self.font_lbl.render("ERS", True, UITheme.TEXT_MUTED)
             e_val = self.font_sub.render(ers_text, True, ers_col)
             surface.blit(e_lbl, (cx + 8, cy + 49))
@@ -121,7 +127,9 @@ class DriverStrategyPanel:
 
             # Tyre
             t_lbl = self.font_lbl.render("TYRE", True, UITheme.TEXT_MUTED)
-            t_val = self.font_sub.render(f"{int(100 - car.tires.wear_pct)}% ({car.tires.compound.name})", True, car.tires.compound.color_rgb)
+            t_val = self.font_sub.render(
+                f"{int(100 - car.tires.wear_pct)}% ({car.tires.compound.name})", True, car.tires.compound.color_rgb
+            )
             surface.blit(t_lbl, (cx + 8, cy + 73))
             surface.blit(t_val, (cx + 46, cy + 72))
 
@@ -143,7 +151,7 @@ class DriverStrategyPanel:
             pace_modes = ["CONSERVE", "NORMAL", "PUSH", "ATTACK"]
             for p_idx, p_mode in enumerate(pace_modes):
                 b_rect = pygame.Rect(strat_x + p_idx * (btn_w + btn_gap), cy + 22, btn_w, 20)
-                is_active = (car.pace_mode == p_mode)
+                is_active = car.pace_mode == p_mode
                 is_disabled = mode_locked or (league_tier >= 3 and p_mode in ["CONSERVE", "ATTACK"])
                 label = {"CONSERVE": "CONS", "NORMAL": "NORM", "PUSH": "PUSH", "ATTACK": "ATK"}[p_mode]
                 if is_disabled:
@@ -154,7 +162,7 @@ class DriverStrategyPanel:
             eng_modes = ["LEAN", "STANDARD", "RICH"]
             for e_idx, e_mode in enumerate(eng_modes):
                 b_rect = pygame.Rect(strat_x + e_idx * (btn_w + btn_gap), cy + 46, btn_w, 20)
-                is_active = (car.engine_mode == e_mode)
+                is_active = car.engine_mode == e_mode
                 is_disabled = mode_locked or (league_tier >= 3 and e_mode in ["LEAN", "RICH"])
                 label = {"LEAN": "LEAN", "STANDARD": "STD", "RICH": "RICH"}[e_mode]
                 if is_disabled:
@@ -176,8 +184,10 @@ class DriverStrategyPanel:
             box_btn = pygame.Rect(box_x, cy + 22, box_w, 68)
             box_color = (200, 30, 30) if car.box_this_lap else (40, 50, 65)
             pygame.draw.rect(surface, box_color, box_btn, border_radius=4)
-            pygame.draw.rect(surface, (255, 255, 255) if car.box_this_lap else UITheme.BTN_BORDER, box_btn, width=1, border_radius=4)
-            
+            pygame.draw.rect(
+                surface, (255, 255, 255) if car.box_this_lap else UITheme.BTN_BORDER, box_btn, width=1, border_radius=4
+            )
+
             box_txt1 = self.font_btn.render("BOX", True, UITheme.TEXT_WHITE)
             box_txt2 = self.font_btn.render("CANCEL" if car.box_this_lap else "STRATEGY", True, (240, 240, 240))
             surface.blit(box_txt1, (box_btn.x + (box_btn.width - box_txt1.get_width()) // 2, box_btn.y + 14))
@@ -190,7 +200,7 @@ class DriverStrategyPanel:
             brk = durs.get("BRAKES", 65.0)
             eng = durs.get("ENGINE", 65.0)
             min_dur = min(durs.values()) if durs else 65.0
-            
+
             # Health summary color: red if critical (<30%), orange if low (<50%), green otherwise
             h_col = (255, 70, 70) if min_dur < 30.0 else ((255, 180, 50) if min_dur < 50.0 else (0, 220, 160))
             h_text = f"PARTS: FW {fw:.0f}% | RW {rw:.0f}% | BRK {brk:.0f}% | ENG {eng:.0f}%"

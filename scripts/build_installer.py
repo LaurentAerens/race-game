@@ -6,15 +6,16 @@ Usage:
 """
 
 import os
-import sys
 import shutil
 import subprocess
+import sys
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SPEC_PATH = os.path.join(PROJECT_ROOT, "packaging", "MotorsportTycoon.spec")
 ISS_PATH = os.path.join(PROJECT_ROOT, "packaging", "installer.iss")
 DIST_DIR = os.path.join(PROJECT_ROOT, "dist", "MotorsportTycoon")
 INSTALLER_DIR = os.path.join(PROJECT_ROOT, "dist_installer")
+
 
 def main():
     print("=" * 60)
@@ -23,14 +24,7 @@ def main():
 
     # 1. Run PyInstaller
     print("\n[1/3] Compiling application bundle with PyInstaller...")
-    cmd_pyinstaller = [
-        sys.executable,
-        "-m",
-        "PyInstaller",
-        "--noconfirm",
-        "--clean",
-        SPEC_PATH
-    ]
+    cmd_pyinstaller = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", SPEC_PATH]
     res = subprocess.run(cmd_pyinstaller, cwd=PROJECT_ROOT)
     if res.returncode != 0:
         print("\n[ERROR] PyInstaller failed to compile the application.")
@@ -63,6 +57,7 @@ def main():
     print("\n" + "=" * 60)
     print("Build step complete!")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

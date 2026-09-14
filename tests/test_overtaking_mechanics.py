@@ -1,28 +1,31 @@
-import unittest
 import os
-import math
-from src.core.circuit import Circuit
-from src.core.driver import Driver
+import unittest
+
 from src.core.car import Car
+from src.core.driver import Driver
 from src.core.race_control import RaceControl
-from src.database.db_manager import CarAttributes
 from src.data.default_tracks import create_emerald_ring
 from src.data.teams import load_career_teams_and_drivers
 from src.database.career_db import CareerDatabase
+from src.database.db_manager import CarAttributes
+
 
 class TestOvertakingMechanics(unittest.TestCase):
-
     def setUp(self):
         self.circuit = create_emerald_ring()
         self.rc = RaceControl()
 
     def test_component_brakes_and_dive_bomb(self):
         """Verify that a car with 685 brakes has an overwhelming braking advantage over 432 brakes and dive-bombs."""
-        driver_a = Driver(id=1, name="Attacker", code="ATK", number=1, team_name="TopTeam", color_rgb=(255, 0, 0), braking=0.90)
+        driver_a = Driver(
+            id=1, name="Attacker", code="ATK", number=1, team_name="TopTeam", color_rgb=(255, 0, 0), braking=0.90
+        )
         attrs_a = CarAttributes(braking_efficiency=685.0, engine_power=750.0, aero_downforce=450.0)
         car_a = Car(car_id=1, driver=driver_a, car_attributes=attrs_a)
 
-        driver_b = Driver(id=2, name="Defender", code="DEF", number=2, team_name="SlowTeam", color_rgb=(0, 0, 255), braking=0.70)
+        driver_b = Driver(
+            id=2, name="Defender", code="DEF", number=2, team_name="SlowTeam", color_rgb=(0, 0, 255), braking=0.70
+        )
         attrs_b = CarAttributes(braking_efficiency=432.0, engine_power=720.0, aero_downforce=400.0)
         car_b = Car(car_id=2, driver=driver_b, car_attributes=attrs_b)
 
@@ -35,13 +38,15 @@ class TestOvertakingMechanics(unittest.TestCase):
         car_b.position = 1
         car_b.lap = 2
 
-        car_a.s = 855.0 # 15m behind car_b
+        car_a.s = 855.0  # 15m behind car_b
         car_a.speed = 62.0
         car_a.position = 2
         car_a.lap = 2
 
-        car_a.update_physics(dt=0.2, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=car_b, car_behind=None)
-        
+        car_a.update_physics(
+            dt=0.2, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=car_b, car_behind=None
+        )
+
         # Attacker should recognize braking advantage and commit to inside dive bomb
         self.assertTrue(car_a.is_overtaking)
         self.assertEqual(car_a.overtake_move_type, "DIVE_BOMB")
@@ -60,12 +65,14 @@ class TestOvertakingMechanics(unittest.TestCase):
         car_b.position = 1
         car_b.lap = 1
 
-        car_a.s = 175.0 # 25m behind
+        car_a.s = 175.0  # 25m behind
         car_a.speed = 68.0
         car_a.position = 2
         car_a.lap = 1
 
-        car_a.update_physics(dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=car_b, car_behind=None)
+        car_a.update_physics(
+            dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=car_b, car_behind=None
+        )
 
         self.assertTrue(car_a.slipstream_active)
         self.assertGreater(car_a.slipstream_intensity, 0.4)
@@ -87,12 +94,14 @@ class TestOvertakingMechanics(unittest.TestCase):
         car_b.position = 1
         car_b.lap = 1
 
-        car_a.s = 1038.0 # 12m behind
+        car_a.s = 1038.0  # 12m behind
         car_a.speed = 44.0
         car_a.position = 2
         car_a.lap = 1
 
-        car_a.update_physics(dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=car_b, car_behind=None)
+        car_a.update_physics(
+            dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=car_b, car_behind=None
+        )
 
         # Attacker should sweep around the outside
         self.assertTrue(car_a.is_overtaking)
@@ -100,7 +109,9 @@ class TestOvertakingMechanics(unittest.TestCase):
 
     def test_defending_under_pressure_and_speed_loss(self):
         """Verify car under pressure defends the inside and loses speed due to compromised line."""
-        driver_def = Driver(id=1, name="Defender", code="DEF", number=7, team_name="DefTeam", color_rgb=(100, 100, 100), defending=0.75)
+        driver_def = Driver(
+            id=1, name="Defender", code="DEF", number=7, team_name="DefTeam", color_rgb=(100, 100, 100), defending=0.75
+        )
         car_def = Car(car_id=1, driver=driver_def)
 
         driver_atk = Driver(id=2, name="Attacker", code="ATK", number=8, team_name="AtkTeam", color_rgb=(200, 50, 50))
@@ -117,16 +128,22 @@ class TestOvertakingMechanics(unittest.TestCase):
         car_atk.position = 2
         car_atk.lap = 2
 
-        car_def.update_physics(dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=None, car_behind=car_atk)
+        car_def.update_physics(
+            dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=None, car_behind=car_atk
+        )
 
         self.assertTrue(car_def.is_defending)
 
     def test_blue_flag_courtesy_yield(self):
         """Verify lapped car yields cleanly to front-runner under blue flags without pushback."""
-        driver_lapped = Driver(id=1, name="Backmarker", code="BCK", number=20, team_name="SlowTeam", color_rgb=(120, 120, 120))
+        driver_lapped = Driver(
+            id=1, name="Backmarker", code="BCK", number=20, team_name="SlowTeam", color_rgb=(120, 120, 120)
+        )
         car_lapped = Car(car_id=1, driver=driver_lapped)
 
-        driver_leader = Driver(id=2, name="Leader", code="LDR", number=1, team_name="ChampTeam", color_rgb=(0, 200, 255))
+        driver_leader = Driver(
+            id=2, name="Leader", code="LDR", number=1, team_name="ChampTeam", color_rgb=(0, 200, 255)
+        )
         car_leader = Car(car_id=2, driver=driver_leader)
 
         # Leader is on Lap 5, lapped car is on Lap 4
@@ -135,12 +152,14 @@ class TestOvertakingMechanics(unittest.TestCase):
         car_lapped.position = 19
         car_lapped.lap = 4
 
-        car_leader.s = 105.0 # 15m behind, closing fast
+        car_leader.s = 105.0  # 15m behind, closing fast
         car_leader.speed = 70.0
         car_leader.position = 1
         car_leader.lap = 5
 
-        car_lapped.update_physics(dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=None, car_behind=car_leader)
+        car_lapped.update_physics(
+            dt=0.1, circuit=self.circuit, race_control=self.rc, track_wetness=0.0, car_ahead=None, car_behind=car_leader
+        )
 
         # Backmarker yields under blue flags
         self.assertTrue(car_lapped.is_yielding_blue_flag)
@@ -148,8 +167,9 @@ class TestOvertakingMechanics(unittest.TestCase):
 
     def test_career_db_loader(self):
         """Verify load_career_teams_and_drivers loads components with real performance ratings."""
-        import tempfile
         import gc
+        import tempfile
+
         with tempfile.TemporaryDirectory() as temp_dir:
             test_db_path = os.path.join(temp_dir, "test_overtaking_career.db")
             db = CareerDatabase(test_db_path)
@@ -162,6 +182,7 @@ class TestOvertakingMechanics(unittest.TestCase):
             finally:
                 del db
                 gc.collect()
+
 
 if __name__ == "__main__":
     unittest.main()

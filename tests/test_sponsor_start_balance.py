@@ -1,8 +1,9 @@
-import unittest
-import os
-import tempfile
 import gc
+import os
 import shutil
+import tempfile
+import unittest
+
 from src.database.career_db import CareerDatabase
 from src.management.sponsor_manager import SponsorManager
 

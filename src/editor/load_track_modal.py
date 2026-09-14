@@ -1,8 +1,10 @@
-import os
 import json
 import math
+import os
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import pygame
-from typing import Callable, Optional, List, Dict, Any, Tuple
+
 from src.core.circuit import Circuit
 from src.ui.theme import UITheme
 
@@ -12,6 +14,7 @@ class LoadTrackModal:
     Modal dialog allowing users to select and load any saved track from the
     /tracks directory, or browse their disk for any circuit JSON file.
     """
+
     def __init__(self, on_track_loaded: Callable[[Circuit], None]):
         self.on_track_loaded = on_track_loaded
         self.is_open: bool = False
@@ -31,7 +34,7 @@ class LoadTrackModal:
         # Layout rects
         self.modal_rect = pygame.Rect(0, 0, 0, 0)
         self.btn_rects: Dict[str, pygame.Rect] = {}
-        self.item_rects: List[Tuple[pygame.Rect, pygame.Rect, int]] = [] # (item_box, load_btn, track_idx)
+        self.item_rects: List[Tuple[pygame.Rect, pygame.Rect, int]] = []  # (item_box, load_btn, track_idx)
 
     def _init_fonts(self):
         if self.font_title is None:
@@ -84,16 +87,18 @@ class LoadTrackModal:
                 drs_count = len(data.get("drs_zones", []))
                 mtime = os.path.getmtime(filepath)
 
-                self.track_items.append({
-                    "filepath": filepath,
-                    "filename": filename,
-                    "name": name,
-                    "length_m": length_m,
-                    "nodes": n_pts,
-                    "width": avg_w,
-                    "drs_count": drs_count,
-                    "mtime": mtime,
-                })
+                self.track_items.append(
+                    {
+                        "filepath": filepath,
+                        "filename": filename,
+                        "name": name,
+                        "length_m": length_m,
+                        "nodes": n_pts,
+                        "width": avg_w,
+                        "drs_count": drs_count,
+                        "mtime": mtime,
+                    }
+                )
             except Exception as e:
                 print(f"[LoadTrackModal] Error reading {filename}: {e}")
 
@@ -128,6 +133,7 @@ class LoadTrackModal:
         try:
             import tkinter as tk
             from tkinter import filedialog
+
             root = tk.Tk()
             root.withdraw()
             root.attributes("-topmost", True)
@@ -135,7 +141,7 @@ class LoadTrackModal:
             picked_path = filedialog.askopenfilename(
                 title="Select Circuit JSON File",
                 filetypes=[("Circuit JSON (*.json)", "*.json"), ("All Files (*.*)", "*.*")],
-                initialdir=initial_dir
+                initialdir=initial_dir,
             )
             root.destroy()
             if picked_path and os.path.exists(picked_path):
@@ -266,7 +272,9 @@ class LoadTrackModal:
         pygame.draw.rect(screen, (15, 18, 24), search_rect, border_radius=4)
         pygame.draw.rect(screen, border_col, search_rect, width=1, border_radius=4)
 
-        disp_query = self.search_query if self.search_query else ("Filter circuits by name..." if not self.search_active else "")
+        disp_query = (
+            self.search_query if self.search_query else ("Filter circuits by name..." if not self.search_active else "")
+        )
         q_col = (255, 255, 255) if self.search_query else (120, 130, 145)
         q_surf = self.font_ui.render(disp_query, True, q_col)
         screen.blit(q_surf, (search_rect.x + 8, search_rect.y + 5))
@@ -303,7 +311,7 @@ class LoadTrackModal:
                 item_y = list_y + 6 + display_idx * (row_h + 6)
                 item_rect = pygame.Rect(list_rect.x + 6, item_y, list_rect.width - 12, row_h)
 
-                is_sel = (item_idx == self.selected_idx)
+                is_sel = item_idx == self.selected_idx
                 bg_col = (36, 48, 68) if is_sel else (25, 30, 40)
                 border_c = (0, 180, 240) if is_sel else (50, 60, 75)
 
@@ -316,7 +324,9 @@ class LoadTrackModal:
 
                 # Track Details line: length, nodes, width, DRS
                 len_km = item["length_m"] / 1000.0
-                detail_str = f"{item['filename']}  •  {len_km:.2f} km  •  {item['nodes']} nodes  •  {item['width']:.1f}m width"
+                detail_str = (
+                    f"{item['filename']}  •  {len_km:.2f} km  •  {item['nodes']} nodes  •  {item['width']:.1f}m width"
+                )
                 if item["drs_count"] > 0:
                     detail_str += f"  •  {item['drs_count']} DRS"
 

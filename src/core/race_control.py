@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Optional, Tuple, Any
+from typing import Any, Optional, Tuple
+
 
 class FlagStatus(Enum):
     GREEN = "GREEN"
@@ -8,11 +9,13 @@ class FlagStatus(Enum):
     SAFETY_CAR = "SAFETY_CAR"
     RED = "RED"
 
+
 class SafetyCar:
     """
     Physical Safety Car entity that navigates the circuit, regulates pack pace,
     and returns to the pit lane when called in.
     """
+
     def __init__(self, speed: float = 36.0):
         self.s: float = 0.0
         self.speed: float = speed  # m/s (~130 km/h)
@@ -60,6 +63,7 @@ class SafetyCar:
 
 class RaceControl:
     """Manages flags, Safety Car interventions, DRS enabling/disabling, sector yellow zones and session rules."""
+
     def __init__(self):
         self.flag: FlagStatus = FlagStatus.GREEN
         self.yellow_sector: Optional[int] = None
@@ -69,12 +73,19 @@ class RaceControl:
         self.safety_car: SafetyCar = SafetyCar(speed=36.0)
         self.drs_enabled: bool = False
         self.safety_car_speed: float = 36.0  # m/s (~130 km/h)
-        self.vsc_speed_delta: float = 0.60   # Cars must slow to 60% pace
+        self.vsc_speed_delta: float = 0.60  # Cars must slow to 60% pace
         self.incident_message: str = "RACE START"
         self.message_timer: float = 4.0
         self.incident_car_id: Optional[int] = None
 
-    def update(self, dt: float, current_lap: int, track_wetness: float, circuit: Optional[Any] = None, leader_car: Optional[Any] = None):
+    def update(
+        self,
+        dt: float,
+        current_lap: int,
+        track_wetness: float,
+        circuit: Optional[Any] = None,
+        leader_car: Optional[Any] = None,
+    ):
         if self.message_timer > 0:
             self.message_timer -= dt
 
@@ -130,8 +141,13 @@ class RaceControl:
         self.drs_enabled = False
         self.set_message(message)
 
-    def deploy_safety_car(self, cleanup_duration: float = 25.0, message: str = "SAFETY CAR DEPLOYED",
-                           circuit: Optional[Any] = None, leader_s: float = 0.0):
+    def deploy_safety_car(
+        self,
+        cleanup_duration: float = 25.0,
+        message: str = "SAFETY CAR DEPLOYED",
+        circuit: Optional[Any] = None,
+        leader_s: float = 0.0,
+    ):
         self.flag = FlagStatus.SAFETY_CAR
         self.yellow_sector = None
         self.sc_cleanup_timer = cleanup_duration
@@ -139,7 +155,7 @@ class RaceControl:
         self.safety_car.is_active = True
         self.safety_car.state = "ON_TRACK"
         self.safety_car.laps_led = 0
-        
+
         if circuit and getattr(circuit, "pit_lane_enabled", False):
             self.safety_car.s = circuit.pit_exit_s
         else:
@@ -147,7 +163,9 @@ class RaceControl:
             self.safety_car.s = (leader_s + 40.0) % c_len
 
         if circuit:
-            self.safety_car.world_x, self.safety_car.world_y = circuit.get_position(self.safety_car.s, self.safety_car.lateral_offset)
+            self.safety_car.world_x, self.safety_car.world_y = circuit.get_position(
+                self.safety_car.s, self.safety_car.lateral_offset
+            )
             self.safety_car.heading = circuit.get_heading(self.safety_car.s)
 
         self.set_message(message)

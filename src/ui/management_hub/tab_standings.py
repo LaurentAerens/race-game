@@ -1,14 +1,18 @@
+from typing import Any, Dict, Optional
+
 import pygame
-from typing import Dict, List, Any, Callable, Tuple, Optional
-from ..theme import UITheme
+
 from ...management.game_manager import GameManager
+from ..theme import UITheme
+
 
 class StandingsTab:
     """Championship Standings & Calendar Tab for all 5 league tiers."""
+
     def __init__(self, screen_width: int, screen_height: int):
         self.width = screen_width
         self.height = screen_height
-        
+
         self.selected_tier: int = 3
         self.standings_mode: str = "CONSTRUCTORS"  # "CONSTRUCTORS" or "DRIVERS"
         self.selected_round_results: Optional[Dict[str, Any]] = None
@@ -89,7 +93,7 @@ class StandingsTab:
                     "tier": self.selected_tier,
                     "round": rnd["round"],
                     "track_name": rnd["track_name"],
-                    "results": res
+                    "results": res,
                 }
                 return True
 
@@ -102,15 +106,17 @@ class StandingsTab:
             (2, "TIER 2: CONTINENTAL"),
             (3, "TIER 3: NATIONAL"),
             (4, "TIER 4: JTS JUNIOR"),
-            (5, "TIER 5: KARTING")
+            (5, "TIER 5: KARTING"),
         ]
 
         for idx, (t_num, t_label) in enumerate(tier_names):
             t_rect = pygame.Rect(24 + idx * 168, 70, 162, 28)
-            is_sel = (t_num == self.selected_tier)
+            is_sel = t_num == self.selected_tier
             pygame.draw.rect(surface, (35, 55, 75) if is_sel else (20, 26, 34), t_rect, border_radius=3)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, t_rect, width=1, border_radius=3)
-            
+            pygame.draw.rect(
+                surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, t_rect, width=1, border_radius=3
+            )
+
             lbl = self.font_btn.render(t_label, True, UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED)
             surface.blit(lbl, (t_rect.x + (t_rect.width - lbl.get_width()) // 2, t_rect.y + 7))
 
@@ -124,21 +130,27 @@ class StandingsTab:
 
         st_hdr = pygame.Rect(st_rect.x, st_rect.y, st_rect.width, 32)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, st_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_title.render("CHAMPIONSHIP STANDINGS", True, (255, 215, 0)), (st_rect.x + 12, st_rect.y + 8))
+        surface.blit(
+            self.font_title.render("CHAMPIONSHIP STANDINGS", True, (255, 215, 0)), (st_rect.x + 12, st_rect.y + 8)
+        )
 
         # Mode Toggle Buttons: Constructors vs Drivers (anchored right)
         c_btn = pygame.Rect(st_rect.x + st_rect.width - 246, 115, 115, 22)
         d_btn = pygame.Rect(st_rect.x + st_rect.width - 124, 115, 115, 22)
 
-        is_c = (self.standings_mode == "CONSTRUCTORS")
+        is_c = self.standings_mode == "CONSTRUCTORS"
         pygame.draw.rect(surface, (36, 56, 78) if is_c else (20, 26, 34), c_btn, border_radius=2)
-        pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_c else UITheme.PANEL_BORDER, c_btn, width=1, border_radius=2)
+        pygame.draw.rect(
+            surface, UITheme.ACCENT_CYAN if is_c else UITheme.PANEL_BORDER, c_btn, width=1, border_radius=2
+        )
         lbl_c = self.font_badge.render("CONSTRUCTORS", True, UITheme.TEXT_WHITE if is_c else UITheme.TEXT_MUTED)
         surface.blit(lbl_c, (c_btn.x + (c_btn.width - lbl_c.get_width()) // 2, c_btn.y + 4))
 
-        is_d = (self.standings_mode == "DRIVERS")
+        is_d = self.standings_mode == "DRIVERS"
         pygame.draw.rect(surface, (36, 56, 78) if is_d else (20, 26, 34), d_btn, border_radius=2)
-        pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_d else UITheme.PANEL_BORDER, d_btn, width=1, border_radius=2)
+        pygame.draw.rect(
+            surface, UITheme.ACCENT_CYAN if is_d else UITheme.PANEL_BORDER, d_btn, width=1, border_radius=2
+        )
         lbl_d = self.font_badge.render("DRIVERS", True, UITheme.TEXT_WHITE if is_d else UITheme.TEXT_MUTED)
         surface.blit(lbl_d, (d_btn.x + (d_btn.width - lbl_d.get_width()) // 2, d_btn.y + 4))
 
@@ -147,13 +159,24 @@ class StandingsTab:
         pygame.draw.rect(surface, (14, 18, 24), th_rect)
         surface.blit(self.font_badge.render("POS", True, UITheme.TEXT_MUTED), (th_rect.x + 10, th_rect.y + 4))
         if is_c:
-            surface.blit(self.font_badge.render("CONSTRUCTOR", True, UITheme.TEXT_MUTED), (th_rect.x + 56, th_rect.y + 4))
-            surface.blit(self.font_badge.render("REPUTATION", True, UITheme.TEXT_MUTED), (th_rect.x + th_rect.width - 150, th_rect.y + 4))
-            surface.blit(self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED), (th_rect.x + th_rect.width - 70, th_rect.y + 4))
+            surface.blit(
+                self.font_badge.render("CONSTRUCTOR", True, UITheme.TEXT_MUTED), (th_rect.x + 56, th_rect.y + 4)
+            )
+            surface.blit(
+                self.font_badge.render("REPUTATION", True, UITheme.TEXT_MUTED),
+                (th_rect.x + th_rect.width - 150, th_rect.y + 4),
+            )
+            surface.blit(
+                self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED),
+                (th_rect.x + th_rect.width - 70, th_rect.y + 4),
+            )
         else:
             surface.blit(self.font_badge.render("DRIVER", True, UITheme.TEXT_MUTED), (th_rect.x + 56, th_rect.y + 4))
             surface.blit(self.font_badge.render("TEAM", True, UITheme.TEXT_MUTED), (th_rect.x + 240, th_rect.y + 4))
-            surface.blit(self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED), (th_rect.x + th_rect.width - 70, th_rect.y + 4))
+            surface.blit(
+                self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED),
+                (th_rect.x + th_rect.width - 70, th_rect.y + 4),
+            )
 
         if is_c:
             teams = gm.db.get_teams(tier=self.selected_tier)
@@ -164,19 +187,26 @@ class StandingsTab:
                 r_box = pygame.Rect(st_rect.x + 10, row_y, st_rect.width - 20, 28)
                 is_player = bool(t["is_player"])
 
-                pygame.draw.rect(surface, (28, 42, 54) if is_player else ((22, 28, 36) if idx % 2 == 0 else (16, 20, 26)), r_box, border_radius=2)
+                pygame.draw.rect(
+                    surface,
+                    (28, 42, 54) if is_player else ((22, 28, 36) if idx % 2 == 0 else (16, 20, 26)),
+                    r_box,
+                    border_radius=2,
+                )
                 if is_player:
                     pygame.draw.rect(surface, UITheme.ACCENT_CYAN, r_box, width=1, border_radius=2)
 
-                pos_str = f"P{idx+1}"
-                pos_col = (0, 240, 140) if idx == 0 else ((240, 80, 80) if idx == len(teams)-1 else UITheme.TEXT_WHITE)
+                pos_str = f"P{idx + 1}"
+                pos_col = (
+                    (0, 240, 140) if idx == 0 else ((240, 80, 80) if idx == len(teams) - 1 else UITheme.TEXT_WHITE)
+                )
                 surface.blit(self.font_card_title.render(pos_str, True, pos_col), (r_box.x + 10, r_box.y + 6))
 
                 col_rgb = pygame.Color(t["color_hex"])
                 pygame.draw.rect(surface, col_rgb, (r_box.x + 44, r_box.y + 6, 6, 16), border_radius=1)
 
-                max_name_w = r_box.width - 215 # Up to ~345px available for team name
-                t_name = t['name']
+                max_name_w = r_box.width - 215  # Up to ~345px available for team name
+                t_name = t["name"]
                 if is_player:
                     you_tag = " [YOU]"
                     tag_surf = self.font_badge.render(you_tag, True, (255, 215, 0))
@@ -187,10 +217,18 @@ class StandingsTab:
                     surface.blit(tag_surf, (r_box.x + 56 + name_surf.get_width(), r_box.y + 7))
                 else:
                     name_trunc = self._truncate_text(self.font_card_title, t_name, max_name_w)
-                    surface.blit(self.font_card_title.render(name_trunc, True, UITheme.TEXT_WHITE), (r_box.x + 56, r_box.y + 6))
+                    surface.blit(
+                        self.font_card_title.render(name_trunc, True, UITheme.TEXT_WHITE), (r_box.x + 56, r_box.y + 6)
+                    )
 
-                surface.blit(self.font_body.render(f"{t['reputation']}/100", True, UITheme.TEXT_MUTED), (r_box.x + r_box.width - 150, r_box.y + 7))
-                surface.blit(self.font_card_title.render(f"{t['points']} PTS", True, (0, 220, 255)), (r_box.x + r_box.width - 70, r_box.y + 6))
+                surface.blit(
+                    self.font_body.render(f"{t['reputation']}/100", True, UITheme.TEXT_MUTED),
+                    (r_box.x + r_box.width - 150, r_box.y + 7),
+                )
+                surface.blit(
+                    self.font_card_title.render(f"{t['points']} PTS", True, (0, 220, 255)),
+                    (r_box.x + r_box.width - 70, r_box.y + 6),
+                )
         else:
             drivers = gm.db.get_driver_standings(self.selected_tier)
             for idx, d in enumerate(drivers[:15]):
@@ -208,27 +246,32 @@ class StandingsTab:
                 elif is_ply:
                     pygame.draw.rect(surface, UITheme.ACCENT_CYAN, r_box, width=1, border_radius=2)
 
-                pos_str = f"P{idx+1}"
+                pos_str = f"P{idx + 1}"
                 pos_col = (255, 215, 0) if idx == 0 else ((0, 240, 140) if idx <= 2 else UITheme.TEXT_WHITE)
                 surface.blit(self.font_badge.render(pos_str, True, pos_col), (r_box.x + 10, r_box.y + 5))
 
                 max_driver_w = 175
                 tag = " [ACADEMY]" if is_acad else (" [YOU]" if is_ply else "")
-                tag_surf = self.font_badge.render(tag, True, (0, 240, 140) if is_acad else ((255, 215, 0) if is_ply else UITheme.TEXT_WHITE))
+                tag_surf = self.font_badge.render(
+                    tag, True, (0, 240, 140) if is_acad else ((255, 215, 0) if is_ply else UITheme.TEXT_WHITE)
+                )
                 tag_w = tag_surf.get_width() if tag else 0
 
-                d_trunc = self._truncate_text(self.font_body, d['name'], max_driver_w - tag_w)
+                d_trunc = self._truncate_text(self.font_body, d["name"], max_driver_w - tag_w)
                 d_col = (0, 240, 140) if is_acad else ((255, 215, 0) if is_ply else UITheme.TEXT_WHITE)
                 name_surf = self.font_body.render(d_trunc, True, d_col)
                 surface.blit(name_surf, (r_box.x + 56, r_box.y + 4))
                 if tag:
                     surface.blit(tag_surf, (r_box.x + 56 + name_surf.get_width(), r_box.y + 5))
 
-                max_team_w = r_box.width - 240 - 80 # Up to ~240px available for team name
+                max_team_w = r_box.width - 240 - 80  # Up to ~240px available for team name
                 team_name = d.get("team_name", "")
                 team_trunc = self._truncate_text(self.font_body, team_name, max_team_w)
                 surface.blit(self.font_body.render(team_trunc, True, UITheme.TEXT_MUTED), (r_box.x + 240, r_box.y + 4))
-                surface.blit(self.font_card_title.render(f"{d.get('points', 0)} PTS", True, (0, 220, 255)), (r_box.x + r_box.width - 70, r_box.y + 4))
+                surface.blit(
+                    self.font_card_title.render(f"{d.get('points', 0)} PTS", True, (0, 220, 255)),
+                    (r_box.x + r_box.width - 70, r_box.y + 4),
+                )
 
         # 3. Dynamic Tier Season Calendar (Right Column)
         cal_rect = pygame.Rect(cal_x, 110, cal_w, self.height - 150)
@@ -239,13 +282,22 @@ class StandingsTab:
             cur.execute("SELECT * FROM calendar WHERE tier = ? ORDER BY round ASC;", (self.selected_tier,))
             rounds = [dict(r) for r in cur.fetchall()]
 
-        tier_names_short = {1: "TIER 1 (WSF)", 2: "TIER 2 (CONTINENTAL)", 3: "TIER 3 (NATIONAL)", 4: "TIER 4 (JUNIOR)", 5: "TIER 5 (KARTING)"}
+        tier_names_short = {
+            1: "TIER 1 (WSF)",
+            2: "TIER 2 (CONTINENTAL)",
+            3: "TIER 3 (NATIONAL)",
+            4: "TIER 4 (JUNIOR)",
+            5: "TIER 5 (KARTING)",
+        }
         t_label = tier_names_short.get(self.selected_tier, f"TIER {self.selected_tier}")
         c_hdr = pygame.Rect(cal_rect.x, cal_rect.y, cal_rect.width, 32)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, c_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_title.render(f"📅 {len(rounds)}-ROUND CALENDAR - {t_label}", True, UITheme.ACCENT_CYAN), (cal_rect.x + 12, cal_rect.y + 8))
+        surface.blit(
+            self.font_title.render(f"📅 {len(rounds)}-ROUND CALENDAR - {t_label}", True, UITheme.ACCENT_CYAN),
+            (cal_rect.x + 12, cal_rect.y + 8),
+        )
 
-        is_player_tier = (self.selected_tier == gm.player_team.get("tier", 3))
+        is_player_tier = self.selected_tier == gm.player_team.get("tier", 3)
         box_h = 24 if len(rounds) > 12 else 26
         gap = 4 if len(rounds) > 12 else 6
 
@@ -253,7 +305,7 @@ class StandingsTab:
             "SPEED": {"bg": (55, 25, 20), "border": (255, 90, 60), "text": (255, 120, 90), "lbl": "SPEED"},
             "BRAKES": {"bg": (55, 45, 15), "border": (255, 190, 40), "text": (255, 210, 60), "lbl": "BRAKES"},
             "AERO": {"bg": (15, 45, 55), "border": (40, 190, 255), "text": (80, 220, 255), "lbl": "AERO"},
-            "BALANCED": {"bg": (20, 45, 30), "border": (50, 200, 120), "text": (80, 230, 140), "lbl": "BALANCED"}
+            "BALANCED": {"bg": (20, 45, 30), "border": (50, 200, 120), "text": (80, 230, 140), "lbl": "BALANCED"},
         }
 
         for idx, rnd in enumerate(rounds):
@@ -269,8 +321,11 @@ class StandingsTab:
                 pygame.draw.rect(surface, (0, 240, 140), c_box, width=1, border_radius=2)
 
             r_num_str = f"R{rnd['round']} (Wk {rnd.get('week', 1)})"
-            surface.blit(self.font_badge.render(r_num_str, True, (0, 240, 140) if is_cur else UITheme.TEXT_MUTED), (c_box.x + 8, c_box.y + 5))
-            
+            surface.blit(
+                self.font_badge.render(r_num_str, True, (0, 240, 140) if is_cur else UITheme.TEXT_MUTED),
+                (c_box.x + 8, c_box.y + 5),
+            )
+
             # Track Name
             t_name_surf = self.font_body.render(rnd["track_name"], True, UITheme.TEXT_WHITE)
             surface.blit(t_name_surf, (c_box.x + 95, c_box.y + 5))
@@ -284,7 +339,13 @@ class StandingsTab:
             badge_rect = pygame.Rect(c_box.x + c_box.width - 205, c_box.y + (box_h - badge_h) // 2, badge_w, badge_h)
             pygame.draw.rect(surface, c_theme["bg"], badge_rect, border_radius=3)
             pygame.draw.rect(surface, c_theme["border"], badge_rect, width=1, border_radius=3)
-            surface.blit(badge_lbl, (badge_rect.x + (badge_w - badge_lbl.get_width()) // 2, badge_rect.y + (badge_h - badge_lbl.get_height()) // 2))
+            surface.blit(
+                badge_lbl,
+                (
+                    badge_rect.x + (badge_w - badge_lbl.get_width()) // 2,
+                    badge_rect.y + (badge_h - badge_lbl.get_height()) // 2,
+                ),
+            )
 
             # Status / Click to View Results
             if is_comp:
@@ -320,7 +381,7 @@ class StandingsTab:
         # Header
         hdr = pygame.Rect(modal_x, modal_y, modal_w, 36)
         pygame.draw.rect(surface, (22, 30, 44), hdr, border_top_left_radius=6, border_top_right_radius=6)
-        
+
         info = self.selected_round_results
         title = f"🏁 TIER {info['tier']} ROUND {info['round']}: {info['track_name'].upper()}"
         surface.blit(self.font_card_title.render(title, True, (255, 215, 0)), (modal_x + 12, modal_y + 9))
@@ -333,7 +394,10 @@ class StandingsTab:
         # Results Table
         results = info.get("results", [])
         if not results:
-            surface.blit(self.font_body.render("No classification data found for this round.", True, UITheme.TEXT_MUTED), (modal_x + 20, modal_y + 60))
+            surface.blit(
+                self.font_body.render("No classification data found for this round.", True, UITheme.TEXT_MUTED),
+                (modal_x + 20, modal_y + 60),
+            )
             return
 
         # Table Header
@@ -364,9 +428,12 @@ class StandingsTab:
             d_col = (0, 240, 140) if is_acad else ((255, 215, 0) if is_ply else UITheme.TEXT_WHITE)
             surface.blit(self.font_body.render(d_name, True, d_col), (r_box.x + 50, r_box.y + 5))
 
-            surface.blit(self.font_body.render(r.get("team_name", ""), True, UITheme.TEXT_MUTED), (r_box.x + 250, r_box.y + 5))
+            surface.blit(
+                self.font_body.render(r.get("team_name", ""), True, UITheme.TEXT_MUTED), (r_box.x + 250, r_box.y + 5)
+            )
 
             pts = r.get("points", 0)
             pts_col = (0, 220, 255) if pts > 0 else UITheme.TEXT_MUTED
-            surface.blit(self.font_badge.render(f"+{pts} PTS" if pts > 0 else "-", True, pts_col), (r_box.x + 430, r_box.y + 5))
-
+            surface.blit(
+                self.font_badge.render(f"+{pts} PTS" if pts > 0 else "-", True, pts_col), (r_box.x + 430, r_box.y + 5)
+            )

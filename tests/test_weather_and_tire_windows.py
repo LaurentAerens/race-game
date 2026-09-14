@@ -1,15 +1,16 @@
 import unittest
-from src.core.circuit import Circuit
-from src.core.tires import TireSet, TIRE_COMPOUNDS
-from src.core.weather import WeatherSystem
+
 from src.core.car import Car
+from src.core.circuit import Circuit
 from src.core.driver import Driver
 from src.core.simulation import Simulation
-from src.data.default_tracks import create_oasis_grand_prix, create_ardennes_forest, create_emerald_ring
+from src.core.tires import TireSet
+from src.core.weather import WeatherSystem
+from src.data.default_tracks import create_ardennes_forest, create_emerald_ring, create_oasis_grand_prix
 from src.database.db_manager import CarAttributes
 
-class TestWeatherAndTireWindows(unittest.TestCase):
 
+class TestWeatherAndTireWindows(unittest.TestCase):
     def test_circuit_base_rain_chances(self):
         oasis = create_oasis_grand_prix()
         ardennes = create_ardennes_forest()
@@ -53,12 +54,7 @@ class TestWeatherAndTireWindows(unittest.TestCase):
 
     def test_max_wetness_cap_respected(self):
         # Test 50% max wetness cap
-        weather_50 = WeatherSystem(
-            initial_rain=0.0,
-            weather_profile="RAIN",
-            total_laps=25,
-            max_wetness_cap=0.50
-        )
+        weather_50 = WeatherSystem(initial_rain=0.0, weather_profile="RAIN", total_laps=25, max_wetness_cap=0.50)
         self.assertAlmostEqual(weather_50.max_race_wetness, 0.50)
 
         # Simulate through all laps
@@ -72,12 +68,7 @@ class TestWeatherAndTireWindows(unittest.TestCase):
         self.assertGreater(peak_wetness, 0.35)
 
         # Test 80% max wetness cap
-        weather_80 = WeatherSystem(
-            initial_rain=0.0,
-            weather_profile="RAIN",
-            total_laps=25,
-            max_wetness_cap=0.80
-        )
+        weather_80 = WeatherSystem(initial_rain=0.0, weather_profile="RAIN", total_laps=25, max_wetness_cap=0.80)
         self.assertAlmostEqual(weather_80.max_race_wetness, 0.80)
 
         peak_wetness_80 = 0.0
@@ -267,7 +258,16 @@ class TestWeatherAndTireWindows(unittest.TestCase):
     def test_tire_wet_overload_fatal_crash_risk(self):
         """Verify 5x crash risk multiplier when track wetness > tire wet_capability + 0.10."""
         circuit = create_emerald_ring()
-        driver = Driver(id=1, name="CrashTester", code="CRS", number=1, team_name="T1", color_rgb=(255, 0, 0), consistency=0.20, aggression=0.90)
+        driver = Driver(
+            id=1,
+            name="CrashTester",
+            code="CRS",
+            number=1,
+            team_name="T1",
+            color_rgb=(255, 0, 0),
+            consistency=0.20,
+            aggression=0.90,
+        )
         attrs = CarAttributes(100.0, 100.0, 100.0, 100.0, 100.0)
 
         # 1. Hard tire: capability 0.10 -> overload threshold 0.20
@@ -300,7 +300,7 @@ class TestWeatherAndTireWindows(unittest.TestCase):
             total_laps=20,
             max_wetness_cap=0.70,
             is_big_track=True,
-            local_shower_sectors=[2]
+            local_shower_sectors=[2],
         )
         self.assertTrue(weather.is_local_shower)
         self.assertEqual(weather.active_rain_sectors, [2])
@@ -323,7 +323,7 @@ class TestWeatherAndTireWindows(unittest.TestCase):
         self.assertEqual(weather.get_sector_wetness(3), 0.0)
 
         # Test car physics interaction in Simulation
-        circuit = create_ardennes_forest() # Long track > 2200m
+        circuit = create_ardennes_forest()  # Long track > 2200m
         driver1 = Driver(id=1, name="DriverS1", code="DS1", number=1, team_name="T1", color_rgb=(255, 0, 0))
         driver2 = Driver(id=2, name="DriverS2", code="DS2", number=2, team_name="T2", color_rgb=(0, 0, 255))
         attrs = CarAttributes(100.0, 100.0, 100.0, 100.0, 100.0)
@@ -334,8 +334,8 @@ class TestWeatherAndTireWindows(unittest.TestCase):
         # Position car1 in Sector 1 and car2 in Sector 2
         # Sector 1 is between 0 and 0.31 * length; Sector 2 is between 0.31 and 0.64 * length
         c1, c2 = sim.cars[0], sim.cars[1]
-        c1.s = circuit.length * 0.10 # Sector 1
-        c2.s = circuit.length * 0.45 # Sector 2
+        c1.s = circuit.length * 0.10  # Sector 1
+        c2.s = circuit.length * 0.45  # Sector 2
 
         self.assertEqual(circuit.get_sector(c1.s), 1)
         self.assertEqual(circuit.get_sector(c2.s), 2)
@@ -347,5 +347,6 @@ class TestWeatherAndTireWindows(unittest.TestCase):
         self.assertEqual(wet_c1, 0.0)
         self.assertGreater(wet_c2, 0.30)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

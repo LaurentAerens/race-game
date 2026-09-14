@@ -1,27 +1,29 @@
-import unittest
 import os
+import unittest
+
 import pygame
-from src.database.career_db import CareerDatabase
+
 from src.data.default_tracks import (
-    initialize_default_tracks_folder,
-    create_emerald_ring,
-    create_autodromo_velocita,
-    create_oasis_grand_prix,
-    create_vortex_aero_ring,
     create_apex_park,
+    create_ardennes_forest,
+    create_autodromo_velocita,
+    create_emerald_ring,
     create_harbor_city,
+    create_oasis_grand_prix,
     create_riviera_speedway,
-    create_ardennes_forest
+    create_vortex_aero_ring,
+    initialize_default_tracks_folder,
 )
-from src.core.circuit import Circuit
+from src.database.career_db import CareerDatabase
 from src.management.game_manager import GameManager
 from src.management.league_simulator import LeagueSimulator
+
 
 class TestSeasonUniqueTracks(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tempfile
-        import gc
+
         pygame.init()
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.test_db_path = os.path.join(cls.temp_dir.name, "test_season_tracks.db")
@@ -31,6 +33,7 @@ class TestSeasonUniqueTracks(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         import gc
+
         if hasattr(cls, "cdb"):
             del cls.cdb
         gc.collect()
@@ -80,7 +83,7 @@ class TestSeasonUniqueTracks(unittest.TestCase):
             "apex_park": create_apex_park(),
             "harbor_city": create_harbor_city(),
             "riviera_speedway": create_riviera_speedway(),
-            "ardennes_forest": create_ardennes_forest()
+            "ardennes_forest": create_ardennes_forest(),
         }
 
         for name, c in circuits.items():
@@ -143,6 +146,7 @@ class TestSeasonUniqueTracks(unittest.TestCase):
         # After finale, calendars should be reset
         t1_r1 = self.cdb.get_calendar_round(1, 1)
         self.assertEqual(t1_r1["is_completed"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

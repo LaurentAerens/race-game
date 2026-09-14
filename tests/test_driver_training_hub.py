@@ -1,11 +1,10 @@
-import os
-import sqlite3
 import pytest
-from src.database.career_db import CareerDatabase, ALL_FACILITY_NODES, FACILITY_SPECIALTY_MAP
+
+from src.database.career_db import ALL_FACILITY_NODES, FACILITY_SPECIALTY_MAP, CareerDatabase
 from src.database.equipment_catalog import EQUIPMENT_CATALOG
 from src.management.driver_manager import DriverManager
-from src.management.sponsor_manager import SponsorManager
 from src.management.engineering_manager import EngineeringManager
+from src.management.sponsor_manager import SponsorManager
 
 
 @pytest.fixture
@@ -41,7 +40,7 @@ def test_driver_perf_nodes_and_equipment_catalog(test_db):
         "driver_commercial_suite",
         "driver_academy",
         "driver_karting_scholarship",
-        "driver_f4_bootcamp"
+        "driver_f4_bootcamp",
     }
     assert expected_nodes.issubset(node_ids), f"Missing nodes: {expected_nodes - node_ids}"
 
@@ -117,8 +116,12 @@ def test_driver_progression_reflex_and_gym_buffs(test_db):
     boosted_starts_gain = d_boosted["race_starts"] - 50.0
     boosted_tires_gain = d_boosted["tire_management"] - 50.0
 
-    assert boosted_starts_gain > base_starts_gain * 1.4, f"Starts gain not boosted: {boosted_starts_gain} vs {base_starts_gain}"
-    assert boosted_tires_gain > base_tires_gain * 1.3, f"Tires gain not boosted: {boosted_tires_gain} vs {base_tires_gain}"
+    assert boosted_starts_gain > base_starts_gain * 1.4, (
+        f"Starts gain not boosted: {boosted_starts_gain} vs {base_starts_gain}"
+    )
+    assert boosted_tires_gain > base_tires_gain * 1.3, (
+        f"Tires gain not boosted: {boosted_tires_gain} vs {base_tires_gain}"
+    )
 
 
 def test_veteran_age_decay_physio_protection(test_db):
@@ -165,7 +168,9 @@ def test_veteran_age_decay_physio_protection(test_db):
         d_protected = dict(conn.cursor().execute("SELECT * FROM drivers WHERE id = 9002;").fetchone())
     decay_protected = 80.0 - d_protected["pace"]
 
-    assert decay_protected < decay_unprotected * 0.45, f"Physio did not protect veteran: decay_protected={decay_protected}, decay_unprotected={decay_unprotected}"
+    assert decay_protected < decay_unprotected * 0.45, (
+        f"Physio did not protect veteran: decay_protected={decay_protected}, decay_unprotected={decay_unprotected}"
+    )
 
 
 def test_commercial_and_communication_progression(test_db):
@@ -221,8 +226,12 @@ def test_commercial_and_communication_progression(test_db):
     boosted_mkt_gain = d_boosted["marketability"] - 50.0
     boosted_comm_gain = d_boosted["communication"] - 50.0
 
-    assert boosted_mkt_gain > base_mkt_gain * 1.5, f"Marketability gain not boosted: {boosted_mkt_gain} vs {base_mkt_gain}"
-    assert boosted_comm_gain > base_comm_gain * 1.5, f"Communication gain not boosted: {boosted_comm_gain} vs {base_comm_gain}"
+    assert boosted_mkt_gain > base_mkt_gain * 1.5, (
+        f"Marketability gain not boosted: {boosted_mkt_gain} vs {base_mkt_gain}"
+    )
+    assert boosted_comm_gain > base_comm_gain * 1.5, (
+        f"Communication gain not boosted: {boosted_comm_gain} vs {base_comm_gain}"
+    )
 
 
 def test_sponsor_appeal_and_engineering_synergy(test_db):
@@ -258,7 +267,12 @@ def test_sponsor_appeal_and_engineering_synergy(test_db):
 
     # Query facility tiers
     with test_db.get_connection() as conn:
-        fac_tiers = {r[0]: r[1] for r in conn.cursor().execute("SELECT node_id, current_tier FROM team_facilities WHERE team_id=1;").fetchall()}
+        fac_tiers = {
+            r[0]: r[1]
+            for r in conn.cursor()
+            .execute("SELECT node_id, current_tier FROM team_facilities WHERE team_id=1;")
+            .fetchall()
+        }
 
     radio_tier = fac_tiers.get("driver_radio_comms_lab", 0)
     assert radio_tier == 2
@@ -271,7 +285,9 @@ def test_karting_scholarship_scout_generation(test_db):
     # Base scouting
     dm._generate_scout_prospects(1)
     with test_db.get_connection() as conn:
-        prospects_base = [dict(r) for r in conn.cursor().execute("SELECT * FROM scout_prospects WHERE team_id=1;").fetchall()]
+        prospects_base = [
+            dict(r) for r in conn.cursor().execute("SELECT * FROM scout_prospects WHERE team_id=1;").fetchall()
+        ]
 
     assert len(prospects_base) == 6
 
@@ -287,7 +303,9 @@ def test_karting_scholarship_scout_generation(test_db):
 
     dm._generate_scout_prospects(1)
     with test_db.get_connection() as conn:
-        prospects_boosted = [dict(r) for r in conn.cursor().execute("SELECT * FROM scout_prospects WHERE team_id=1;").fetchall()]
+        prospects_boosted = [
+            dict(r) for r in conn.cursor().execute("SELECT * FROM scout_prospects WHERE team_id=1;").fetchall()
+        ]
 
     # Should contain 7 prospects (including scholarship prodigy Valerio De Luca)
     assert len(prospects_boosted) == 7
@@ -357,7 +375,9 @@ def test_sim_trickle_down_to_academy_drivers(test_db):
     boosted_pace_gain = d_boosted["pace"] - 40.0
 
     # Trickle down bonus (+6% * 2 from sim + 8% * 2 from motion sim = +28% trickle down)
-    assert boosted_pace_gain > base_pace_gain * 1.20, f"Trickle down not observed: {boosted_pace_gain} vs {base_pace_gain}"
+    assert boosted_pace_gain > base_pace_gain * 1.20, (
+        f"Trickle down not observed: {boosted_pace_gain} vs {base_pace_gain}"
+    )
 
 
 def test_driver_buyout_costs_expensive_for_pay_and_loan_drivers(test_db):
@@ -369,12 +389,7 @@ def test_driver_buyout_costs_expensive_for_pay_and_loan_drivers(test_db):
     assert dm.get_driver_buyout_cost(d_default) == 0.0
 
     # Pay-driver: 10 races left at $40,000/race sponsor income -> 1.5x penalty = $600,000
-    d_pay = {
-        "driver_type": "PAY_DRIVER",
-        "contract_races_left": 10,
-        "sponsor_income_per_race": 40000.0,
-        "tier": 3
-    }
+    d_pay = {"driver_type": "PAY_DRIVER", "contract_races_left": 10, "sponsor_income_per_race": 40000.0, "tier": 3}
     cost_pay = dm.get_driver_buyout_cost(d_pay)
     assert cost_pay == 600000.0
     assert cost_pay > 0.0
@@ -384,17 +399,12 @@ def test_driver_buyout_costs_expensive_for_pay_and_loan_drivers(test_db):
         "driver_type": "SPONSORED_DRIVER",
         "contract_races_left": 10,
         "sponsor_income_per_race": 50000.0,
-        "tier": 3
+        "tier": 3,
     }
     cost_loan = dm.get_driver_buyout_cost(d_loan)
     assert cost_loan == 750000.0
     assert cost_loan > 0.0
 
     # Standard driver: 10 races left at $30,000/race -> 0.5x severance = $150,000
-    d_std = {
-        "driver_type": "STANDARD",
-        "contract_races_left": 10,
-        "salary_per_race": 30000.0
-    }
+    d_std = {"driver_type": "STANDARD", "contract_races_left": 10, "salary_per_race": 30000.0}
     assert dm.get_driver_buyout_cost(d_std) == 150000.0
-

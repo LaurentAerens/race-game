@@ -1,32 +1,31 @@
 import os
 import sys
+from typing import Any, Dict, List, Optional
+
 import pygame
-from typing import Optional, List, Dict, Any
 
-from src.core.circuit import Circuit
-from src.core.simulation import Simulation
 from src.core.car import Car
-from src.data.teams import load_teams_and_drivers_from_db, load_career_teams_and_drivers
-from src.data.default_tracks import initialize_default_tracks_folder, create_emerald_ring
-from src.render.camera import Camera
-from src.render.track_renderer import TrackRenderer
-from src.render.car_renderer import CarRenderer
-from src.ui.timing_tower import TimingTower
-from src.ui.driver_panel import DriverStrategyPanel
-from src.ui.broadcast_header import BroadcastHeader
-from src.ui.event_feed import EventFeed
-from src.ui.pit_modal import PitStrategyModal
-from src.ui.radio_banner import RadioBannerWidget
-from src.ui.theme import UITheme
-from src.editor.track_editor import TrackEditor
-from src.editor.admin_hub import AdminHub
-from src.ui.management_hub.management_hub import ManagementHub
-from src.ui.start_screen import StartScreen
+from src.core.circuit import Circuit
 from src.core.race_weekend import RaceWeekendManager, RaceWeekendSession
-from src.ui.race_weekend.race_weekend_screen import RaceWeekendScreen
+from src.core.simulation import Simulation
+from src.data.default_tracks import create_emerald_ring, initialize_default_tracks_folder
+from src.data.teams import load_career_teams_and_drivers, load_teams_and_drivers_from_db
+from src.editor.admin_hub import AdminHub
 from src.management.tutorial_manager import TutorialManager
+from src.render.camera import Camera
+from src.render.car_renderer import CarRenderer
+from src.render.track_renderer import TrackRenderer
+from src.ui.broadcast_header import BroadcastHeader
+from src.ui.driver_panel import DriverStrategyPanel
+from src.ui.event_feed import EventFeed
+from src.ui.management_hub.management_hub import ManagementHub
+from src.ui.pit_modal import PitStrategyModal
+from src.ui.race_weekend.race_weekend_screen import RaceWeekendScreen
+from src.ui.radio_banner import RadioBannerWidget
+from src.ui.start_screen import StartScreen
+from src.ui.theme import UITheme
+from src.ui.timing_tower import TimingTower
 from src.ui.tutorial_overlay import TutorialOverlay
-
 
 if getattr(sys, "frozen", False):
     # PyInstaller bundle: ensure working directory is the application executable directory
@@ -35,6 +34,7 @@ if getattr(sys, "frozen", False):
 if sys.platform == "win32":
     try:
         import ctypes
+
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     except Exception:
         try:
@@ -43,14 +43,13 @@ if sys.platform == "win32":
             pass
 
 
-
 class RaceGameApp:
     """Main Desktop Game Application with Full Motorsport Management Tycoon System."""
-    
+
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("Open-Wheel Motorsport Management Tycoon & Race Simulator")
-        
+
         self.width = 1280
         self.height = 720
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
@@ -77,32 +76,33 @@ class RaceGameApp:
 
         # 2. Splash progress: Loading Management Hub
         self._render_splash_screen("Loading Management Career Databases...", 0.55)
-        self.management_hub = ManagementHub(self.width, self.height, on_start_race_weekend=self.start_race_weekend, on_switch_mode=self.set_mode)
+        self.management_hub = ManagementHub(
+            self.width, self.height, on_start_race_weekend=self.start_race_weekend, on_switch_mode=self.set_mode
+        )
 
         # Guided Tutorial System
         self.tutorial_manager = TutorialManager(
-            self.management_hub.db,
-            team_id=self.management_hub.gm.team_id,
-            on_switch_tab=self.management_hub.switch_tab
+            self.management_hub.db, team_id=self.management_hub.gm.team_id, on_switch_tab=self.management_hub.switch_tab
         )
         self.tutorial_manager.is_active = False
         self.management_hub.tutorial_manager = self.tutorial_manager
-        self.tutorial_overlay = TutorialOverlay(self.width, self.height, self.tutorial_manager, management_hub=self.management_hub)
+        self.tutorial_overlay = TutorialOverlay(
+            self.width, self.height, self.tutorial_manager, management_hub=self.management_hub
+        )
 
         # 3. Start Screen
         self.start_screen = StartScreen(
-            self.width, self.height,
+            self.width,
+            self.height,
             on_start_career=self.start_new_career,
             on_continue=self.continue_career,
-            on_open_admin=lambda: self.set_mode("ADMIN")
+            on_open_admin=lambda: self.set_mode("ADMIN"),
         )
 
         # 4. Splash progress: Admin & CAD Tools
         self._render_splash_screen("Preparing Circuit Designer & Database Editor...", 0.85)
         self.admin_hub = AdminHub(
-            self.width, self.height,
-            on_back_to_menu=self._on_admin_back,
-            on_test_race=self.start_race_on_circuit
+            self.width, self.height, on_back_to_menu=self._on_admin_back, on_test_race=self.start_race_on_circuit
         )
 
         # Viewports & UI components
@@ -147,7 +147,9 @@ class RaceGameApp:
         pygame.draw.rect(self.screen, (20, 26, 36), bar_rect, border_radius=4)
         fill_w = int(bar_w * max(0.0, min(1.0, progress)))
         if fill_w > 0:
-            pygame.draw.rect(self.screen, (0, 220, 240), pygame.Rect(bar_rect.x, bar_rect.y, fill_w, bar_h), border_radius=4)
+            pygame.draw.rect(
+                self.screen, (0, 220, 240), pygame.Rect(bar_rect.x, bar_rect.y, fill_w, bar_h), border_radius=4
+            )
         pygame.draw.rect(self.screen, (40, 50, 68), bar_rect, width=1, border_radius=4)
 
         # Status text & percentage
@@ -165,12 +167,14 @@ class RaceGameApp:
 
     def _init_layout(self):
         self.timing_tower = TimingTower(10, 56, 290, self.height - 200)
-        self.driver_panel = DriverStrategyPanel(10, self.height - 138, self.width - 20, 130, on_box_click=self.on_box_button_clicked)
+        self.driver_panel = DriverStrategyPanel(
+            10, self.height - 138, self.width - 20, 130, on_box_click=self.on_box_button_clicked
+        )
         self.broadcast_header = BroadcastHeader(self.width, 48)
         self.event_feed = EventFeed(self.width - 360, self.height - 290, 350, 140)
         self.pit_modal = PitStrategyModal(self.width, self.height)
         self.radio_banner = RadioBannerWidget(self.width)
-        
+
         # 2D Race Viewport
         self.view_rect = pygame.Rect(310, 56, self.width - 320, self.height - 200)
 
@@ -182,9 +186,24 @@ class RaceGameApp:
             db = getattr(self.management_hub, "db", None) if hasattr(self, "management_hub") else None
             self.pit_modal.open(car, self.circuit.get_dry_compounds(), db_manager=db, team_id=team_id)
 
-    def start_new_career(self, team_name: str, principal_name: str, color_hex: str, difficulty: str, engine_supplier: str = "Vortex EcoTech", enable_tutorial: bool = True):
+    def start_new_career(
+        self,
+        team_name: str,
+        principal_name: str,
+        color_hex: str,
+        difficulty: str,
+        engine_supplier: str = "Vortex EcoTech",
+        enable_tutorial: bool = True,
+    ):
         """Creates a fresh career with custom player team name, CEO / Team Principal name, livery color, difficulty, and Season 1 Engine Supplier."""
-        self.management_hub.db.create_new_career(team_name, color_hex, difficulty, engine_supplier, principal_name=principal_name, enable_tutorial=enable_tutorial)
+        self.management_hub.db.create_new_career(
+            team_name,
+            color_hex,
+            difficulty,
+            engine_supplier,
+            principal_name=principal_name,
+            enable_tutorial=enable_tutorial,
+        )
         self.management_hub.difficulty_mgr.set_difficulty(difficulty)
         self.management_hub.gm.refresh_player_team()
         self.tutorial_manager.team_id = self.management_hub.gm.team_id
@@ -208,7 +227,7 @@ class RaceGameApp:
         """Transitions from Management Hub into the interactive Race Weekend Hub."""
         circuit_file = race_event.get("circuit_file", "emerald_ring.json")
         track_path = os.path.join("tracks", circuit_file)
-        
+
         if os.path.exists(track_path):
             self.circuit = Circuit.load_json(track_path)
         else:
@@ -226,9 +245,15 @@ class RaceGameApp:
         if hasattr(self, "management_hub") and self.management_hub.db:
             with self.management_hub.db.get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT node_id, current_tier FROM team_facilities WHERE team_id = ? AND is_unlocked = 1;", (team_id,))
+                cur.execute(
+                    "SELECT node_id, current_tier FROM team_facilities WHERE team_id = ? AND is_unlocked = 1;",
+                    (team_id,),
+                )
                 fac_tiers = {r[0]: r[1] for r in cur.fetchall()}
-                cur.execute("SELECT equipment_id, current_level FROM team_equipment WHERE team_id = ? AND is_active = 1;", (team_id,))
+                cur.execute(
+                    "SELECT equipment_id, current_level FROM team_equipment WHERE team_id = ? AND is_active = 1;",
+                    (team_id,),
+                )
                 eq_lvls = {r[0]: r[1] for r in cur.fetchall()}
 
         self.weekend_manager = RaceWeekendManager(
@@ -236,24 +261,27 @@ class RaceGameApp:
             track_metadata=race_event,
             total_laps_base=total_laps,
             facility_tiers=fac_tiers,
-            equipment_levels=eq_lvls
+            equipment_levels=eq_lvls,
         )
 
         drivers = self.management_hub.db.get_team_drivers(self.management_hub.gm.team_id)
 
         self.weekend_screen = RaceWeekendScreen(
-            self.width, self.height,
+            self.width,
+            self.height,
             manager=self.weekend_manager,
             drivers=drivers,
             on_start_live_session=self.start_live_session_from_weekend,
             on_finish_weekend=self.on_weekend_completed,
-            driver_car_pairs=self.driver_car_pairs
+            driver_car_pairs=self.driver_car_pairs,
         )
 
         self.tutorial_manager.sync_game_state("WEEKEND")
         self.mode = "WEEKEND"
 
-    def start_live_session_from_weekend(self, session_type: str, laps: int, grid: Optional[List[Dict[str, Any]]] = None):
+    def start_live_session_from_weekend(
+        self, session_type: str, laps: int, grid: Optional[List[Dict[str, Any]]] = None
+    ):
         """Starts a live 2D track simulation for a specific weekend session (Sprint or Grand Prix)."""
         active_pairs = self.driver_car_pairs
         if grid:
@@ -267,7 +295,7 @@ class RaceGameApp:
                 active_pairs = ordered
 
         current_tier = getattr(self.weekend_manager, "tier", 3)
-        
+
         # Load persisted car part durabilities from db for player cars
         car_durs = {}
         fac_tiers = getattr(self.weekend_manager, "facility_tiers", {})
@@ -279,23 +307,24 @@ class RaceGameApp:
             for slot in (1, 2):
                 car_durs[slot] = {
                     c["category"]: c.get("current_durability", 100.0 - c.get("wear_pct", 0.0))
-                    for c in all_comps if c["car_slot"] == slot
+                    for c in all_comps
+                    if c["car_slot"] == slot
                 }
 
         track_meta = getattr(self.weekend_manager, "track_metadata", {})
         weather_prof = track_meta.get("weather_profile", "DYNAMIC")
 
         self.sim = Simulation(
-            self.circuit, 
-            active_pairs, 
-            total_laps=laps, 
+            self.circuit,
+            active_pairs,
+            total_laps=laps,
             session_type=session_type,
             car_setups=self.weekend_manager.car_setups,
             setup_confidences=self.weekend_manager.setup_confidence,
             practice_bonuses=self.weekend_manager.practice_bonuses,
             league_tier=current_tier,
             car_durabilities=car_durs,
-            weather_profile=weather_prof
+            weather_profile=weather_prof,
         )
         self.sim.team_facilities = fac_tiers
         self.sim.team_equipment = eq_lvls
@@ -357,14 +386,16 @@ class RaceGameApp:
         sorted_cars = sorted(self.sim.cars, key=lambda c: c.position)
         results = []
         for pos, car in enumerate(sorted_cars, 1):
-            results.append({
-                "position": pos,
-                "driver_name": car.driver.name,
-                "team_name": car.driver.team_name,
-                "is_player": car.driver.is_player
-            })
-        
-        if hasattr(self, 'weekend_manager') and self.weekend_manager and not self.weekend_manager.is_weekend_completed:
+            results.append(
+                {
+                    "position": pos,
+                    "driver_name": car.driver.name,
+                    "team_name": car.driver.team_name,
+                    "is_player": car.driver.is_player,
+                }
+            )
+
+        if hasattr(self, "weekend_manager") and self.weekend_manager and not self.weekend_manager.is_weekend_completed:
             if self.live_session_type == "SPRINT":
                 self.weekend_manager.record_session_completion(RaceWeekendSession.SPRINT, results)
             elif self.live_session_type == "RACE":
@@ -383,7 +414,11 @@ class RaceGameApp:
 
     def _on_admin_back(self):
         """Returns to Management Hub if career is active, otherwise to Start Screen."""
-        if hasattr(self, "management_hub") and getattr(self.management_hub, "gm", None) and getattr(self.management_hub.gm, "team_id", None):
+        if (
+            hasattr(self, "management_hub")
+            and getattr(self.management_hub, "gm", None)
+            and getattr(self.management_hub.gm, "team_id", None)
+        ):
             self.set_mode("MANAGEMENT")
         else:
             self.set_mode("START")
@@ -408,7 +443,6 @@ class RaceGameApp:
         pygame.quit()
         sys.exit()
 
-
     def resize_all_components(self):
         """Re-initializes layout rects and propagates UI scaling to all sub-components and screens."""
         self._init_layout()
@@ -425,7 +459,7 @@ class RaceGameApp:
             if event.type == pygame.QUIT:
                 self.is_running = False
                 return
-            
+
             if event.type == pygame.VIDEORESIZE:
                 self.width, self.height = event.w, event.h
                 self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
@@ -435,13 +469,17 @@ class RaceGameApp:
 
             if event.type == pygame.KEYDOWN:
                 # F9 or Ctrl +: Zoom In / Increase UI Scale for 4K/5K Ultrawide or Laptop Screens
-                if event.key == pygame.K_F9 or ((event.mod & pygame.KMOD_CTRL) and event.key in [pygame.K_EQUALS, pygame.K_PLUS, pygame.K_KP_PLUS]):
+                if event.key == pygame.K_F9 or (
+                    (event.mod & pygame.KMOD_CTRL) and event.key in [pygame.K_EQUALS, pygame.K_PLUS, pygame.K_KP_PLUS]
+                ):
                     UITheme.adjust_scale(+0.10)
                     self.resize_all_components()
                     self.show_zoom_toast()
                     continue
                 # F8 or Ctrl -: Zoom Out / Decrease UI Scale
-                elif event.key == pygame.K_F8 or ((event.mod & pygame.KMOD_CTRL) and event.key in [pygame.K_MINUS, pygame.K_KP_MINUS]):
+                elif event.key == pygame.K_F8 or (
+                    (event.mod & pygame.KMOD_CTRL) and event.key in [pygame.K_MINUS, pygame.K_KP_MINUS]
+                ):
                     UITheme.adjust_scale(-0.10)
                     self.resize_all_components()
                     self.show_zoom_toast()
@@ -454,7 +492,9 @@ class RaceGameApp:
                     continue
 
             # Tutorial Overlay Event Interception (Only active in career modes: MANAGEMENT, WEEKEND, RACE)
-            if self.mode in ["MANAGEMENT", "WEEKEND", "RACE"] and self.tutorial_overlay.handle_event(event, current_mode=self.mode):
+            if self.mode in ["MANAGEMENT", "WEEKEND", "RACE"] and self.tutorial_overlay.handle_event(
+                event, current_mode=self.mode
+            ):
                 if self.mode == "RACE" and self.sim:
                     cur_s = self.tutorial_manager.get_current_step()
                     if not self.tutorial_manager.is_active or not cur_s or cur_s.step_id != "LIVE_RACE_PITWALL":
@@ -467,7 +507,7 @@ class RaceGameApp:
                 tab_mgmt = pygame.Rect(self.width - 345, 10, 115, 26)
                 tab_race = pygame.Rect(self.width - 225, 10, 105, 26)
                 tab_admin = pygame.Rect(self.width - 115, 10, 105, 26)
-                
+
                 if tab_mgmt.collidepoint(mx, my):
                     self.mode = "MANAGEMENT"
                     continue
@@ -594,7 +634,9 @@ class RaceGameApp:
 
             # 1. Draw 2D Race Track & Open-Wheel Cars
             self.track_renderer.render(self.screen, self.circuit, self.camera, self.view_rect, self.sim.weather)
-            self.car_renderer.render_cars(self.screen, self.sim.cars, self.camera, self.view_rect, safety_car=self.sim.race_control.safety_car)
+            self.car_renderer.render_cars(
+                self.screen, self.sim.cars, self.camera, self.view_rect, safety_car=self.sim.race_control.safety_car
+            )
 
             # 2. Draw Timing Tower & Leaderboard
             self.timing_tower.render(self.screen, self.sim, self.camera)
@@ -644,13 +686,19 @@ class RaceGameApp:
                 self.screen.blit(lbl_flag, (bx + (banner_w - lbl_flag.get_width()) // 2, by + 14))
 
                 leader = self.sim.cars[0] if self.sim.cars else None
-                win_text = f"Winner: {leader.driver.name} ({leader.driver.team_name})" if leader else "Session Completed"
+                win_text = (
+                    f"Winner: {leader.driver.name} ({leader.driver.team_name})" if leader else "Session Completed"
+                )
                 lbl_win = font_winner.render(win_text, True, UITheme.TEXT_WHITE)
                 self.screen.blit(lbl_win, (bx + (banner_w - lbl_win.get_width()) // 2, by + 42))
 
                 fl_holder = getattr(self.sim, "fastest_lap_holder", None)
                 fl_time = getattr(self.sim, "fastest_lap_time", 0.0)
-                fl_str = f"Fastest Lap: {fl_holder.driver.name} ({self.sim.format_time(fl_time)})" if fl_holder and fl_time < float('inf') else "All laps completed."
+                fl_str = (
+                    f"Fastest Lap: {fl_holder.driver.name} ({self.sim.format_time(fl_time)})"
+                    if fl_holder and fl_time < float("inf")
+                    else "All laps completed."
+                )
                 lbl_fl = font_sub.render(fl_str, True, (180, 120, 255))
                 self.screen.blit(lbl_fl, (bx + (banner_w - lbl_fl.get_width()) // 2, by + 62))
 
@@ -658,7 +706,9 @@ class RaceGameApp:
                 pygame.draw.rect(self.screen, (0, 180, 100), fin_btn_rect, border_radius=4)
                 pygame.draw.rect(self.screen, (0, 255, 140), fin_btn_rect, width=2, border_radius=4)
                 lbl_ret = font_btn_fin.render("< RETURN TO HQ & VIEW DEBRIEF", True, (10, 25, 15))
-                self.screen.blit(lbl_ret, (fin_btn_rect.x + (fin_btn_rect.width - lbl_ret.get_width()) // 2, fin_btn_rect.y + 12))
+                self.screen.blit(
+                    lbl_ret, (fin_btn_rect.x + (fin_btn_rect.width - lbl_ret.get_width()) // 2, fin_btn_rect.y + 12)
+                )
 
         # Global Top Nav Mode Tabs (Only shown in Race Sim mode)
         if self.mode == "RACE":
@@ -685,7 +735,7 @@ class RaceGameApp:
         tab_mgmt = pygame.Rect(self.width - 345, 10, 115, 26)
         tab_race = pygame.Rect(self.width - 225, 10, 105, 26)
         tab_admin = pygame.Rect(self.width - 115, 10, 105, 26)
-        
+
         font_tab = UITheme.get_font(10, bold=True)
 
         UITheme.draw_button(self.screen, tab_mgmt, "HQ DASHBOARD", font_tab, is_active=(self.mode == "MANAGEMENT"))
