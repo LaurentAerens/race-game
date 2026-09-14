@@ -22,6 +22,7 @@ a = Analysis(
         'shapely',
         'numpy',
         'requests',
+        'networkx',
     ],
     hookspath=[],
     hooksconfig={},
