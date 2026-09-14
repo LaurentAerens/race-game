@@ -1241,28 +1241,6 @@ class DriverManager:
                 )
             conn.commit()
 
-    def refresh_scout_search(self, team_id: int, scout_cost: float = 15000.0) -> Tuple[bool, str]:
-        """Conducts a new scouting expedition for youth prospects in feeder tiers, deducting scout budget."""
-        with self.db.get_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT cash FROM teams WHERE id = ?;", (team_id,))
-            cash = float(cur.fetchone()[0] or 0.0)
-            if cash < scout_cost:
-                return False, f"Insufficient funds for scout mission (${scout_cost:,.0f} required)."
-
-            cur.execute("UPDATE teams SET cash = cash - ? WHERE id = ?;", (scout_cost, team_id))
-            cur.execute(
-                """
-            INSERT INTO ledger (team_id, week, category, description, amount)
-            VALUES (?, 1, 'SCOUTING', 'Junior Talent Scouting Mission', ?);
-            """,
-                (team_id, -scout_cost),
-            )
-            conn.commit()
-
-        self._generate_scout_prospects(team_id)
-        return True, f"Scouting mission complete! Discovered new youth candidates for ${scout_cost:,.0f}."
-
     def get_available_feeder_seats(self, team_tier: int) -> List[Dict[str, Any]]:
         """
         Returns all currently OPEN (unoccupied) sponsored feeder seats in leagues strictly below team's tier.

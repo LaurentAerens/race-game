@@ -178,12 +178,6 @@ FACILITY_SPECIALTY_MAP = {
 
 
 def seed_team_personnel(cur, team_id: int, tier: int, is_player: bool, unlocked_nodes: List[str]):
-    """Seeds Category Directors, Facility Department Heads, Specialist Staff, and rare Interns."""
-    # 1. Category Directors
-    categories = ["ENGINEERING", "COMMERCIAL", "TRACKSIDE", "POWERTRAIN", "MANUFACTURING", "TESTING", "HR"]
-
-
-def seed_team_personnel(cur, team_id: int, tier: int, is_player: bool, unlocked_nodes: List[str]):
     """Populates initial personnel, category directors, and inbound applicant queues."""
     categories = ["ENGINEERING", "COMMERCIAL", "TRACKSIDE", "POWERTRAIN", "MANUFACTURING", "TESTING", "HR"]
 
