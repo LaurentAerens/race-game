@@ -67,7 +67,7 @@ jobs:
           Write-Host "Build verified: dist/MotorsportTycoon/MotorsportTycoon.exe generated successfully."
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: MotorsportTycoon-Build
           path: dist/MotorsportTycoon/
