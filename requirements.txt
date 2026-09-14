@@ -1,6 +1,6 @@
 pygame-ce>=2.5.8
 pygame_gui>=0.6.14
-scipy>=1.14.0
+scipy>=1.18.1
 shapely>=2.1.2
 numpy>=2.5.3
 requests>=2.34.2
