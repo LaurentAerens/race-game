@@ -557,6 +557,13 @@ class PersonnelTab:
             ("HEADHUNTER", "🎯 HEADHUNTER PADDOCK"),
             ("POLICIES", "⚙️ HR DIRECTIVES & POLICIES"),
         ]:
+        nav_tabs = [
+            ("TREE", "ORG HIERARCHY & DESKS", "network"),
+            ("RECRUITMENT", "RECRUITMENT & TRYOUTS", "users"),
+            ("HEADHUNTER", "HEADHUNTER PADDOCK", "target"),
+            ("POLICIES", "HR DIRECTIVES & POLICIES", "wrench"),
+        ]
+        for tab_key, tab_label, tab_icon in nav_tabs:
             t_rect = pygame.Rect(t_x, 62, 175 if tab_key != "POLICIES" else 205, 26)
             is_active = self.sub_tab == tab_key
             pygame.draw.rect(
@@ -576,6 +583,10 @@ class PersonnelTab:
             )
             t_txt = self.font_badge.render(tab_label, True, (0, 220, 255) if is_active else (150, 165, 180))
             surface.blit(t_txt, (t_rect.x + (t_rect.width - t_txt.get_width()) // 2, t_rect.y + 6))
+            col = (0, 220, 255) if is_active else (150, 165, 180)
+            UITheme.draw_icon(surface, tab_icon, (t_rect.x + 8, t_rect.y + 5), color=col, size=15)
+            t_txt = self.font_badge.render(tab_label, True, col)
+            surface.blit(t_txt, (t_rect.x + 28, t_rect.y + 6))
             t_x += t_rect.width + 4
 
         content_rect = pygame.Rect(24, 90, content_w, self.height - 132)
@@ -605,14 +616,17 @@ class PersonnelTab:
             ceo_rect = pygame.Rect(tree_canvas.x + 8, curr_y, tree_canvas.width - 16, 48)
             pygame.draw.rect(surface, (24, 34, 52), ceo_rect, border_radius=4)
             pygame.draw.rect(surface, (255, 215, 0), ceo_rect, width=2, border_radius=4)
+            UITheme.draw_icon(surface, "award", (ceo_rect.x + 12, ceo_rect.y + 8), color=(255, 215, 0), size=18)
             surface.blit(
                 self.font_title.render(f"👑 {principal_name}", True, (255, 215, 0)), (ceo_rect.x + 12, ceo_rect.y + 6)
+                self.font_title.render(f"{principal_name}", True, (255, 215, 0)), (ceo_rect.x + 36, ceo_rect.y + 6)
             )
             surface.blit(
                 self.font_body.render(
                     "Chief Executive Officer & Team Principal | Supreme Management Authority", True, (200, 220, 240)
                 ),
                 (ceo_rect.x + 12, ceo_rect.y + 26),
+                (ceo_rect.x + 36, ceo_rect.y + 26),
             )
 
             curr_y += 56
@@ -646,23 +660,37 @@ class PersonnelTab:
                     pygame.draw.rect(surface, (20, 28, 40), dir_card, border_radius=3)
                     pygame.draw.rect(surface, (0, 220, 255), dir_card, width=1, border_radius=3)
                     dir_title = f"👔 {cat} DIRECTOR: {dir_obj['name']} (Age {dir_obj['age']}) | Spec: {dir_obj.get('specialty')}"
+                    UITheme.draw_icon(
+                        surface, "briefcase", (dir_card.x + 10, dir_card.y + 8), color=(0, 220, 255), size=16
+                    )
+                    dir_title = (
+                        f"{cat} DIRECTOR: {dir_obj['name']} (Age {dir_obj['age']}) | Spec: {dir_obj.get('specialty')}"
+                    )
                     surface.blit(
                         self.font_card_title.render(dir_title, True, (0, 220, 255)), (dir_card.x + 10, dir_card.y + 6)
+                        self.font_card_title.render(dir_title, True, (0, 220, 255)), (dir_card.x + 32, dir_card.y + 6)
                     )
                     dir_sub = f"Leadership: {dir_obj.get('stat_leadership', 50):.0f} | Core: {dir_obj.get('stat_engineering', 50):.0f} | Salary: ${dir_obj.get('salary_monthly', 12000):,.0f}/mo"
                     surface.blit(
                         self.font_body.render(dir_sub, True, (180, 200, 220)), (dir_card.x + 10, dir_card.y + 24)
+                        self.font_body.render(dir_sub, True, (180, 200, 220)), (dir_card.x + 32, dir_card.y + 24)
                     )
                 else:
                     pygame.draw.rect(surface, (28, 20, 24), dir_card, border_radius=3)
                     pygame.draw.rect(surface, (220, 70, 70), dir_card, width=1, border_radius=3)
+                    UITheme.draw_icon(
+                        surface, "triangle-alert", (dir_card.x + 10, dir_card.y + 8), color=(255, 90, 90), size=16
+                    )
                     surface.blit(
                         self.font_card_title.render(f"👔 {cat} DIRECTOR: ⚠️ VACANT POST", True, (255, 90, 90)),
                         (dir_card.x + 10, dir_card.y + 6),
+                        self.font_card_title.render(f"{cat} DIRECTOR: VACANT POST", True, (255, 90, 90)),
+                        (dir_card.x + 32, dir_card.y + 6),
                     )
                     surface.blit(
                         self.font_body.render("Click to recruit or appoint Director.", True, (190, 150, 150)),
                         (dir_card.x + 10, dir_card.y + 24),
+                        (dir_card.x + 32, dir_card.y + 24),
                     )
 
                 curr_y += 50
@@ -682,8 +710,11 @@ class PersonnelTab:
 
                     # Room Header
                     r_hdr = f"🏢 {f_name} (Tier {f_tier}) | Specialty: {p_data['target_specialty']} | Staff Output: +{p_out['final_perf']:.2f} Perf"
+                    UITheme.draw_icon(surface, "factory", (fac_box.x + 8, fac_box.y + 6), color=(255, 215, 0), size=16)
+                    r_hdr = f"{f_name} (Tier {f_tier}) | Specialty: {p_data['target_specialty']} | Staff Output: +{p_out['final_perf']:.2f} Perf"
                     surface.blit(
                         self.font_card_title.render(r_hdr, True, (255, 215, 0)), (fac_box.x + 8, fac_box.y + 6)
+                        self.font_card_title.render(r_hdr, True, (255, 215, 0)), (fac_box.x + 28, fac_box.y + 6)
                     )
 
                     # Head Slot
@@ -694,18 +725,28 @@ class PersonnelTab:
                         pygame.draw.rect(surface, (20, 32, 45), h_slot_r, border_radius=2)
                         is_h_match = head.get("specialty") == p_data["target_specialty"]
                         h_str = f"👑 Dept Head: {head['name']} (Age {head['age']} | {head.get('specialty')} {'[MATCH +50%]' if is_h_match else ''}) | {p_out['head_mult']:.2f}x Multiplier"
+                        h_col = (0, 240, 140) if is_h_match else (220, 220, 220)
+                        UITheme.draw_icon(surface, "award", (h_slot_r.x + 6, h_slot_r.y + 3), color=h_col, size=14)
+                        h_str = f"Dept Head: {head['name']} (Age {head['age']} | {head.get('specialty')} {'[MATCH +50%]' if is_h_match else ''}) | {p_out['head_mult']:.2f}x Multiplier"
                         surface.blit(
                             self.font_body.render(h_str, True, (0, 240, 140) if is_h_match else (220, 220, 220)),
                             (h_slot_r.x + 6, h_slot_r.y + 3),
+                            self.font_body.render(h_str, True, h_col),
+                            (h_slot_r.x + 24, h_slot_r.y + 3),
                         )
                     else:
                         pygame.draw.rect(surface, (36, 24, 24), h_slot_r, border_radius=2)
                         pygame.draw.rect(surface, (180, 70, 70), h_slot_r, width=1, border_radius=2)
+                        UITheme.draw_icon(
+                            surface, "triangle-alert", (h_slot_r.x + 6, h_slot_r.y + 3), color=(255, 120, 120), size=14
+                        )
                         surface.blit(
                             self.font_body.render(
                                 "👑 Dept Head: ⚠️ VACANT - Click to Appoint / Recruit Head", True, (255, 120, 120)
+                                "Dept Head: VACANT - Click to Appoint / Recruit Head", True, (255, 120, 120)
                             ),
                             (h_slot_r.x + 6, h_slot_r.y + 3),
+                            (h_slot_r.x + 24, h_slot_r.y + 3),
                         )
 
                     # Specialist Staff Desks
@@ -715,9 +756,14 @@ class PersonnelTab:
                         pygame.draw.rect(surface, (18, 26, 36), s_r, border_radius=2)
                         is_s_match = s.get("specialty") == p_data["target_specialty"]
                         s_txt = f"  🪑 Desk #{s_idx + 1}: {s['name']} (Age {s['age']} | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}) - ${s.get('salary_monthly', 8000):,.0f}/mo"
+                        s_col = (0, 220, 255) if is_s_match else UITheme.TEXT_WHITE
+                        UITheme.draw_icon(surface, "user", (s_r.x + 6, s_r.y + 4), color=s_col, size=14)
+                        s_txt = f"Desk #{s_idx + 1}: {s['name']} (Age {s['age']} | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}) - ${s.get('salary_monthly', 8000):,.0f}/mo"
                         surface.blit(
                             self.font_body.render(s_txt, True, (0, 220, 255) if is_s_match else UITheme.TEXT_WHITE),
                             (s_r.x + 6, s_r.y + 4),
+                            self.font_body.render(s_txt, True, s_col),
+                            (s_r.x + 24, s_r.y + 4),
                         )
                         s_y += 26
 
@@ -726,14 +772,17 @@ class PersonnelTab:
                         v_r = pygame.Rect(fac_box.x + 8, s_y, fac_box.width - 16, 24)
                         pygame.draw.rect(surface, (14, 24, 32), v_r, border_radius=2)
                         pygame.draw.rect(surface, (0, 140, 180), v_r, width=1, border_radius=2)
+                        UITheme.draw_icon(surface, "users", (v_r.x + 6, v_r.y + 4), color=(0, 220, 255), size=14)
                         desk_num = len(p_data["staff"]) + v_idx + 1
                         surface.blit(
                             self.font_body.render(
                                 f"  ➕ OPEN DESK #{desk_num} - Click to Hire Specialist into this Room",
+                                f"OPEN DESK #{desk_num} - Click to Hire Specialist into this Room",
                                 True,
                                 (0, 220, 255),
                             ),
                             (v_r.x + 6, v_r.y + 4),
+                            (v_r.x + 24, v_r.y + 4),
                         )
                         s_y += 26
 
@@ -742,22 +791,32 @@ class PersonnelTab:
                     i_r = pygame.Rect(fac_box.x + 8, s_y, fac_box.width - 16, 24)
                     if intern:
                         pygame.draw.rect(surface, (26, 20, 36), i_r, border_radius=2)
+                        UITheme.draw_icon(
+                            surface, "graduation-cap", (i_r.x + 6, i_r.y + 4), color=(180, 140, 255), size=14
+                        )
                         surface.blit(
                             self.font_body.render(
                                 f"  🎓 Intern Desk: {intern['name']} (Month {intern.get('intern_months_completed', 0)}/6 Tryout)",
+                                f"Intern Desk: {intern['name']} (Month {intern.get('intern_months_completed', 0)}/6 Tryout)",
                                 True,
                                 (180, 140, 255),
                             ),
                             (i_r.x + 6, i_r.y + 4),
+                            (i_r.x + 24, i_r.y + 4),
                         )
                     else:
                         pygame.draw.rect(surface, (20, 18, 28), i_r, border_radius=2)
                         pygame.draw.rect(surface, (120, 70, 180), i_r, width=1, border_radius=2)
+                        UITheme.draw_icon(
+                            surface, "graduation-cap", (i_r.x + 6, i_r.y + 4), color=(180, 140, 255), size=14
+                        )
                         surface.blit(
                             self.font_body.render(
                                 "  🎓 OPEN INTERN DESK - Click to Assign 6-Month Tryout", True, (180, 140, 255)
+                                "OPEN INTERN DESK - Click to Assign 6-Month Tryout", True, (180, 140, 255)
                             ),
                             (i_r.x + 6, i_r.y + 4),
+                            (i_r.x + 24, i_r.y + 4),
                         )
 
                     curr_y += fac_h + 12
@@ -780,23 +839,33 @@ class PersonnelTab:
                 pygame.draw.rect(surface, (0, 48, 64), banner_rect, border_radius=3)
                 pygame.draw.rect(surface, (0, 220, 255), banner_rect, width=1, border_radius=3)
 
+                UITheme.draw_icon(
+                    surface, "target", (banner_rect.x + 10, banner_rect.y + 9), color=(255, 215, 0), size=18
+                )
                 target_spec = FACILITY_SPECIALTY_MAP.get(self.target_assignment_node, "COMPOSITES")
                 banner_txt = f"🎯 TARGET SPOT: {self.target_assignment_node.replace('_', ' ').title()} ({self.target_assignment_slot_desc or self.target_assignment_role}) | Ideal Specialty: {target_spec}"
+                banner_txt = f"TARGET SPOT: {self.target_assignment_node.replace('_', ' ').title()} ({self.target_assignment_slot_desc or self.target_assignment_role}) | Ideal Specialty: {target_spec}"
                 surface.blit(
                     self.font_card_title.render(banner_txt, True, (255, 215, 0)),
                     (banner_rect.x + 12, banner_rect.y + 8),
+                    (banner_rect.x + 34, banner_rect.y + 8),
                 )
 
                 cancel_btn = pygame.Rect(banner_rect.x + banner_rect.width - 140, banner_rect.y + 5, 130, 26)
                 pygame.draw.rect(surface, (50, 65, 80), cancel_btn, border_radius=2)
                 c_lbl = self.font_btn.render("✕ Clear Target", True, UITheme.TEXT_WHITE)
                 surface.blit(c_lbl, (cancel_btn.x + (cancel_btn.width - c_lbl.get_width()) // 2, cancel_btn.y + 5))
+                UITheme.draw_button(surface, cancel_btn, "Clear Target", self.font_btn, icon="x", icon_size=12)
 
+            UITheme.draw_icon(
+                surface, "users", (content_rect.x + 14, content_rect.y + 14 + top_offset), color=(0, 220, 255), size=18
+            )
             surface.blit(
                 self.font_title.render(
                     f"INBOUND CANDIDATES & 6-MONTH TALENT TRYOUTS ({len(apps)} Pending):", True, (0, 220, 255)
                 ),
                 (content_rect.x + 14, content_rect.y + 12 + top_offset),
+                (content_rect.x + 38, content_rect.y + 12 + top_offset),
             )
 
             rec_canvas = pygame.Rect(
@@ -821,17 +890,24 @@ class PersonnelTab:
                     surface, (160, 100, 240) if is_tryout else (0, 180, 220), card_r, width=1, border_radius=3
                 )
 
+                c_icon = "graduation-cap" if is_tryout else "user"
+                c_icon_col = (180, 140, 255) if is_tryout else (0, 220, 255)
+                UITheme.draw_icon(surface, c_icon, (card_r.x + 10, card_r.y + 8), color=c_icon_col, size=16)
+
                 is_spec_match = target_spec and app.get("specialty") == target_spec
                 match_tag = " [⭐ +50% SPECIALTY MATCH]" if is_spec_match else ""
                 role_tag = (
                     "[ 🎓 EUROPEAN 6-MO TRYOUT ]" if is_tryout else f"[ {app.get('applied_role_type', 'STAFF')} ]"
                 )
+                match_tag = " [MATCH +50%]" if is_spec_match else ""
+                role_tag = "[ 6-MO TRYOUT ]" if is_tryout else f"[ {app.get('applied_role_type', 'STAFF')} ]"
                 cand_title = (
                     f"{app['name']} (Age {app['age']}) | Specialty: {app.get('specialty')}{match_tag} {role_tag}"
                 )
                 surface.blit(
                     self.font_card_title.render(cand_title, True, (0, 255, 160) if is_spec_match else (255, 215, 0)),
                     (card_r.x + 10, card_r.y + 8),
+                    (card_r.x + 32, card_r.y + 8),
                 )
 
                 e_str = gm.staff_manager.get_stat_scouting_display(gm.team_id, app.get("stat_engineering", 30))
@@ -841,6 +917,7 @@ class PersonnelTab:
                 stats_line = f"Eng: {e_str} | Craft: {c_str} | Mkt: {m_str} | Comm: {comm_str} | Wage: ${app.get('salary_requested', 1000):,.0f}/mo"
                 surface.blit(
                     self.font_body.render(stats_line, True, UITheme.TEXT_MUTED), (card_r.x + 10, card_r.y + 30)
+                    self.font_body.render(stats_line, True, UITheme.TEXT_MUTED), (card_r.x + 32, card_r.y + 30)
                 )
 
                 # Buttons
@@ -849,15 +926,20 @@ class PersonnelTab:
                     pygame.draw.rect(surface, (0, 160, 90), hire_btn, border_radius=2)
                     node_short = self.target_assignment_node.replace("eng_", "").replace("hr_", "").upper()
                     h_txt = self.font_btn.render(f"📥 HIRE TO {node_short[:7]}", True, UITheme.TEXT_WHITE)
+                    UITheme.draw_button(
+                        surface, hire_btn, f"HIRE TO {node_short[:7]}", self.font_btn, icon="check", icon_size=14
+                    )
                 else:
                     pygame.draw.rect(surface, (30, 75, 115), hire_btn, border_radius=2)
                     h_txt = self.font_btn.render("📥 CHOOSE ROOM", True, (0, 220, 255))
                 surface.blit(h_txt, (hire_btn.x + (hire_btn.width - h_txt.get_width()) // 2, hire_btn.y + 6))
+                    UITheme.draw_button(surface, hire_btn, "CHOOSE ROOM", self.font_btn, icon="network", icon_size=14)
 
                 rej_btn = pygame.Rect(card_r.x + card_r.width - 74, card_r.y + 22, 65, 26)
                 pygame.draw.rect(surface, (140, 40, 40), rej_btn, border_radius=2)
                 r_txt = self.font_btn.render("REJECT", True, UITheme.TEXT_WHITE)
                 surface.blit(r_txt, (rej_btn.x + (rej_btn.width - r_txt.get_width()) // 2, rej_btn.y + 6))
+                UITheme.draw_button(surface, rej_btn, "REJECT", self.font_btn, icon="x", icon_size=12)
 
                 item_y += 80
 
@@ -870,11 +952,15 @@ class PersonnelTab:
         # SUB-TAB C: HEADHUNTER PADDOCK
         # =====================================================================
         elif self.sub_tab == "HEADHUNTER":
+            UITheme.draw_icon(
+                surface, "target", (content_rect.x + 14, content_rect.y + 14), color=(255, 180, 40), size=18
+            )
             surface.blit(
                 self.font_title.render(
                     "RIVAL PADDOCK SCOUTING & POACHING (Buyout fees + Signing Bonuses):", True, (255, 180, 40)
                 ),
                 (content_rect.x + 14, content_rect.y + 12),
+                (content_rect.x + 38, content_rect.y + 12),
             )
 
             with gm.db.get_connection() as conn:
@@ -903,11 +989,14 @@ class PersonnelTab:
                 pygame.draw.rect(surface, (18, 22, 30), r_card, border_radius=3)
                 pygame.draw.rect(surface, (50, 65, 85), r_card, width=1, border_radius=3)
 
+                UITheme.draw_icon(surface, "award", (r_card.x + 10, r_card.y + 8), color=(255, 215, 0), size=16)
                 r_title = (
                     f"⭐ {r_p['name']} ({r_p.get('team_name')}) | {r_p.get('role_type')} | Spec: {r_p.get('specialty')}"
+                    f"{r_p['name']} ({r_p.get('team_name')}) | {r_p.get('role_type')} | Spec: {r_p.get('specialty')}"
                 )
                 surface.blit(
                     self.font_card_title.render(r_title, True, UITheme.TEXT_WHITE), (r_card.x + 10, r_card.y + 8)
+                    self.font_card_title.render(r_title, True, UITheme.TEXT_WHITE), (r_card.x + 32, r_card.y + 8)
                 )
 
                 cur_sal = float(r_p.get("salary_monthly", 8000.0))
@@ -915,11 +1004,13 @@ class PersonnelTab:
                 l_scout = gm.staff_manager.get_stat_scouting_display(gm.team_id, r_p.get("stat_leadership", 50))
                 r_stat = f"Eng: {e_scout} | Lead: {l_scout} | Current Wage: ${cur_sal:,.0f}/mo | Est. Buyout: ${cur_sal * 6:,.0f}"
                 surface.blit(self.font_body.render(r_stat, True, (180, 200, 220)), (r_card.x + 10, r_card.y + 28))
+                surface.blit(self.font_body.render(r_stat, True, (180, 200, 220)), (r_card.x + 32, r_card.y + 28))
 
                 poach_btn = pygame.Rect(r_card.x + r_card.width - 160, r_card.y + 18, 150, 30)
                 pygame.draw.rect(surface, (30, 80, 130), poach_btn, border_radius=2)
                 p_txt = self.font_btn.render("POACH & ASSIGN", True, (0, 240, 140))
                 surface.blit(p_txt, (poach_btn.x + (poach_btn.width - p_txt.get_width()) // 2, poach_btn.y + 8))
+                UITheme.draw_button(surface, poach_btn, "POACH & ASSIGN", self.font_btn, icon="briefcase", icon_size=14)
 
                 item_y += 76
 
@@ -1090,12 +1181,15 @@ class PersonnelTab:
                 hdr_rect = pygame.Rect(drawer_x, 60, 416, 36)
                 pygame.draw.rect(surface, (20, 30, 45), hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
                 surface.blit(self.font_title.render(f"👤 {p_info['name']}", True, (255, 215, 0)), (drawer_x + 14, 70))
+                UITheme.draw_icon(surface, "user", (drawer_x + 14, 70), color=(255, 215, 0), size=16)
+                surface.blit(self.font_title.render(f"{p_info['name']}", True, (255, 215, 0)), (drawer_x + 36, 70))
 
                 close_btn = pygame.Rect(drawer_x + 416 - 65, 66, 55, 22)
                 pygame.draw.rect(surface, (180, 40, 40), close_btn, border_radius=3)
                 surface.blit(
                     self.font_btn.render("CLOSE", True, UITheme.TEXT_WHITE), (close_btn.x + 10, close_btn.y + 4)
                 )
+                UITheme.draw_button(surface, close_btn, "CLOSE", self.font_btn, icon="x", icon_size=12)
 
                 dy = 104
                 cur_node = p_info.get("facility_node_id") or "Unassigned"
@@ -1122,17 +1216,29 @@ class PersonnelTab:
                     ("Leadership", p_info.get("stat_leadership", 40.0), (255, 120, 180)),
                     ("Composure", p_info.get("stat_composure", 40.0), (160, 240, 140)),
                     ("Potential Ceiling", p_info.get("stat_potential", 70.0), (180, 140, 255)),
+                    ("Engineering", "wrench", p_info.get("stat_engineering", 40.0), (0, 220, 255)),
+                    ("Craftsmanship", "sparkles", p_info.get("stat_craftsmanship", 40.0), (255, 180, 40)),
+                    ("Marketing", "trending-up", p_info.get("stat_marketing", 40.0), (255, 215, 0)),
+                    ("Communication", "radio", p_info.get("stat_communication", 40.0), (140, 200, 255)),
+                    ("Leadership", "award", p_info.get("stat_leadership", 40.0), (255, 120, 180)),
+                    ("Composure", "shield", p_info.get("stat_composure", 40.0), (160, 240, 140)),
+                    ("Potential Ceiling", "zap", p_info.get("stat_potential", 70.0), (180, 140, 255)),
                 ]
 
                 sy = dy + 48
                 for s_name, s_val, s_col in stats:
+                for s_name, s_icon, s_val, s_col in stats:
+                    UITheme.draw_icon(surface, s_icon, (drawer_x + 14, sy + 1), color=s_col, size=13)
                     scout_str = gm.staff_manager.get_stat_scouting_display(gm.team_id, float(s_val))
                     surface.blit(
                         self.font_body.render(f"{s_name}: {scout_str}", True, UITheme.TEXT_MUTED), (drawer_x + 14, sy)
+                        self.font_body.render(f"{s_name}: {scout_str}", True, UITheme.TEXT_MUTED), (drawer_x + 32, sy)
                     )
                     bar_bg = pygame.Rect(drawer_x + 155, sy + 3, 235, 10)
+                    bar_bg = pygame.Rect(drawer_x + 165, sy + 3, 225, 10)
                     pygame.draw.rect(surface, (25, 32, 42), bar_bg, border_radius=2)
                     fill_w = int(235 * (min(100.0, float(s_val)) / 100.0))
+                    fill_w = int(225 * (min(100.0, float(s_val)) / 100.0))
                     pygame.draw.rect(surface, s_col, pygame.Rect(bar_bg.x, bar_bg.y, fill_w, 10), border_radius=2)
                     sy += 20
 
@@ -1163,6 +1269,7 @@ class PersonnelTab:
                 surface.blit(
                     self.font_btn.render("🔄 REASSIGN ROOM", True, (0, 220, 255)), (r_btn1.x + 22, r_btn1.y + 6)
                 )
+                UITheme.draw_button(surface, r_btn1, "REASSIGN ROOM", self.font_btn, icon="network", icon_size=14)
 
                 cur_role = p_info.get("role_type", "STAFF")
                 r_btn2 = pygame.Rect(drawer_x + 210, sy + 56, 185, 26)
@@ -1171,6 +1278,7 @@ class PersonnelTab:
                     surface.blit(
                         self.font_btn.render("👑 PROMOTE TO HEAD", True, (255, 215, 0)), (r_btn2.x + 18, r_btn2.y + 6)
                     )
+                    UITheme.draw_button(surface, r_btn2, "PROMOTE TO HEAD", self.font_btn, icon="award", icon_size=14)
                 else:
                     pygame.draw.rect(surface, (25, 32, 42), r_btn2, border_radius=3)
                     surface.blit(
@@ -1182,6 +1290,8 @@ class PersonnelTab:
                 surface.blit(
                     self.font_btn.render("+25% WAGE RAISE", True, UITheme.TEXT_WHITE),
                     (raise_btn.x + 26, raise_btn.y + 6),
+                UITheme.draw_button(
+                    surface, raise_btn, "+25% WAGE RAISE", self.font_btn, icon="circle-dollar-sign", icon_size=14
                 )
 
                 fire_btn = pygame.Rect(drawer_x + 210, sy + 90, 185, 26)
@@ -1190,6 +1300,7 @@ class PersonnelTab:
                     self.font_btn.render("❌ RELEASE / FIRE", True, UITheme.TEXT_WHITE),
                     (fire_btn.x + 28, fire_btn.y + 6),
                 )
+                UITheme.draw_button(surface, fire_btn, "RELEASE / FIRE", self.font_btn, icon="x", icon_size=14)
 
         # =====================================================================
         # 4. Department Destination Selector Modal
@@ -1214,10 +1325,14 @@ class PersonnelTab:
 
             title_txt = f"SELECT DESTINATION FOR: {p_data['name']} (Spec: {p_data.get('specialty')})"
             surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (modal_x + 16, modal_y + 14))
+            UITheme.draw_icon(surface, "network", (modal_x + 16, modal_y + 14), color=(255, 215, 0), size=20)
+            title_txt = f"SELECT DESTINATION: {p_data['name']} (Spec: {p_data.get('specialty')})"
+            surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (modal_x + 42, modal_y + 14))
 
             close_btn = pygame.Rect(modal_x + modal_w - 75, modal_y + 12, 65, 24)
             pygame.draw.rect(surface, (180, 40, 40), close_btn, border_radius=3)
             surface.blit(self.font_btn.render("CANCEL", True, UITheme.TEXT_WHITE), (close_btn.x + 10, close_btn.y + 4))
+            UITheme.draw_button(surface, close_btn, "CANCEL", self.font_btn, icon="x", icon_size=12)
 
             sub_note = "Choose an unlocked department room with open capacity to assign this personnel member."
             surface.blit(self.font_body.render(sub_note, True, (180, 200, 220)), (modal_x + 16, modal_y + 54))
@@ -1242,21 +1357,29 @@ class PersonnelTab:
                 )
 
                 f_title = f"🏢 {fac['name']} (Tier {fac['current_tier']}) - {fac['department']}"
+                UITheme.draw_icon(surface, "factory", (card_r.x + 10, card_r.y + 6), color=(255, 215, 0), size=16)
+                f_title = f"{fac['name']} (Tier {fac['current_tier']}) - {fac['department']}"
                 surface.blit(
                     self.font_card_title.render(f_title, True, UITheme.TEXT_WHITE), (card_r.x + 10, card_r.y + 6)
+                    self.font_card_title.render(f_title, True, UITheme.TEXT_WHITE), (card_r.x + 32, card_r.y + 6)
                 )
 
                 spec_str = f"Room Specialty: {fac['target_specialty']}"
                 if is_spec_match:
                     spec_str += "  [⭐ +50% MATCHING SPECIALTY]"
+                    spec_str += "  [MATCH +50%]"
                 surface.blit(
                     self.font_badge.render(spec_str, True, (0, 240, 140) if is_spec_match else (170, 185, 200)),
                     (card_r.x + 10, card_r.y + 24),
+                    (card_r.x + 32, card_r.y + 24),
                 )
 
                 head_txt = "👑 Head: Active" if fac["has_head"] else "👑 Head: ⚠️ VACANT"
                 intern_txt = "🎓 Intern: Active" if fac["has_intern"] else "🎓 Intern: Open"
                 cap_str = f"🪑 Desks: {fac['staff_count']}/{fac['max_staff_slots']} Filled ({fac['vacant_staff_slots']} Open) | {head_txt} | {intern_txt}"
+                head_txt = "Head: Active" if fac["has_head"] else "Head: VACANT"
+                intern_txt = "Intern: Active" if fac["has_intern"] else "Intern: Open"
+                cap_str = f"Desks: {fac['staff_count']}/{fac['max_staff_slots']} Filled ({fac['vacant_staff_slots']} Open) | {head_txt} | {intern_txt}"
                 surface.blit(self.font_body.render(cap_str, True, UITheme.TEXT_MUTED), (card_r.x + 10, card_r.y + 40))
 
                 assign_btn = pygame.Rect(card_r.x + card_r.width - 150, card_r.y + 14, 140, 28)
@@ -1265,10 +1388,12 @@ class PersonnelTab:
                 if has_space:
                     pygame.draw.rect(surface, (0, 160, 90), assign_btn, border_radius=3)
                     btn_lbl = self.font_btn.render("📥 ASSIGN HERE", True, UITheme.TEXT_WHITE)
+                    UITheme.draw_button(surface, assign_btn, "ASSIGN HERE", self.font_btn, icon="check", icon_size=14)
                 else:
                     pygame.draw.rect(surface, (35, 45, 55), assign_btn, border_radius=3)
                     btn_lbl = self.font_btn.render("ROOM FULL", True, (110, 120, 130))
                 surface.blit(btn_lbl, (assign_btn.x + (assign_btn.width - btn_lbl.get_width()) // 2, assign_btn.y + 7))
+                    UITheme.draw_button(surface, assign_btn, "ROOM FULL", self.font_btn, is_disabled=True)
 
                 card_y += 66
 

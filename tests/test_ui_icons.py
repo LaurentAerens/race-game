@@ -64,3 +64,4 @@ def test_ui_icons_draw_methods():
     # Draw icon badge
     badge_rect = pygame.Rect(40, 50, 120, 24)
     UIIcons.draw_icon_badge(canvas, badge_rect, "fuel", "42.5 kg", font, text_color=(255, 255, 255))
+

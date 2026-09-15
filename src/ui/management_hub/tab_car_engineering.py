@@ -133,11 +133,21 @@ class CarEngineeringTab:
             surface, (35, 55, 75) if self.selected_car_slot == 1 else (20, 26, 34), c1_rect, border_radius=3
         )
         pygame.draw.rect(
+        from ..icons import UIIcons
+
+        c1_lbl = "CAR #1 (PRIMARY)"
+        c2_lbl = "CAR #2 (SECONDARY)"
+        UITheme.draw_button(
             surface,
             UITheme.ACCENT_CYAN if self.selected_car_slot == 1 else UITheme.PANEL_BORDER,
             c1_rect,
             width=1,
             border_radius=3,
+            c1_lbl,
+            self.font_btn,
+            is_active=self.selected_car_slot == 1,
+            icon="user",
+            icon_size=13,
         )
         c1_lbl = self.font_btn.render("CAR #1 (PRIMARY)", True, UITheme.TEXT_WHITE)
         surface.blit(c1_lbl, (c1_rect.x + (c1_rect.width - c1_lbl.get_width()) // 2, c1_rect.y + 7))
@@ -146,11 +156,17 @@ class CarEngineeringTab:
             surface, (35, 55, 75) if self.selected_car_slot == 2 else (20, 26, 34), c2_rect, border_radius=3
         )
         pygame.draw.rect(
+        UITheme.draw_button(
             surface,
             UITheme.ACCENT_CYAN if self.selected_car_slot == 2 else UITheme.PANEL_BORDER,
             c2_rect,
             width=1,
             border_radius=3,
+            c2_lbl,
+            self.font_btn,
+            is_active=self.selected_car_slot == 2,
+            icon="user",
+            icon_size=13,
         )
         c2_lbl = self.font_btn.render("CAR #2 (SECONDARY)", True, UITheme.TEXT_WHITE)
         surface.blit(c2_lbl, (c2_rect.x + (c2_rect.width - c2_lbl.get_width()) // 2, c2_rect.y + 7))
@@ -200,20 +216,40 @@ class CarEngineeringTab:
             )
 
             # Component Title & Generation Badge
+            # Component Title & Generation Badge with Icon
+            cat_icon = {
+                "BRAKES": "octagon",
+                "REAR_WING": "flag",
+                "FRONT_WING": "shield",
+                "SUSPENSION": "network",
+                "ENGINE": "wrench",
+                "FLOOR": "shield",
+                "ERS": "zap",
+            }.get(comp["category"], "wrench")
+
+            title_col = (255, 255, 255) if can_develop else UITheme.TEXT_MUTED
+            c_ic = UIIcons.get_icon(cat_icon, size=13, color=title_col)
+            surface.blit(c_ic, (c_rect.x + 8, c_rect.y + 7))
+
             cat_name = comp["category"].replace("_", " ")
             surface.blit(
                 self.font_card_title.render(
                     f"{cat_name} (Mk {comp['generation']})",
                     True,
                     (255, 255, 255) if can_develop else UITheme.TEXT_MUTED,
+                    title_col,
                 ),
                 (c_rect.x + 10, c_rect.y + 6),
+                (c_rect.x + 25, c_rect.y + 6),
             )
 
             # Current Performance & Durability
             cur_dur = comp.get("current_durability", 100.0 - comp.get("wear_pct", 0.0))
             max_dur = comp.get("max_durability", 100.0)
             stat_str = f"Perf: {comp['performance']:.1f} | Durability: {cur_dur:.0f}% / {max_dur:.0f}% (Wear: {comp['wear_pct']:.0f}%)"
+            stat_str = (
+                f"Perf: {comp['performance']:.1f} | Dur: {cur_dur:.0f}%/{max_dur:.0f}% (Wear: {comp['wear_pct']:.0f}%)"
+            )
             surface.blit(
                 self.font_body.render(stat_str, True, (0, 220, 240) if can_develop else UITheme.TEXT_MUTED),
                 (c_rect.x + 10, c_rect.y + 21),
@@ -245,6 +281,7 @@ class CarEngineeringTab:
                 col2 = (120, 120, 120)
             elif not is_fac_ready:
                 line1 = "🔒 FACILITY LOCKED"
+                line1 = "FACILITY LOCKED"
                 line2 = f"Build {fac_name} (Lvl 1)"
                 col1 = (255, 140, 60)
                 col2 = (220, 160, 100)
@@ -267,18 +304,27 @@ class CarEngineeringTab:
                 pygame.draw.rect(surface, (0, 220, 255), build_btn, width=1, border_radius=3)
                 if is_fine_tune:
                     btn_txt = self.font_btn.render(f"FINE-TUNE (${b_cost / 1000:.0f}k)", True, (255, 215, 0))
+                    btn_text = f"TUNE (${b_cost / 1000:.0f}k)"
                 else:
                     btn_txt = self.font_btn.render(
                         f"BUILD Mk {comp['generation'] + 1} (${b_cost / 1000:.0f}k)", True, UITheme.TEXT_WHITE
                     )
+                    btn_text = f"BUILD Mk {comp['generation'] + 1} (${b_cost / 1000:.0f}k)"
+                UITheme.draw_button(surface, build_btn, btn_text, self.font_btn, icon="wrench", icon_size=12)
             elif is_allowed and not is_fac_ready:
                 pygame.draw.rect(surface, (28, 22, 18), build_btn, border_radius=3)
                 pygame.draw.rect(surface, (120, 70, 30), build_btn, width=1, border_radius=3)
                 btn_txt = self.font_btn.render("BUILD FACILITY L1", True, (255, 160, 80))
+                UITheme.draw_button(
+                    surface, build_btn, "FACILITY L1", self.font_btn, icon="lock", icon_size=12, is_disabled=True
+                )
             else:
                 pygame.draw.rect(surface, (20, 24, 30), build_btn, border_radius=3)
                 pygame.draw.rect(surface, (40, 45, 55), build_btn, width=1, border_radius=3)
                 btn_txt = self.font_btn.render("SPEC LOCKED", True, (120, 125, 135))
+                UITheme.draw_button(
+                    surface, build_btn, "SPEC LOCKED", self.font_btn, icon="lock", icon_size=12, is_disabled=True
+                )
 
             surface.blit(btn_txt, (build_btn.x + (build_btn.width - btn_txt.get_width()) // 2, build_btn.y + 6))
 
@@ -289,6 +335,14 @@ class CarEngineeringTab:
             pygame.draw.rect(surface, (0, 180, 100), buy_btn, width=1, border_radius=3)
             buy_lbl = self.font_badge.render(f"BUY FACTORY (${f_cost / 1000:.0f}k)", True, (0, 240, 150))
             surface.blit(buy_lbl, (buy_btn.x + (buy_btn.width - buy_lbl.get_width()) // 2, buy_btn.y + 7))
+            UITheme.draw_button(
+                surface,
+                buy_btn,
+                f"BUY FACTORY (${f_cost / 1000:.0f}k)",
+                self.font_badge,
+                icon="shopping-cart",
+                icon_size=11,
+            )
 
         # 3. Engine Suppliers (Right Column)
         s_start_x = start_x + card_w + 16

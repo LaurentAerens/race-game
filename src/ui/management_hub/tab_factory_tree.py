@@ -1812,24 +1812,33 @@ class FactoryTreeTab:
 
         # 1. Department Tabs (Top)
         depts = self.get_department_tabs()
+        dept_icons = {
+            "ALL": "network",
+            "AERODYNAMICS": "flag",
+            "POWERTRAIN": "wrench",
+            "CHASSIS": "shield",
+            "MANUFACTURING": "factory",
+            "FACILITIES": "network",
+            "TELEMETRY": "gauge",
+            "COMMERCIAL": "circle-dollar-sign",
+        }
         tab_w = max(90, (self.width - 48) // len(depts))
         for idx, (dept_key, label) in enumerate(depts):
             d_rect = pygame.Rect(24 + idx * tab_w, 64, tab_w - 4, 24)
             is_sel = dept_key == self.selected_dept
-            pygame.draw.rect(surface, (35, 55, 75) if is_sel else (20, 26, 34), d_rect, border_radius=3)
-            pygame.draw.rect(
-                surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, d_rect, width=1, border_radius=3
+            UITheme.draw_button(
+                surface,
+                d_rect,
+                label,
+                self.font_btn,
+                is_active=is_sel,
+                icon=dept_icons.get(dept_key, "network"),
+                icon_size=12,
             )
-
-            lbl = self.font_btn.render(label, True, UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED)
-            surface.blit(lbl, (d_rect.x + (d_rect.width - lbl.get_width()) // 2, d_rect.y + 5))
 
         # Reset View Button
         btn_reset = pygame.Rect(self.width - 120, 96, 96, 22)
-        pygame.draw.rect(surface, (30, 40, 52), btn_reset, border_radius=3)
-        pygame.draw.rect(surface, UITheme.PANEL_BORDER, btn_reset, width=1, border_radius=3)
-        r_lbl = self.font_badge.render("RESET VIEW", True, UITheme.TEXT_WHITE)
-        surface.blit(r_lbl, (btn_reset.x + (btn_reset.width - r_lbl.get_width()) // 2, btn_reset.y + 4))
+        UITheme.draw_button(surface, btn_reset, "RESET VIEW", self.font_badge, icon="camera", icon_size=11)
 
         # Canvas Clip Area
         canvas_rect = pygame.Rect(24, 94, self.width - 48, self.height - 136)

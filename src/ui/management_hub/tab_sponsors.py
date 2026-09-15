@@ -58,8 +58,10 @@ class SponsorsTab:
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, app_rect, width=1, border_radius=4)
 
         # Title & Breakdown on Left
+        UITheme.draw_icon(surface, "award", (app_rect.x + 12, app_rect.y + 6), color=(255, 215, 0), size=16)
         surface.blit(
             self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0)), (app_rect.x + 12, app_rect.y + 6)
+            self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0)), (app_rect.x + 34, app_rect.y + 6)
         )
         breakdown_str = f"Tier: +{appeal_data['tier_pts']:.0f}pts  |  10-Race Form: +{appeal_data['form_pts']:.0f}pts  |  5-Season History: +{appeal_data['history_pts']:.0f}pts  |  Driver Marketability: +{appeal_data['driver_pts']:.0f}pts  |  Marketing HQ: +{appeal_data['facility_pts']:.0f}pts"
         surface.blit(self.font_body.render(breakdown_str, True, UITheme.TEXT_MUTED), (app_rect.x + 12, app_rect.y + 26))
@@ -91,17 +93,21 @@ class SponsorsTab:
 
         act_hdr = pygame.Rect(act_rect.x, act_rect.y, act_rect.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, act_hdr, border_top_left_radius=4, border_top_right_radius=4)
+        UITheme.draw_icon(surface, "briefcase", (act_rect.x + 12, act_rect.y + 5), color=(0, 220, 255), size=16)
         surface.blit(
             self.font_title.render("ACTIVE SPONSOR CONTRACTS (3 TIERS)", True, (0, 220, 255)),
             (act_rect.x + 12, act_rect.y + 5),
+            (act_rect.x + 34, act_rect.y + 5),
         )
 
         cur_y = 158
 
         # --- A. TITLE SPONSORS (2 Max) ---
+        UITheme.draw_icon(surface, "trophy", (act_rect.x + 10, cur_y + 2), color=(255, 215, 0), size=14)
         surface.blit(
             self.font_card_title.render("1. TITLE SPONSORS (2 Slots Max)", True, (255, 215, 0)),
             (act_rect.x + 10, cur_y),
+            (act_rect.x + 28, cur_y),
         )
         cur_y += 20
         title_slots = active.get("TITLE", [])
@@ -167,9 +173,11 @@ class SponsorsTab:
             cur_y += 58
 
         # --- B. MIDDLE SPONSORS (4 Max) ---
+        UITheme.draw_icon(surface, "medal", (act_rect.x + 10, cur_y + 2), color=(0, 200, 255), size=14)
         surface.blit(
             self.font_card_title.render("2. SECONDARY SPONSORS (4 Slots Max)", True, (0, 200, 255)),
             (act_rect.x + 10, cur_y),
+            (act_rect.x + 28, cur_y),
         )
         cur_y += 20
         mid_slots = active.get("MIDDLE", [])
@@ -201,11 +209,13 @@ class SponsorsTab:
 
         # --- C. MINOR & ACADEMY PARTNERS (10 Max) ---
         minor_slots = active.get("MINOR", [])
+        UITheme.draw_icon(surface, "handshake", (act_rect.x + 10, cur_y + 2), color=UITheme.TEXT_WHITE, size=14)
         surface.blit(
             self.font_card_title.render(
                 f"3. MINOR & ACADEMY PARTNERS ({len(minor_slots)}/10 Active)", True, UITheme.TEXT_WHITE
             ),
             (act_rect.x + 10, cur_y),
+            (act_rect.x + 28, cur_y),
         )
         cur_y += 18
         min_box = pygame.Rect(act_rect.x + 10, cur_y, act_rect.width - 20, 56)
@@ -250,9 +260,13 @@ class SponsorsTab:
 
         off_hdr = pygame.Rect(off_rect.x, off_rect.y, off_rect.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, off_hdr, border_top_left_radius=4, border_top_right_radius=4)
+        UITheme.draw_icon(
+            surface, "circle-dollar-sign", (off_rect.x + 12, off_rect.y + 5), color=(255, 180, 40), size=16
+        )
         surface.blit(
             self.font_title.render(f"INCOMING SPONSOR OFFERS ({len(offers)} Available)", True, (255, 180, 40)),
             (off_rect.x + 12, off_rect.y + 5),
+            (off_rect.x + 34, off_rect.y + 5),
         )
 
         for idx, o in enumerate(offers[:4]):
@@ -266,9 +280,14 @@ class SponsorsTab:
                 if o["slot_tier"] == "TITLE"
                 else ((0, 200, 255) if o["slot_tier"] == "MIDDLE" else UITheme.TEXT_WHITE)
             )
+            tier_icon = (
+                "trophy" if o["slot_tier"] == "TITLE" else ("medal" if o["slot_tier"] == "MIDDLE" else "handshake")
+            )
+            UITheme.draw_icon(surface, tier_icon, (oc_box.x + 10, oc_box.y + 8), color=tier_col, size=15)
             surface.blit(
                 self.font_card_title.render(f"{o['brand_name']} [{o['slot_tier']}]", True, tier_col),
                 (oc_box.x + 10, oc_box.y + 8),
+                (oc_box.x + 30, oc_box.y + 8),
             )
             surface.blit(
                 self.font_body.render(
@@ -296,9 +315,14 @@ class SponsorsTab:
             pygame.draw.rect(surface, (0, 180, 100), sign_btn, border_radius=3)
             s_txt = self.font_btn.render("SIGN DEAL", True, (10, 20, 15))
             surface.blit(s_txt, (sign_btn.x + (sign_btn.width - s_txt.get_width()) // 2, sign_btn.y + 6))
+            UITheme.draw_button(surface, sign_btn, "SIGN DEAL", self.font_btn, icon="check", icon_size=14)
 
         # Bottom Status Bar
         stat_bar = pygame.Rect(24, self.height - 36, self.width - 48, 26)
         pygame.draw.rect(surface, (16, 20, 26), stat_bar, border_radius=3)
+        UITheme.draw_icon(
+            surface, "circle-dollar-sign", (stat_bar.x + 10, stat_bar.y + 5), color=UITheme.ACCENT_CYAN, size=14
+        )
         msg_surf = self.font_body.render(self.status_message, True, UITheme.TEXT_WHITE)
         surface.blit(msg_surf, (stat_bar.x + 10, stat_bar.y + 6))
+        surface.blit(msg_surf, (stat_bar.x + 30, stat_bar.y + 6))

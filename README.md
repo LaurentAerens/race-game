@@ -58,6 +58,8 @@ python -m unittest discover tests
 race-game/
 ├── main.py                  # Desktop application entry point & mode controller
 ├── requirements.txt         # pygame-ce, scipy, shapely, requests, numpy
+├── data/
+│   └── icons/               # Lucide SVG vector icon library (ISC License)
 ├── tracks/                  # Saved JSON track definitions
 │   ├── emerald_ring.json
 │   ├── apex_park.json
@@ -82,6 +84,7 @@ race-game/
 │   │   ├── car_renderer.py  # 2D formula cars, liveries, wings & particles
 │   │   └── camera.py        # Smooth pan/zoom & car tracking
 │   └── ui/
+│       ├── icons.py         # SVG vector icon loader & tinted surface cache
 │       ├── theme.py         # Dark F1 broadcast theme
 │       ├── timing_tower.py  # Live leaderboard & telemetry
 │       ├── driver_panel.py  # Strategy management panel
@@ -97,4 +100,12 @@ race-game/
 ## License
 
 This project is licensed under the **GNU General Public License v3.0** (GPL-3.0). See the [LICENSE](LICENSE) file for details.
+
+---
+
+## Third-Party Assets & Credits
+
+- **Vector Icons**: UI vector iconography provided by [Lucide Icons](https://lucide.dev), licensed under the [ISC License](data/icons/LICENSE).
+  - In-game attribution is displayed directly on the Start Screen and credited in accordance with the ISC open-source license.
+
 

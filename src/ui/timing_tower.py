@@ -46,11 +46,31 @@ class TimingTower:
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
 
         # Header columns
+        from .icons import UIIcons
+
+        # Header columns with icons
         txt_pos = self.font_header.render("POS", True, UITheme.TEXT_MUTED)
         txt_drv = self.font_header.render("DRIVER", True, UITheme.TEXT_MUTED)
+        surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
+
+        ic_drv = UIIcons.get_icon("user", size=12, color=UITheme.TEXT_MUTED)
+        surface.blit(ic_drv, (self.rect.x + 38, self.rect.y + 7))
+        txt_drv = self.font_header.render("DRV", True, UITheme.TEXT_MUTED)
+        surface.blit(txt_drv, (self.rect.x + 53, self.rect.y + 6))
+
+        ic_gap = UIIcons.get_icon("timer", size=12, color=UITheme.TEXT_MUTED)
+        surface.blit(ic_gap, (self.rect.x + 120, self.rect.y + 7))
         txt_gap = self.font_header.render("GAP", True, UITheme.TEXT_MUTED)
+        surface.blit(txt_gap, (self.rect.x + 135, self.rect.y + 6))
+
+        UIIcons.draw_tyre(surface, (self.rect.x + 188, self.rect.y + 7), (160, 170, 185), size=12)
         txt_tire = self.font_header.render("TYRE", True, UITheme.TEXT_MUTED)
+        surface.blit(txt_tire, (self.rect.x + 203, self.rect.y + 6))
+
+        ic_pit = UIIcons.get_icon("wrench", size=12, color=UITheme.TEXT_MUTED)
+        surface.blit(ic_pit, (self.rect.x + 250, self.rect.y + 7))
         txt_pit = self.font_header.render("PIT", True, UITheme.TEXT_MUTED)
+        surface.blit(txt_pit, (self.rect.x + 265, self.rect.y + 6))
 
         surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
         surface.blit(txt_drv, (self.rect.x + 42, self.rect.y + 6))
@@ -88,20 +108,33 @@ class TimingTower:
             surface.blit(drv_surf, (r_rect.x + 40, r_rect.y + 4))
 
             # Gap to leader
+            # Gap to leader / Leader status
             if getattr(car, "is_dnf", False):
                 gap_text = "DNF"
                 gap_color = UITheme.ACCENT_RED
+                dnf_ic = UIIcons.get_icon("x", size=12, color=UITheme.ACCENT_RED)
+                surface.blit(dnf_ic, (r_rect.x + 124, r_rect.y + 5))
+                gap_surf = self.font_row.render("DNF", True, UITheme.ACCENT_RED)
+                surface.blit(gap_surf, (r_rect.x + 138, r_rect.y + 4))
             elif getattr(car, "off_track", False):
                 gap_text = "OFF"
                 gap_color = UITheme.ACCENT_YELLOW
+                gap_surf = self.font_row.render("OFF", True, UITheme.ACCENT_YELLOW)
+                surface.blit(gap_surf, (r_rect.x + 126, r_rect.y + 4))
             elif i == 0:
                 gap_text = "LEADER"
                 gap_color = UITheme.ACCENT_YELLOW
+                tr_ic = UIIcons.get_icon("trophy", size=12, color=UITheme.ACCENT_YELLOW)
+                surface.blit(tr_ic, (r_rect.x + 122, r_rect.y + 5))
+                gap_surf = self.font_bold.render("LEADER", True, UITheme.ACCENT_YELLOW)
+                surface.blit(gap_surf, (r_rect.x + 137, r_rect.y + 4))
             else:
                 gap_text = f"+{car.gap_to_leader:04.1f}s"
                 gap_color = UITheme.TEXT_WHITE
             gap_surf = self.font_row.render(gap_text, True, gap_color)
             surface.blit(gap_surf, (r_rect.x + 126, r_rect.y + 4))
+                gap_surf = self.font_row.render(gap_text, True, UITheme.TEXT_WHITE)
+                surface.blit(gap_surf, (r_rect.x + 126, r_rect.y + 4))
 
             # Tire compound badge + wear %
             comp = car.tires.compound
@@ -109,12 +142,16 @@ class TimingTower:
             pygame.draw.circle(surface, comp.color_rgb, (t_badge_rect.x + 8, t_badge_rect.y + 8), 8)
             t_code = self.font_badge.render(comp.code, True, (0, 0, 0) if comp.name != "HARD" else (10, 10, 10))
             surface.blit(t_code, (t_badge_rect.x + 4, t_badge_rect.y + 1))
+            UIIcons.draw_tyre(surface, (r_rect.x + 192, r_rect.y + 3), comp.color_rgb, size=15)
+            t_code = self.font_badge.render(comp.code[:1], True, (255, 255, 255))
+            surface.blit(t_code, (r_rect.x + 196, r_rect.y + 2))
 
             # Wear % text
             wear_int = int(100.0 - car.tires.wear_pct)
             wear_color = UITheme.TEXT_MUTED if wear_int > 40 else UITheme.ACCENT_RED
             wear_surf = self.font_row.render(f"{wear_int}%", True, wear_color)
             surface.blit(wear_surf, (r_rect.x + 214, r_rect.y + 4))
+            surface.blit(wear_surf, (r_rect.x + 212, r_rect.y + 4))
 
             # Pit Stop state / count
             if getattr(car, "is_dnf", False):
@@ -123,11 +160,18 @@ class TimingTower:
             elif car.in_pit_lane:
                 pit_text = "PIT"
                 pit_color = UITheme.ACCENT_YELLOW
+                p_ic = UIIcons.get_icon("wrench", size=12, color=UITheme.ACCENT_YELLOW)
+                surface.blit(p_ic, (r_rect.x + 248, r_rect.y + 5))
             elif car.box_this_lap:
                 pit_text = "BOX"
                 pit_color = UITheme.ACCENT_RED
+                b_ic = UIIcons.get_icon("octagon", size=12, color=UITheme.ACCENT_RED)
+                surface.blit(b_ic, (r_rect.x + 248, r_rect.y + 5))
             else:
                 pit_text = f"{car.total_pit_stops}P"
                 pit_color = UITheme.TEXT_MUTED
+
+            pit_x = r_rect.x + 263 if (car.in_pit_lane or car.box_this_lap) else r_rect.x + 252
             pit_surf = self.font_bold.render(pit_text, True, pit_color)
             surface.blit(pit_surf, (r_rect.x + 252, r_rect.y + 4))
+            surface.blit(pit_surf, (pit_x, r_rect.y + 4))

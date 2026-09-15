@@ -96,13 +96,22 @@ class BroadcastHeader:
         surface.blit(f_txt, (flag_rect.x + (flag_rect.width - f_txt.get_width()) // 2, flag_rect.y + 2))
 
         # 2. Lap Counter & Session Clock
+        from .icons import UIIcons
+
+        lap_ic = UIIcons.get_icon("flag", size=14, color=UITheme.ACCENT_YELLOW)
+        surface.blit(lap_ic, (190, 8))
         lap_str = f"LAP {min(sim.total_laps, sim.current_lap)} / {sim.total_laps}"
         l_surf = self.font_lap.render(lap_str, True, UITheme.ACCENT_YELLOW)
         surface.blit(l_surf, (190, 6))
+        surface.blit(l_surf, (208, 6))
 
         clock_str = f"TIME: {sim.format_time(sim.race_time)}"
+        clock_ic = UIIcons.get_icon("timer", size=12, color=UITheme.TEXT_MUTED)
+        surface.blit(clock_ic, (190, 28))
+        clock_str = sim.format_time(sim.race_time)
         c_surf = self.font_sub.render(clock_str, True, UITheme.TEXT_MUTED)
         surface.blit(c_surf, (190, 26))
+        surface.blit(c_surf, (206, 26))
 
         # 3. Weather Radar & Track Wetness (extends width if weather station is present)
         radar_tier = 0
@@ -124,6 +133,11 @@ class BroadcastHeader:
         wet_col = (60, 160, 240) if wet_pct > 15 else UITheme.TEXT_MUTED
         radar_tag = " [DOPPLER]" if radar_tier > 0 else ""
 
+        w_icon_name = "cloud-rain" if wet_pct > 10 else "sun"
+        w_icon_col = (60, 160, 240) if wet_pct > 10 else (255, 205, 30)
+        w_ic = UIIcons.get_icon(w_icon_name, size=13, color=w_icon_col)
+        surface.blit(w_ic, (w_rect.x + 6, w_rect.y + 4))
+
         if getattr(sim.weather, "is_local_shower", False) and any(
             sim.weather.get_sector_wetness(s) > 0.05 for s in (1, 2, 3)
         ):
@@ -138,6 +152,8 @@ class BroadcastHeader:
                 f"Track: {wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
             )
         surface.blit(w_txt, (w_rect.x + 6, w_rect.y + 4))
+            w_txt = self.font_sub.render(f"{wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col)
+        surface.blit(w_txt, (w_rect.x + 22, w_rect.y + 4))
 
         # Mini forward forecast bars
         forecast_nodes = sim.weather.get_forecast_slice(
@@ -160,11 +176,22 @@ class BroadcastHeader:
         cam_active = camera.mode == "FOLLOW_CAR"
         cam_label = "CAM: CAR" if cam_active else "CAM: OVERVIEW"
         UITheme.draw_button(surface, cam_btn, cam_label, self.font_btn, is_active=cam_active)
+        cam_label = "CAR" if cam_active else "TRACK"
+        UITheme.draw_button(surface, cam_btn, cam_label, self.font_btn, is_active=cam_active, icon="camera")
 
         # 5. Speed controls (Placed from width - 505 to width - 360, clear of nav tabs at width - 345)
         speeds = [(0.0, "||"), (1.0, "1x"), (2.0, "2x"), (4.0, "4x"), (8.0, "8x")]
+        speeds = [
+            (0.0, "", "pause"),
+            (1.0, "", "play"),
+            (2.0, "2x", "fast-forward"),
+            (4.0, "4x", None),
+            (8.0, "8x", None),
+        ]
         speed_start_x = self.rect.width - 505
         for idx, (spd, lbl) in enumerate(speeds):
+        for idx, (spd, lbl, ic) in enumerate(speeds):
             b_rect = pygame.Rect(speed_start_x + idx * 29, 10, 27, 28)
             is_active = sim.is_paused if spd == 0.0 else (not sim.is_paused and sim.sim_speed == spd)
             UITheme.draw_button(surface, b_rect, lbl, self.font_btn, is_active=is_active)
+            UITheme.draw_button(surface, b_rect, lbl, self.font_btn, is_active=is_active, icon=ic, icon_size=12)

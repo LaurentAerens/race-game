@@ -217,12 +217,14 @@ class StartScreen:
 
                 # Tutorial Checkbox Click
                 tut_box = pygame.Rect(self.width // 2 - 200, self.height - 102, 400, 24)
+                tut_box = pygame.Rect(self.width // 2 - 220, self.height - 104, 440, 24)
                 if tut_box.collidepoint(mx, my):
                     self.enable_tutorial = not self.enable_tutorial
                     return
 
                 # Start Career Button (Bottom Center)
                 btn_start = pygame.Rect(self.width // 2 - 220, self.height - 66, 440, 46)
+                btn_start = pygame.Rect(self.width // 2 - 220, self.height - 74, 440, 44)
                 if btn_start.collidepoint(mx, my):
                     color_hex = COLOR_PALETTE[self.selected_color_idx][0]
                     self.on_start_career(
@@ -312,10 +314,12 @@ class StartScreen:
             )
 
             # 1. Continue Button
+            # 1. Continue Button (if existing career)
             btn_cont = pygame.Rect(self.width // 2 - 180, self.height // 2 - 20, 360, 42)
             pygame.draw.rect(surface, (0, 180, 100), btn_cont, border_radius=4)
             c_lbl = self.font_btn.render("CONTINUE CAREER >>", True, (10, 20, 15))
             surface.blit(c_lbl, (btn_cont.x + (btn_cont.width - c_lbl.get_width()) // 2, btn_cont.y + 12))
+            UITheme.draw_button(surface, btn_cont, "RESUME CAREER", self.font_btn, icon="play", is_active=True)
 
             # 2. Load Career Button
             btn_load = pygame.Rect(self.width // 2 - 180, self.height // 2 + 30, 360, 42)
@@ -323,6 +327,7 @@ class StartScreen:
             pygame.draw.rect(surface, (60, 90, 130), btn_load, width=1, border_radius=4)
             l_lbl = self.font_btn.render("LOAD / SWITCH CAREER", True, (0, 220, 255))
             surface.blit(l_lbl, (btn_load.x + (btn_load.width - l_lbl.get_width()) // 2, btn_load.y + 12))
+            UITheme.draw_button(surface, btn_load, "LOAD / SWITCH CAREER", self.font_btn, icon="folder")
 
             # 3. Start New Career Button
             btn_new = pygame.Rect(self.width // 2 - 180, self.height // 2 + 80, 360, 42)
@@ -330,6 +335,7 @@ class StartScreen:
             pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_new, width=1, border_radius=4)
             n_lbl = self.font_btn.render("START NEW CAREER", True, UITheme.TEXT_WHITE)
             surface.blit(n_lbl, (btn_new.x + (btn_new.width - n_lbl.get_width()) // 2, btn_new.y + 12))
+            UITheme.draw_button(surface, btn_new, "START NEW CAREER", self.font_btn, icon="sparkles")
 
             # 4. Admin Mode (Track & Database Editor) Button
             btn_admin = pygame.Rect(self.width // 2 - 180, self.height // 2 + 130, 360, 42)
@@ -337,6 +343,12 @@ class StartScreen:
             pygame.draw.rect(surface, (180, 80, 240), btn_admin, width=1, border_radius=4)
             a_lbl = self.font_btn.render("ADMIN MODE (TRACK & DB EDITOR)", True, (210, 140, 255))
             surface.blit(a_lbl, (btn_admin.x + (btn_admin.width - a_lbl.get_width()) // 2, btn_admin.y + 12))
+            UITheme.draw_button(surface, btn_admin, "ADMIN MODE (TRACK & DB EDITOR)", self.font_btn, icon="wrench")
+
+            # UI Credits Attribution
+            credit_txt = "Icons by Lucide (lucide.dev) under ISC License"
+            c_surf = self.font_badge.render(credit_txt, True, (80, 95, 115))
+            surface.blit(c_surf, ((self.width - c_surf.get_width()) // 2, self.height - 24))
 
             # Render Load Career Modal if open
             if self.show_load_career_modal:
@@ -635,6 +647,7 @@ class StartScreen:
             # Interactive Tutorial Toggle Checkbox
             # =================================================================
             tut_box = pygame.Rect(self.width // 2 - 220, self.height - 102, 440, 24)
+            tut_box = pygame.Rect(self.width // 2 - 220, self.height - 104, 440, 24)
             chk_rect = pygame.Rect(tut_box.x, tut_box.y + 2, 18, 18)
             pygame.draw.rect(surface, (20, 28, 38), chk_rect, border_radius=3)
             pygame.draw.rect(
@@ -655,6 +668,13 @@ class StartScreen:
             # Start Career Button (Bottom Center)
             # =================================================================
             btn_start = pygame.Rect(self.width // 2 - 220, self.height - 66, 440, 46)
+            btn_start = pygame.Rect(self.width // 2 - 220, self.height - 74, 440, 44)
             pygame.draw.rect(surface, (0, 180, 100), btn_start, border_radius=4)
             s_lbl = self.font_btn.render("INITIALIZE CONSTRUCTOR & START CAREER >>", True, (10, 25, 20))
             surface.blit(s_lbl, (btn_start.x + (btn_start.width - s_lbl.get_width()) // 2, btn_start.y + 14))
+            surface.blit(s_lbl, (btn_start.x + (btn_start.width - s_lbl.get_width()) // 2, btn_start.y + 13))
+
+            # UI Credits Attribution
+            credit_txt = "Icons by Lucide (lucide.dev) under ISC License"
+            c_surf = self.font_badge.render(credit_txt, True, (80, 95, 115))
+            surface.blit(c_surf, ((self.width - c_surf.get_width()) // 2, self.height - 22))

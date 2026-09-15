@@ -16,6 +16,7 @@ class HubHeader:
         self._init_fonts()
 
         # Navigation Tabs
+        # Navigation Tabs: (key, label, icon_name)
         self.tabs = [
             ("DASHBOARD", "DASHBOARD"),
             ("CAR_RND", "CAR & R&D"),
@@ -25,6 +26,14 @@ class HubHeader:
             ("WORKFORCE", "PERSONNEL"),
             ("STANDINGS", "STANDINGS"),
             ("DATABASE", "DATABASE EXPLORER"),
+            ("DASHBOARD", "DASHBOARD", "layout-dashboard"),
+            ("CAR_RND", "CAR R&D", "wrench"),
+            ("FACTORY", "TECH TREE", "network"),
+            ("DRIVERS", "DRIVERS", "user"),
+            ("SPONSORS", "FINANCES", "circle-dollar-sign"),
+            ("WORKFORCE", "PERSONNEL", "users"),
+            ("STANDINGS", "STANDINGS", "trophy"),
+            ("DATABASE", "DATABASE", "database"),
         ]
 
     def _init_fonts(self):
@@ -53,6 +62,7 @@ class HubHeader:
 
         rects = {}
         for idx, (t_key, _) in enumerate(self.tabs):
+        for idx, (t_key, _, _) in enumerate(self.tabs):
             rects[t_key] = pygame.Rect(x_start + idx * (tab_w + gap), y, tab_w, tab_h)
         return rects
 
@@ -89,6 +99,8 @@ class HubHeader:
         total_rounds: int,
         difficulty: str = "NORMAL",
     ):
+        from ..icons import UIIcons
+
         # Header background panel
         pygame.draw.rect(surface, (14, 18, 24), self.rect)
         pygame.draw.line(surface, UITheme.PANEL_BORDER, (0, self.height), (self.width, self.height), 1)
@@ -104,6 +116,7 @@ class HubHeader:
         surface.blit(team_surf, (32, 5))
 
         # Financial & Round Stats (Dynamically anchored left of tutorial & difficulty button)
+        # Financial & Round Stats with Icons
         cash = financial_data.get("cash", 0.0)
         net_mo = financial_data.get("net_monthly", 0.0)
         staff_cnt = financial_data.get("staff_count", 24)
@@ -111,9 +124,39 @@ class HubHeader:
         net_str = f"+${net_mo:,.0f}/mo" if net_mo >= 0 else f"-${abs(net_mo):,.0f}/mo"
         stat_txt = f"CASH: ${cash:,.0f}   |   NET: {net_str}   |   STAFF: {staff_cnt}   |   ROUND: {current_round}/{total_rounds}"
         s_surf = self.font_stat.render(stat_txt, True, UITheme.TEXT_MUTED)
+        stats_x = team_surf.get_width() + 45
 
         stats_x = max(team_surf.get_width() + 40, self.width - 355 - s_surf.get_width())
         surface.blit(s_surf, (stats_x, 6))
+        # 1. Cash Pill
+        c_ic = UIIcons.get_icon("circle-dollar-sign", size=13, color=(0, 240, 140))
+        c_txt = self.font_stat.render(f"${cash:,.0f}", True, (0, 240, 140))
+        surface.blit(c_ic, (stats_x, 6))
+        surface.blit(c_txt, (stats_x + 16, 5))
+        stats_x += 16 + c_txt.get_width() + 16
+
+        # 2. Net Monthly Pill
+        is_pos = net_mo >= 0
+        net_ic_name = "trending-up" if is_pos else "trending-down"
+        net_col = (0, 230, 110) if is_pos else (240, 60, 60)
+        n_ic = UIIcons.get_icon(net_ic_name, size=13, color=net_col)
+        n_txt = self.font_stat.render(f"{'+' if is_pos else '-'}${abs(net_mo):,.0f}/mo", True, net_col)
+        surface.blit(n_ic, (stats_x, 6))
+        surface.blit(n_txt, (stats_x + 16, 5))
+        stats_x += 16 + n_txt.get_width() + 16
+
+        # 3. Staff Pill
+        s_ic = UIIcons.get_icon("users", size=13, color=UITheme.TEXT_MUTED)
+        s_txt = self.font_stat.render(f"{staff_cnt}", True, UITheme.TEXT_MUTED)
+        surface.blit(s_ic, (stats_x, 6))
+        surface.blit(s_txt, (stats_x + 16, 5))
+        stats_x += 16 + s_txt.get_width() + 16
+
+        # 4. Round Pill
+        r_ic = UIIcons.get_icon("flag", size=13, color=UITheme.ACCENT_YELLOW)
+        r_txt = self.font_stat.render(f"{current_round}/{total_rounds}", True, UITheme.ACCENT_YELLOW)
+        surface.blit(r_ic, (stats_x, 6))
+        surface.blit(r_txt, (stats_x + 16, 5))
 
         # Tutorial Button (x = width - 340)
         tut_btn = pygame.Rect(self.width - 340, 4, 92, 18)
@@ -121,6 +164,12 @@ class HubHeader:
         pygame.draw.rect(surface, (0, 200, 240), tut_btn, width=1, border_radius=3)
         tut_lbl = self.font_diff.render("? TUTORIAL", True, (0, 220, 255))
         surface.blit(tut_lbl, (tut_btn.x + (tut_btn.width - tut_lbl.get_width()) // 2, tut_btn.y + 3))
+        tut_ic = UIIcons.get_icon("help-circle", size=11, color=(0, 220, 255))
+        tut_lbl = self.font_diff.render("TUTORIAL", True, (0, 220, 255))
+        tut_w = tut_ic.get_width() + 4 + tut_lbl.get_width()
+        tut_start = tut_btn.x + (tut_btn.width - tut_w) // 2
+        surface.blit(tut_ic, (tut_start, tut_btn.y + 3))
+        surface.blit(tut_lbl, (tut_start + tut_ic.get_width() + 4, tut_btn.y + 3))
 
         # Difficulty Selector Button (Top right: x = width - 240)
         diff_btn = pygame.Rect(self.width - 240, 4, 112, 18)
@@ -136,19 +185,31 @@ class HubHeader:
         pygame.draw.rect(surface, d_col, diff_btn, width=1, border_radius=2)
 
         diff_label = f"DIFF: {difficulty.replace('_', ' ')}"
+        d_ic = UIIcons.get_icon("zap", size=11, color=d_col)
+        diff_label = difficulty.replace("_", " ")
         d_surf = self.font_diff.render(diff_label, True, d_col)
         surface.blit(d_surf, (diff_btn.x + (diff_btn.width - d_surf.get_width()) // 2, diff_btn.y + 2))
+        d_w = d_ic.get_width() + 4 + d_surf.get_width()
+        d_start = diff_btn.x + (diff_btn.width - d_w) // 2
+        surface.blit(d_ic, (d_start, diff_btn.y + 3))
+        surface.blit(d_surf, (d_start + d_ic.get_width() + 4, diff_btn.y + 2))
 
         # Track Editor Mode Button (Top right: x = width - 120)
         edit_btn = pygame.Rect(self.width - 120, 4, 105, 18)
         pygame.draw.rect(surface, (26, 34, 46), edit_btn, border_radius=2)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, edit_btn, width=1, border_radius=2)
+        ed_ic = UIIcons.get_icon("wrench", size=11, color=UITheme.TEXT_WHITE)
         e_surf = self.font_diff.render("TRACK EDITOR", True, UITheme.TEXT_WHITE)
         surface.blit(e_surf, (edit_btn.x + (edit_btn.width - e_surf.get_width()) // 2, edit_btn.y + 2))
+        ed_w = ed_ic.get_width() + 4 + e_surf.get_width()
+        ed_start = edit_btn.x + (edit_btn.width - ed_w) // 2
+        surface.blit(ed_ic, (ed_start, edit_btn.y + 3))
+        surface.blit(e_surf, (ed_start + ed_ic.get_width() + 4, edit_btn.y + 2))
 
         # Navigation Tabs (Bottom Row)
         tab_rects = self.get_tab_rects()
         for t_key, label in self.tabs:
+        for t_key, label, icon_name in self.tabs:
             r = tab_rects[t_key]
             is_active = t_key == active_tab
             bg_col = (35, 45, 60) if is_active else (20, 24, 32)
@@ -160,3 +221,13 @@ class HubHeader:
             txt_col = UITheme.TEXT_WHITE if is_active else UITheme.TEXT_MUTED
             t_lbl = self.font_tab.render(label, True, txt_col)
             surface.blit(t_lbl, (r.x + (r.width - t_lbl.get_width()) // 2, r.y + (r.height - t_lbl.get_height()) // 2))
+            ic_surf = UIIcons.get_icon(icon_name, size=14, color=txt_col)
+
+            gap = 5
+            total_content_w = ic_surf.get_width() + gap + t_lbl.get_width()
+            start_content_x = r.x + (r.width - total_content_w) // 2
+
+            surface.blit(ic_surf, (start_content_x, r.y + (r.height - ic_surf.get_height()) // 2))
+            surface.blit(
+                t_lbl, (start_content_x + ic_surf.get_width() + gap, r.y + (r.height - t_lbl.get_height()) // 2)
+            )
