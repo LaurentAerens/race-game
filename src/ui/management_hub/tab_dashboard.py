@@ -296,7 +296,6 @@ class DashboardTab:
         sp_ic = UIIcons.get_icon("target", size=14, color=(255, 215, 0))
         surface.blit(sp_ic, (sp_rect.x + 12, sp_rect.y + 7))
         sp_txt = self.font_title.render("ACTIVE SPONSOR TARGETS & FINANCES", True, (255, 215, 0))
-        surface.blit(sp_txt, (sp_rect.x + 12, sp_rect.y + 6))
         surface.blit(sp_txt, (sp_rect.x + 32, sp_rect.y + 6))
 
         # Query real active sponsors from database
@@ -324,7 +323,6 @@ class DashboardTab:
                 self.font_card_title.render(
                     f"{sp1.get('slot_tier', 'TITLE')} PARTNER: {sp1.get('brand_name', 'Sponsor')}", True, (255, 215, 0)
                 ),
-                (s1_rect.x + 10, s1_rect.y + 8),
                 (s1_rect.x + 28, s1_rect.y + 8),
             )
             tgt_pos = sp1.get("target_position")
@@ -333,7 +331,6 @@ class DashboardTab:
                 if tgt_pos
                 else "Target: Clean running with maximum media exposure"
             )
-            surface.blit(self.font_body.render(tgt_str, True, UITheme.TEXT_WHITE), (s1_rect.x + 10, s1_rect.y + 28))
             tg_ic = UIIcons.get_icon("target", size=12, color=UITheme.TEXT_MUTED)
             surface.blit(tg_ic, (s1_rect.x + 10, s1_rect.y + 29))
             surface.blit(self.font_body.render(tgt_str, True, UITheme.TEXT_WHITE), (s1_rect.x + 26, s1_rect.y + 28))
@@ -342,7 +339,6 @@ class DashboardTab:
             per_race = sp1.get("per_race_payment", 0.0)
             r_left = sp1.get("races_remaining", 0)
             payout_str = f"Bonus: +${tgt_bonus:,.0f} | Fixed Payout: +${per_race:,.0f}/race ({r_left} races left)"
-            surface.blit(self.font_badge.render(payout_str, True, (0, 240, 140)), (s1_rect.x + 10, s1_rect.y + 48))
             c_ic = UIIcons.get_icon("circle-dollar-sign", size=12, color=(0, 240, 140))
             surface.blit(c_ic, (s1_rect.x + 10, s1_rect.y + 49))
             surface.blit(self.font_badge.render(payout_str, True, (0, 240, 140)), (s1_rect.x + 26, s1_rect.y + 48))
@@ -377,7 +373,6 @@ class DashboardTab:
                     True,
                     (0, 200, 255),
                 ),
-                (s2_rect.x + 10, s2_rect.y + 8),
                 (s2_rect.x + 28, s2_rect.y + 8),
             )
             tgt_pos = sp2.get("target_position")
@@ -386,7 +381,6 @@ class DashboardTab:
                 if tgt_pos
                 else "Target: Reliable race completion with zero DNF"
             )
-            surface.blit(self.font_body.render(tgt_str, True, UITheme.TEXT_WHITE), (s2_rect.x + 10, s2_rect.y + 28))
             tg2_ic = UIIcons.get_icon("target", size=12, color=UITheme.TEXT_MUTED)
             surface.blit(tg2_ic, (s2_rect.x + 10, s2_rect.y + 29))
             surface.blit(self.font_body.render(tgt_str, True, UITheme.TEXT_WHITE), (s2_rect.x + 26, s2_rect.y + 28))
@@ -395,7 +389,6 @@ class DashboardTab:
             per_race = sp2.get("per_race_payment", 0.0)
             r_left = sp2.get("races_remaining", 0)
             payout_str = f"Bonus: +${tgt_bonus:,.0f} | Fixed Payout: +${per_race:,.0f}/race ({r_left} races left)"
-            surface.blit(self.font_badge.render(payout_str, True, (255, 215, 0)), (s2_rect.x + 10, s2_rect.y + 48))
             c2_ic = UIIcons.get_icon("circle-dollar-sign", size=12, color=(255, 215, 0))
             surface.blit(c2_ic, (s2_rect.x + 10, s2_rect.y + 49))
             surface.blit(self.font_badge.render(payout_str, True, (255, 215, 0)), (s2_rect.x + 26, s2_rect.y + 48))
