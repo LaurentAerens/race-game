@@ -296,6 +296,7 @@ class DashboardTab:
         sp_ic = UIIcons.get_icon("target", size=14, color=(255, 215, 0))
         surface.blit(sp_ic, (sp_rect.x + 12, sp_rect.y + 7))
         sp_txt = self.font_title.render("ACTIVE SPONSOR TARGETS & FINANCES", True, (255, 215, 0))
+        surface.blit(sp_txt, (sp_rect.x + 12, sp_rect.y + 6))
         surface.blit(sp_txt, (sp_rect.x + 32, sp_rect.y + 6))
 
         # Query real active sponsors from database

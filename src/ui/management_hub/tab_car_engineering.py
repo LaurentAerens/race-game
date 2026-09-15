@@ -449,7 +449,7 @@ class CarEngineeringTab:
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, w_rect, width=1, border_radius=4)
         UITheme.draw_icon(
             surface,
-            "package" if "package" in UITheme.ALIASES else "factory",
+            "factory",
             (w_rect.x + 10, w_rect.y + 7),
             color=UITheme.ACCENT_CYAN,
             size=15,
