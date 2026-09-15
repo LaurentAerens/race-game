@@ -149,10 +149,8 @@ class BroadcastHeader:
             )
         else:
             w_txt = self.font_sub.render(
-                f"Track: {wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
+                f"{wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
             )
-        surface.blit(w_txt, (w_rect.x + 6, w_rect.y + 4))
-            w_txt = self.font_sub.render(f"{wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col)
         surface.blit(w_txt, (w_rect.x + 22, w_rect.y + 4))
 
         # Mini forward forecast bars
@@ -174,13 +172,10 @@ class BroadcastHeader:
         # 4. Camera View Toggle button (Placed to the left of speed controls: width - 615)
         cam_btn = pygame.Rect(self.rect.width - 615, 10, 100, 28)
         cam_active = camera.mode == "FOLLOW_CAR"
-        cam_label = "CAM: CAR" if cam_active else "CAM: OVERVIEW"
-        UITheme.draw_button(surface, cam_btn, cam_label, self.font_btn, is_active=cam_active)
         cam_label = "CAR" if cam_active else "TRACK"
         UITheme.draw_button(surface, cam_btn, cam_label, self.font_btn, is_active=cam_active, icon="camera")
 
         # 5. Speed controls (Placed from width - 505 to width - 360, clear of nav tabs at width - 345)
-        speeds = [(0.0, "||"), (1.0, "1x"), (2.0, "2x"), (4.0, "4x"), (8.0, "8x")]
         speeds = [
             (0.0, "", "pause"),
             (1.0, "", "play"),
@@ -189,9 +184,7 @@ class BroadcastHeader:
             (8.0, "8x", None),
         ]
         speed_start_x = self.rect.width - 505
-        for idx, (spd, lbl) in enumerate(speeds):
         for idx, (spd, lbl, ic) in enumerate(speeds):
             b_rect = pygame.Rect(speed_start_x + idx * 29, 10, 27, 28)
             is_active = sim.is_paused if spd == 0.0 else (not sim.is_paused and sim.sim_speed == spd)
-            UITheme.draw_button(surface, b_rect, lbl, self.font_btn, is_active=is_active)
             UITheme.draw_button(surface, b_rect, lbl, self.font_btn, is_active=is_active, icon=ic, icon_size=12)

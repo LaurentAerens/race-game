@@ -129,47 +129,25 @@ class CarEngineeringTab:
         c1_rect = pygame.Rect(24, 70, 140, 28)
         c2_rect = pygame.Rect(170, 70, 140, 28)
 
-        pygame.draw.rect(
-            surface, (35, 55, 75) if self.selected_car_slot == 1 else (20, 26, 34), c1_rect, border_radius=3
-        )
-        pygame.draw.rect(
-        from ..icons import UIIcons
-
-        c1_lbl = "CAR #1 (PRIMARY)"
-        c2_lbl = "CAR #2 (SECONDARY)"
         UITheme.draw_button(
             surface,
-            UITheme.ACCENT_CYAN if self.selected_car_slot == 1 else UITheme.PANEL_BORDER,
             c1_rect,
-            width=1,
-            border_radius=3,
-            c1_lbl,
+            "CAR #1 (PRIMARY)",
             self.font_btn,
             is_active=self.selected_car_slot == 1,
             icon="user",
             icon_size=13,
         )
-        c1_lbl = self.font_btn.render("CAR #1 (PRIMARY)", True, UITheme.TEXT_WHITE)
-        surface.blit(c1_lbl, (c1_rect.x + (c1_rect.width - c1_lbl.get_width()) // 2, c1_rect.y + 7))
 
-        pygame.draw.rect(
-            surface, (35, 55, 75) if self.selected_car_slot == 2 else (20, 26, 34), c2_rect, border_radius=3
-        )
-        pygame.draw.rect(
         UITheme.draw_button(
             surface,
-            UITheme.ACCENT_CYAN if self.selected_car_slot == 2 else UITheme.PANEL_BORDER,
             c2_rect,
-            width=1,
-            border_radius=3,
-            c2_lbl,
+            "CAR #2 (SECONDARY)",
             self.font_btn,
             is_active=self.selected_car_slot == 2,
             icon="user",
             icon_size=13,
         )
-        c2_lbl = self.font_btn.render("CAR #2 (SECONDARY)", True, UITheme.TEXT_WHITE)
-        surface.blit(c2_lbl, (c2_rect.x + (c2_rect.width - c2_lbl.get_width()) // 2, c2_rect.y + 7))
 
         # Regulations Badge
         reg_txt = f"TIER {tier} ({l_name}) R&D REGULATIONS: Custom R&D for [{', '.join(allowed_parts)}]"
@@ -300,41 +278,23 @@ class CarEngineeringTab:
 
             if can_develop:
                 b_cost = base_category_costs.get(comp["category"], 250000.0) * cost_mult
-                pygame.draw.rect(surface, (30, 60, 90), build_btn, border_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255), build_btn, width=1, border_radius=3)
                 if is_fine_tune:
-                    btn_txt = self.font_btn.render(f"FINE-TUNE (${b_cost / 1000:.0f}k)", True, (255, 215, 0))
                     btn_text = f"TUNE (${b_cost / 1000:.0f}k)"
                 else:
-                    btn_txt = self.font_btn.render(
-                        f"BUILD Mk {comp['generation'] + 1} (${b_cost / 1000:.0f}k)", True, UITheme.TEXT_WHITE
-                    )
                     btn_text = f"BUILD Mk {comp['generation'] + 1} (${b_cost / 1000:.0f}k)"
                 UITheme.draw_button(surface, build_btn, btn_text, self.font_btn, icon="wrench", icon_size=12)
             elif is_allowed and not is_fac_ready:
-                pygame.draw.rect(surface, (28, 22, 18), build_btn, border_radius=3)
-                pygame.draw.rect(surface, (120, 70, 30), build_btn, width=1, border_radius=3)
-                btn_txt = self.font_btn.render("BUILD FACILITY L1", True, (255, 160, 80))
                 UITheme.draw_button(
                     surface, build_btn, "FACILITY L1", self.font_btn, icon="lock", icon_size=12, is_disabled=True
                 )
             else:
-                pygame.draw.rect(surface, (20, 24, 30), build_btn, border_radius=3)
-                pygame.draw.rect(surface, (40, 45, 55), build_btn, width=1, border_radius=3)
-                btn_txt = self.font_btn.render("SPEC LOCKED", True, (120, 125, 135))
                 UITheme.draw_button(
                     surface, build_btn, "SPEC LOCKED", self.font_btn, icon="lock", icon_size=12, is_disabled=True
                 )
 
-            surface.blit(btn_txt, (build_btn.x + (build_btn.width - btn_txt.get_width()) // 2, build_btn.y + 6))
-
             # Buy Factory Part Button
             f_spec = FACTORY_PART_SPECS.get(tier, FACTORY_PART_SPECS.get(3, {})).get(comp["category"], {})
             f_cost = f_spec.get("cost", 25000.0)
-            pygame.draw.rect(surface, (24, 40, 32), buy_btn, border_radius=3)
-            pygame.draw.rect(surface, (0, 180, 100), buy_btn, width=1, border_radius=3)
-            buy_lbl = self.font_badge.render(f"BUY FACTORY (${f_cost / 1000:.0f}k)", True, (0, 240, 150))
-            surface.blit(buy_lbl, (buy_btn.x + (buy_btn.width - buy_lbl.get_width()) // 2, buy_btn.y + 7))
             UITheme.draw_button(
                 surface,
                 buy_btn,

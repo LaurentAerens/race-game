@@ -127,7 +127,6 @@ class DashboardTab:
                 True,
                 UITheme.ACCENT_CYAN,
             )
-            surface.blit(t_txt, (gp_rect.x + 12, gp_rect.y + 6))
             surface.blit(t_txt, (gp_rect.x + 32, gp_rect.y + 6))
 
             # Event details
@@ -135,13 +134,11 @@ class DashboardTab:
             surface.blit(tr_ic, (gp_rect.x + 14, gp_rect.y + 35))
             surface.blit(
                 self.font_card_title.render(race_event.get("track_name", "Grand Prix"), True, UITheme.TEXT_WHITE),
-                (gp_rect.x + 14, gp_rect.y + 34),
                 (gp_rect.x + 34, gp_rect.y + 34),
             )
             surface.blit(
                 self.font_body.render(
-                    f"Circuit Layout: {race_event.get('circuit_file', 'emerald_ring.json')} | Laps: {race_event.get('total_laps', 15)} Laps",
-                    f"Circuit: {race_event.get('circuit_file', 'track.json')} | Laps: {race_event.get('total_laps', 15)} Laps",
+                    f"Circuit: {race_event.get('circuit_file', 'emerald_ring.json')} | Laps: {race_event.get('total_laps', 15)} Laps",
                     True,
                     UITheme.TEXT_MUTED,
                 ),
@@ -164,12 +161,10 @@ class DashboardTab:
 
             surface.blit(
                 self.font_body.render(
-                    f"Forecast: {race_event.get('weather_profile', 'DYNAMIC')} | Character: {track_char}",
                     f"Forecast: {w_prof} | Character: {track_char}",
                     True,
                     UITheme.TEXT_MUTED,
                 ),
-                (gp_rect.x + 14, gp_rect.y + 72),
                 (gp_rect.x + 32, gp_rect.y + 72),
             )
 
@@ -177,7 +172,6 @@ class DashboardTab:
             surface.blit(g_ic, (gp_rect.x + 14, gp_rect.y + 90))
             surface.blit(
                 self.font_badge.render(f"KEY DEMAND: {demand_text.upper()}", True, demand_col),
-                (gp_rect.x + 14, gp_rect.y + 88),
                 (gp_rect.x + 30, gp_rect.y + 88),
             )
 
@@ -194,7 +188,6 @@ class DashboardTab:
             surface.blit(u_mini, (readiness_rect.x + 10, readiness_rect.y + 7))
             surface.blit(
                 self.font_badge.render("CAR READINESS & DRIVER LINEUP:", True, UITheme.TEXT_MUTED),
-                (readiness_rect.x + 10, readiness_rect.y + 6),
                 (readiness_rect.x + 26, readiness_rect.y + 6),
             )
 
@@ -219,7 +212,6 @@ class DashboardTab:
             surface.blit(chk_mini, (readiness_rect.x + 10, readiness_rect.y + 57))
             surface.blit(
                 self.font_badge.render("Full race simulation ready with live pit wall strategy.", True, (0, 240, 140)),
-                (readiness_rect.x + 10, readiness_rect.y + 56),
                 (readiness_rect.x + 26, readiness_rect.y + 56),
             )
         else:
@@ -228,7 +220,6 @@ class DashboardTab:
             t_txt = self.font_title.render(
                 f"WEEK {gm.current_week} / {gm.total_season_weeks}: HQ DEVELOPMENT WEEK (BYE WEEK)", True, (255, 215, 0)
             )
-            surface.blit(t_txt, (gp_rect.x + 12, gp_rect.y + 6))
             surface.blit(t_txt, (gp_rect.x + 32, gp_rect.y + 6))
 
             surface.blit(
@@ -427,7 +418,6 @@ class DashboardTab:
         spk_ic = UIIcons.get_icon("sparkles", size=14, color=(255, 180, 40))
         surface.blit(spk_ic, (pipe_rect.x + 12, pipe_rect.y + 7))
         p_txt = self.font_title.render(f"R&D INNOVATION PIPELINE ({len(pitches)} Pending)", True, (255, 180, 40))
-        surface.blit(p_txt, (pipe_rect.x + 12, pipe_rect.y + 6))
         surface.blit(p_txt, (pipe_rect.x + 32, pipe_rect.y + 6))
 
         if not active_pitches and not pitches:
@@ -440,36 +430,12 @@ class DashboardTab:
             )
             surface.blit(
                 self.font_body.render(
-                    "Your engineers and trackside crew will formulate creative", True, UITheme.TEXT_WHITE
                     "Chief Engineers pitch high-risk breakthroughs on race weeks.", True, UITheme.TEXT_MUTED
                 ),
-                (emp_box.x + 10, emp_box.y + 38),
                 (emp_box.x + 10, emp_box.y + 36),
             )
 
         act_rect, cards = self.get_pipeline_layout(active_pitches, pending_pitches=pitches)
-
-        # Render Active Project Card
-        if active_pitches and act_rect:
-            act = active_pitches[0]
-            pygame.draw.rect(surface, (20, 36, 48), act_rect, border_radius=3)
-            pygame.draw.rect(surface, (0, 200, 240), act_rect, width=1, border_radius=3)
-
-            cat = act.get("target_category", "R&D").replace("_", " ")
-            surface.blit(
-                self.font_body.render(
-                    "breakthroughs and rival intelligence after upcoming race events.", True, UITheme.TEXT_WHITE
-                ),
-                (emp_box.x + 10, emp_box.y + 56),
-                self.font_card_title.render(f"ACTIVE: {act['title']} [{cat}]", True, (0, 240, 255)),
-                (act_rect.x + 10, act_rect.y + 6),
-            )
-
-        act_rect, cards = self.get_pipeline_layout(active_pitches, pitches)
-            # Progress Bar
-            r_left = act.get("races_remaining", 1)
-            total_r = max(1, act.get("races_required", 2))
-            prog = max(0.0, min(1.0, 1.0 - (r_left / total_r)))
 
         # Draw Active Project if present
         if act_rect and active_pitches:
@@ -481,16 +447,12 @@ class DashboardTab:
             surface.blit(
                 self.font_card_title.render(f"ACTIVE [{ap_type}]: {ap['title']}", True, (255, 220, 50)),
                 (act_rect.x + 8, act_rect.y + 4),
-            bar_rect = pygame.Rect(act_rect.x + 10, act_rect.y + 26, act_rect.width - 20, 16)
-            pygame.draw.rect(surface, (12, 16, 22), bar_rect, border_radius=2)
-            pygame.draw.rect(
-                surface, (0, 200, 140), (bar_rect.x, bar_rect.y, int(bar_rect.width * prog), 16), border_radius=2
             )
-            raw_cats = ap.get("target_categories") or ap["category"]
+            raw_cats = ap.get("target_categories") or ap.get("category", "R&D")
             gain = ap.get("knowledge_gain", 20.0)
             surface.blit(
                 self.font_body.render(
-                    f"Targets: {raw_cats} (+{gain:.0f} Flat Knowledge) | {ap['weeks_remaining']} wks left",
+                    f"Targets: {raw_cats} (+{gain:.0f} Flat Knowledge) | {ap.get('weeks_remaining', 1)} wks left",
                     True,
                     UITheme.TEXT_WHITE,
                 ),
@@ -498,17 +460,12 @@ class DashboardTab:
             )
             surface.blit(
                 self.font_badge.render(
-                    f"Lockout: {ap['locked_subnode']} | Estimated Success: {ap['est_success_min']}%–{ap['est_success_max']}%",
+                    f"Lockout: {ap.get('locked_subnode', 'N/A')} | Estimated Success: {ap.get('est_success_min', 0)}%–{ap.get('est_success_max', 100)}%",
                     True,
                     tag_col,
                 ),
                 (act_rect.x + 8, act_rect.y + 36),
             )
-            pygame.draw.rect(surface, UITheme.PANEL_BORDER, bar_rect, width=1, border_radius=2)
-
-        # Draw Pending Proposals
-            p_lbl = self.font_badge.render(f"R&D IN PROGRESS - {r_left} Grand Prix Remaining", True, (255, 255, 255))
-            surface.blit(p_lbl, (bar_rect.x + (bar_rect.width - p_lbl.get_width()) // 2, bar_rect.y + 2))
 
         # Render Pending Proposals Cards
         for idx, (c_rect, greenlight_btn, discard_btn) in enumerate(cards):
@@ -517,28 +474,17 @@ class DashboardTab:
             p = pitches[idx]
 
             pygame.draw.rect(surface, (20, 26, 34), c_rect, border_radius=3)
-            pygame.draw.rect(surface, (22, 28, 36), c_rect, border_radius=3)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, c_rect, width=1, border_radius=3)
 
             p_type = p.get("idea_type", "CREATIVE")
             is_creative = p_type == "CREATIVE"
-            badge_lbl = (
-                "💡 CREATIVE INVENTION" if is_creative else f"🔍 COMPETITOR INTEL ({p.get('observed_from', 'Rival')})"
-            cat = p.get("target_category", "CAR").replace("_", " ")
-            surface.blit(
-                self.font_card_title.render(f"PITCH: {p['title']} [{cat}]", True, (255, 215, 0)),
-                (c_rect.x + 10, c_rect.y + 6),
-            )
+            badge_icon = "sparkles" if is_creative else "search"
+            badge_lbl = "CREATIVE INVENTION" if is_creative else f"COMPETITOR INTEL ({p.get('observed_from', 'Rival')})"
             badge_col = (240, 110, 255) if is_creative else (0, 220, 255)
 
-            surface.blit(self.font_badge.render(badge_lbl, True, badge_col), (c_rect.x + 8, c_rect.y + 4))
+            UITheme.draw_icon(surface, badge_icon, (c_rect.x + 8, c_rect.y + 5), color=badge_col, size=13)
+            surface.blit(self.font_badge.render(badge_lbl, True, badge_col), (c_rect.x + 25, c_rect.y + 4))
             surface.blit(self.font_card_title.render(p["title"], True, (255, 225, 60)), (c_rect.x + 8, c_rect.y + 18))
-            eff = p.get("performance_gain", 5.0)
-            risk = p.get("risk_pct", 20.0)
-            desc_str = (
-                f"Benefit: +{eff:.1f} Perf  |  Failure Risk: {risk:.0f}%  |  Time: {p.get('races_required', 2)} GPs"
-            )
-            surface.blit(self.font_body.render(desc_str, True, (0, 240, 140)), (c_rect.x + 10, c_rect.y + 24))
 
             raw_cats = p.get("target_categories") or p["category"]
             gain = p.get("knowledge_gain", 20.0)
@@ -551,20 +497,7 @@ class DashboardTab:
             cost_str = f"Cost: ${p['hard_cost']:,.0f}"
             surface.blit(self.font_badge.render(cost_str, True, (255, 140, 140)), (c_rect.x + 8, c_rect.y + 72))
 
-            # Buttons
-            pygame.draw.rect(surface, (0, 180, 90), greenlight_btn, border_radius=2)
-            g_lbl = self.font_badge.render("GREENLIGHT", True, (10, 20, 15))
-            req_cost = p.get("upfront_cost", 100000.0) * rnd_cost_mult
-            surface.blit(
-                g_lbl, (greenlight_btn.x + (greenlight_btn.width - g_lbl.get_width()) // 2, greenlight_btn.y + 4)
-                self.font_body.render(f"Cost: ${req_cost:,.0f} Upfront", True, UITheme.TEXT_MUTED),
-                (c_rect.x + 10, c_rect.y + 42),
-            )
-
-            pygame.draw.rect(surface, (140, 40, 40), discard_btn, border_radius=2)
-            d_lbl = self.font_badge.render("DISCARD", True, (255, 255, 255))
-            surface.blit(d_lbl, (discard_btn.x + (discard_btn.width - d_lbl.get_width()) // 2, discard_btn.y + 4))
-            # Draw Action Buttons
+            # Action Buttons
             UITheme.draw_button(surface, greenlight_btn, "APPROVE", self.font_badge, icon="check", icon_size=11)
             UITheme.draw_button(surface, discard_btn, "DISCARD", self.font_badge, icon="x", icon_size=11)
 
@@ -592,15 +525,6 @@ class DashboardTab:
 
         # Big Action Button: START RACE WEEKEND vs ADVANCE CALENDAR WEEK
         race_btn_rect = pygame.Rect(self.width - 320, self.height - 65, 300, 48)
-        if is_race_week:
-            pygame.draw.rect(surface, (0, 200, 120), race_btn_rect, border_radius=5)
-            pygame.draw.rect(surface, (100, 255, 180), race_btn_rect, width=2, border_radius=5)
-            r_txt = self.font_race_btn.render("START RACE WEEKEND >>", True, (10, 25, 20))
-        else:
-            pygame.draw.rect(surface, (30, 85, 140), race_btn_rect, border_radius=5)
-            pygame.draw.rect(surface, (0, 220, 255), race_btn_rect, width=2, border_radius=5)
-            r_txt = self.font_race_btn.render("ADVANCE WEEK (SIMULATE) >>", True, (255, 255, 255))
-        surface.blit(r_txt, (race_btn_rect.x + (race_btn_rect.width - r_txt.get_width()) // 2, race_btn_rect.y + 14))
         action_btn_text = "START RACE WEEKEND" if is_race_week else "ADVANCE WEEK"
         action_btn_icon = "flag" if is_race_week else "fast-forward"
         UITheme.draw_button(
@@ -615,10 +539,6 @@ class DashboardTab:
 
         # View Weekly Roundup Button
         roundup_btn = pygame.Rect(self.width - 530, self.height - 65, 195, 48)
-        pygame.draw.rect(surface, (20, 28, 38), roundup_btn, border_radius=5)
-        pygame.draw.rect(surface, (0, 220, 255), roundup_btn, width=1, border_radius=5)
-        ro_txt = self.font_card_title.render("📊 WEEKLY ROUNDUP", True, (0, 220, 255))
-        surface.blit(ro_txt, (roundup_btn.x + (roundup_btn.width - ro_txt.get_width()) // 2, roundup_btn.y + 16))
         UITheme.draw_button(
             surface,
             roundup_btn,

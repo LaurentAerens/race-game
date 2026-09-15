@@ -106,10 +106,6 @@ class DriverStrategyPanel:
             from .icons import UIIcons
 
             # Fuel
-            f_lbl = self.font_lbl.render("FUEL", True, UITheme.TEXT_MUTED)
-            f_val = self.font_sub.render(f"{car.fuel_kg:04.1f}kg", True, UITheme.TEXT_WHITE)
-            surface.blit(f_lbl, (cx + 8, cy + 25))
-            surface.blit(f_val, (cx + 46, cy + 24))
             fuel_col = (255, 180, 40) if car.fuel_kg < 8.0 else UITheme.TEXT_WHITE
             fuel_ic = UIIcons.get_icon("fuel", size=15, color=fuel_col)
             surface.blit(fuel_ic, (cx + 8, cy + 24))
@@ -118,35 +114,25 @@ class DriverStrategyPanel:
 
             # ERS
             if league_tier >= 3:
-                ers_text = "N/A [Spec]"
                 ers_text = "N/A (Spec)"
                 ers_col = (110, 120, 135)
             elif league_tier == 2:
-                ers_text = f"{int(car.ers_pct)}% [Spec]"
                 ers_text = f"{int(car.ers_pct)}% Spec"
                 ers_col = UITheme.ACCENT_CYAN
             else:
-                ers_text = f"{int(car.ers_pct)}% [{car.ers_mode[:4]}]"
                 ers_text = f"{int(car.ers_pct)}% {car.ers_mode[:4]}"
                 ers_col = UITheme.ACCENT_GREEN if car.ers_mode == "AUTO" else UITheme.TEXT_WHITE
 
-            e_lbl = self.font_lbl.render("ERS", True, UITheme.TEXT_MUTED)
             ers_ic = UIIcons.get_icon("zap", size=15, color=ers_col)
             surface.blit(ers_ic, (cx + 8, cy + 48))
             e_val = self.font_sub.render(ers_text, True, ers_col)
-            surface.blit(e_lbl, (cx + 8, cy + 49))
-            surface.blit(e_val, (cx + 46, cy + 48))
             surface.blit(e_val, (cx + 28, cy + 48))
 
             # Tyre
-            t_lbl = self.font_lbl.render("TYRE", True, UITheme.TEXT_MUTED)
             UIIcons.draw_tyre(surface, (cx + 8, cy + 72), car.tires.compound.color_rgb, size=15)
             t_val = self.font_sub.render(
-                f"{int(100 - car.tires.wear_pct)}% ({car.tires.compound.name})", True, car.tires.compound.color_rgb
                 f"{int(100 - car.tires.wear_pct)}% {car.tires.compound.name[:4]}", True, car.tires.compound.color_rgb
             )
-            surface.blit(t_lbl, (cx + 8, cy + 73))
-            surface.blit(t_val, (cx + 46, cy + 72))
             surface.blit(t_val, (cx + 28, cy + 72))
 
             # Vertical separator line between Telemetry and Strategy Buttons
@@ -208,8 +194,6 @@ class DriverStrategyPanel:
             surface.blit(box_ic, (box_btn.x + (box_btn.width - box_ic.get_width()) // 2, box_btn.y + 8))
             box_txt1 = self.font_btn.render("BOX", True, UITheme.TEXT_WHITE)
             box_txt2 = self.font_btn.render("CANCEL" if car.box_this_lap else "STRATEGY", True, (240, 240, 240))
-            surface.blit(box_txt1, (box_btn.x + (box_btn.width - box_txt1.get_width()) // 2, box_btn.y + 14))
-            surface.blit(box_txt2, (box_btn.x + (box_btn.width - box_txt2.get_width()) // 2, box_btn.y + 36))
             surface.blit(box_txt1, (box_btn.x + (box_btn.width - box_txt1.get_width()) // 2, box_btn.y + 28))
             surface.blit(box_txt2, (box_btn.x + (box_btn.width - box_txt2.get_width()) // 2, box_btn.y + 46))
 
@@ -223,7 +207,6 @@ class DriverStrategyPanel:
 
             # Health summary color: red if critical (<30%), orange if low (<50%), green otherwise
             h_col = (255, 70, 70) if min_dur < 30.0 else ((255, 180, 50) if min_dur < 50.0 else (0, 220, 160))
-            h_text = f"PARTS: FW {fw:.0f}% | RW {rw:.0f}% | BRK {brk:.0f}% | ENG {eng:.0f}%"
             h_text = f"FW {fw:.0f}% | RW {rw:.0f}% | BRK {brk:.0f}% | ENG {eng:.0f}%"
             if getattr(car, "is_broken", False):
                 h_text = f"RETIRED - MECHANICAL BREAKDOWN ({getattr(car, 'blunder_part_damaged', 'PART')})"
@@ -232,5 +215,4 @@ class DriverStrategyPanel:
             sh_ic = UIIcons.get_icon("shield", size=13, color=h_col)
             surface.blit(sh_ic, (cx + 8, cy + 96))
             h_surf = self.font_sub.render(h_text, True, h_col)
-            surface.blit(h_surf, (cx + 8, cy + 96))
             surface.blit(h_surf, (cx + 25, cy + 96))

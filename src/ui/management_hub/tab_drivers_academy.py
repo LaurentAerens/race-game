@@ -695,10 +695,6 @@ class DriversAcademyTab:
         tab_market_rect = pygame.Rect(r_rect.x + 315, 68, 135, 28)
 
         is_acad = self.active_subtab == "ACADEMY"
-        pygame.draw.rect(surface, (35, 55, 75) if is_acad else (20, 26, 34), tab_acad_rect, border_top_left_radius=4)
-        pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_acad else UITheme.PANEL_BORDER, tab_acad_rect, width=1)
-        lbl_a = self.font_btn.render(
-            f"JUNIOR ACADEMY ({len(academy_drivers)})", True, UITheme.TEXT_WHITE if is_acad else UITheme.TEXT_MUTED
         UITheme.draw_button(
             surface,
             tab_acad_rect,
@@ -708,13 +704,8 @@ class DriversAcademyTab:
             icon="graduation-cap",
             icon_size=13,
         )
-        surface.blit(lbl_a, (tab_acad_rect.x + (tab_acad_rect.width - lbl_a.get_width()) // 2, tab_acad_rect.y + 6))
 
         is_scout = self.active_subtab == "SCOUTS"
-        pygame.draw.rect(surface, (35, 55, 75) if is_scout else (20, 26, 34), tab_scout_rect)
-        pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_scout else UITheme.PANEL_BORDER, tab_scout_rect, width=1)
-        lbl_s = self.font_btn.render(
-            f"SCOUT CANDIDATES ({len(scout_prospects)})", True, UITheme.TEXT_WHITE if is_scout else UITheme.TEXT_MUTED
         UITheme.draw_button(
             surface,
             tab_scout_rect,
@@ -724,11 +715,8 @@ class DriversAcademyTab:
             icon="search",
             icon_size=13,
         )
-        surface.blit(lbl_s, (tab_scout_rect.x + (tab_scout_rect.width - lbl_s.get_width()) // 2, tab_scout_rect.y + 6))
 
         is_market = self.active_subtab == "MARKET"
-        pygame.draw.rect(
-            surface, (35, 55, 75) if is_market else (20, 26, 34), tab_market_rect, border_top_right_radius=4
         UITheme.draw_button(
             surface,
             tab_market_rect,
@@ -737,11 +725,6 @@ class DriversAcademyTab:
             is_active=is_market,
             icon="briefcase",
             icon_size=13,
-        )
-        pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_market else UITheme.PANEL_BORDER, tab_market_rect, width=1)
-        lbl_m = self.font_btn.render("DRIVER MARKET", True, UITheme.TEXT_WHITE if is_market else UITheme.TEXT_MUTED)
-        surface.blit(
-            lbl_m, (tab_market_rect.x + (tab_market_rect.width - lbl_m.get_width()) // 2, tab_market_rect.y + 6)
         )
 
         # =====================================================================

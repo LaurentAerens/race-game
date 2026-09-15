@@ -1,4 +1,3 @@
-from typing import Dict, Tuple
 from typing import Dict, Optional, Tuple
 
 import pygame
@@ -145,10 +144,6 @@ class UITheme:
         pygame.draw.rect(surface, bg, rect, border_radius=3)
         pygame.draw.rect(surface, border_color, rect, width=1, border_radius=3)
 
-        txt_surf = font.render(text, True, text_color)
-        surface.blit(
-            txt_surf,
-            (rect.x + (rect.width - txt_surf.get_width()) // 2, rect.y + (rect.height - txt_surf.get_height()) // 2),
         from .icons import UIIcons
 
         if icon:
