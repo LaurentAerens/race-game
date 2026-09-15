@@ -4,11 +4,13 @@ Renders glowing target highlights, animated spotlight pulse,
 and a floating, draggable Advisor Dialog Card with step navigation and rewards.
 """
 
-import pygame
 import math
-from typing import Dict, List, Optional, Any, Tuple
-from .theme import UITheme
+from typing import Any, Optional, Tuple
+
+import pygame
+
 from ..management.tutorial_manager import TutorialManager, TutorialStep
+from .theme import UITheme
 
 
 class TutorialOverlay:
@@ -17,7 +19,9 @@ class TutorialOverlay:
     on top of the active game mode.
     """
 
-    def __init__(self, screen_width: int, screen_height: int, manager: TutorialManager, management_hub: Optional[Any] = None):
+    def __init__(
+        self, screen_width: int, screen_height: int, manager: TutorialManager, management_hub: Optional[Any] = None
+    ):
         self.width = screen_width
         self.height = screen_height
         self.manager = manager
@@ -120,14 +124,20 @@ class TutorialOverlay:
         """Calculates smart positioning directly adjacent to the target element."""
         # Auto-reset custom drag if step changed, inspector drawer toggled, or workforce sub-tab changed
         is_drawer_open = bool(
-            self.management_hub and 
-            hasattr(self.management_hub, "tab_factory") and 
-            getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes"
+            self.management_hub
+            and hasattr(self.management_hub, "tab_factory")
+            and getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes"
         )
-        wf_sub_tab = getattr(self.management_hub.tab_workforce, "sub_tab", "") if (self.management_hub and hasattr(self.management_hub, "tab_workforce")) else ""
-        if (getattr(self, "_last_step_id", None) != step.step_id or 
-            getattr(self, "_last_drawer_open", None) != is_drawer_open or
-            getattr(self, "_last_wf_sub_tab", None) != wf_sub_tab):
+        wf_sub_tab = (
+            getattr(self.management_hub.tab_workforce, "sub_tab", "")
+            if (self.management_hub and hasattr(self.management_hub, "tab_workforce"))
+            else ""
+        )
+        if (
+            getattr(self, "_last_step_id", None) != step.step_id
+            or getattr(self, "_last_drawer_open", None) != is_drawer_open
+            or getattr(self, "_last_wf_sub_tab", None) != wf_sub_tab
+        ):
             self._last_step_id = step.step_id
             self._last_drawer_open = is_drawer_open
             self._last_wf_sub_tab = wf_sub_tab
@@ -166,7 +176,12 @@ class TutorialOverlay:
                 card_y = max(60, min(self.height - self.card_h - 20, target.y))
                 return pygame.Rect(card_x, card_y, self.card_w, self.card_h)
             else:
-                return pygame.Rect(self.width - self.card_w - 24, max(60, min(self.height - self.card_h - 20, target.y)), self.card_w, self.card_h)
+                return pygame.Rect(
+                    self.width - self.card_w - 24,
+                    max(60, min(self.height - self.card_h - 20, target.y)),
+                    self.card_w,
+                    self.card_h,
+                )
 
         # 3. Target is on right side of screen -> dock horizontally to its LEFT
         else:
@@ -269,27 +284,61 @@ class TutorialOverlay:
 
             # Draw outer highlight border with padding
             pad = 4
-            highlight_rect = pygame.Rect(target.x - pad, target.y - pad, target.width + pad * 2, target.height + pad * 2)
+            highlight_rect = pygame.Rect(
+                target.x - pad, target.y - pad, target.width + pad * 2, target.height + pad * 2
+            )
             pygame.draw.rect(surface, glow_color, highlight_rect, width=2, border_radius=5)
 
             # Draw subtle semi-transparent corner accents
             corner_len = 14
             # Top-left
-            pygame.draw.line(surface, (255, 255, 255), (highlight_rect.x, highlight_rect.y), (highlight_rect.x + corner_len, highlight_rect.y), 3)
-            pygame.draw.line(surface, (255, 255, 255), (highlight_rect.x, highlight_rect.y), (highlight_rect.x, highlight_rect.y + corner_len), 3)
+            pygame.draw.line(
+                surface,
+                (255, 255, 255),
+                (highlight_rect.x, highlight_rect.y),
+                (highlight_rect.x + corner_len, highlight_rect.y),
+                3,
+            )
+            pygame.draw.line(
+                surface,
+                (255, 255, 255),
+                (highlight_rect.x, highlight_rect.y),
+                (highlight_rect.x, highlight_rect.y + corner_len),
+                3,
+            )
             # Bottom-right
-            pygame.draw.line(surface, (255, 255, 255), (highlight_rect.right, highlight_rect.bottom), (highlight_rect.right - corner_len, highlight_rect.bottom), 3)
-            pygame.draw.line(surface, (255, 255, 255), (highlight_rect.right, highlight_rect.bottom), (highlight_rect.right, highlight_rect.bottom - corner_len), 3)
+            pygame.draw.line(
+                surface,
+                (255, 255, 255),
+                (highlight_rect.right, highlight_rect.bottom),
+                (highlight_rect.right - corner_len, highlight_rect.bottom),
+                3,
+            )
+            pygame.draw.line(
+                surface,
+                (255, 255, 255),
+                (highlight_rect.right, highlight_rect.bottom),
+                (highlight_rect.right, highlight_rect.bottom - corner_len),
+                3,
+            )
 
             # Step Focus Badge attached to the highlighted target
             badge_txt = f"🎯 TUTORIAL FOCUS: STEP {self.manager.current_step_index + 1}"
             if step.step_id == "FACTORY_BRAKES_EQUIPMENT":
-                if self.management_hub and hasattr(self.management_hub, "tab_factory") and getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes":
+                if (
+                    self.management_hub
+                    and hasattr(self.management_hub, "tab_factory")
+                    and getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes"
+                ):
                     badge_txt = "🎯 STEP 2: CLICK 'BUY' OR 'UPGRADE' (FREE BOARD GRANT)"
                 else:
                     badge_txt = "🎯 STEP 2: CLICK 'BRAKES LAB' TO OPEN EQUIPMENT"
             elif step.step_id == "PERSONNEL_HIRING":
-                if self.management_hub and hasattr(self.management_hub, "tab_workforce") and getattr(self.management_hub.tab_workforce, "sub_tab", "") != "RECRUITMENT":
+                if (
+                    self.management_hub
+                    and hasattr(self.management_hub, "tab_workforce")
+                    and getattr(self.management_hub.tab_workforce, "sub_tab", "") != "RECRUITMENT"
+                ):
                     badge_txt = "🎯 STEP 3: CLICK 'RECRUITMENT & TRYOUTS' SUB-TAB"
                 else:
                     badge_txt = "🎯 STEP 3: HIRE A CANDIDATE (FREE BOARD GRANT)"
@@ -372,14 +421,20 @@ class TutorialOverlay:
 
         # Body Text with word wrap
         body_text = step.body
-        if step.step_id == "FACTORY_BRAKES_EQUIPMENT" and self.management_hub and hasattr(self.management_hub, "tab_factory"):
+        if (
+            step.step_id == "FACTORY_BRAKES_EQUIPMENT"
+            and self.management_hub
+            and hasattr(self.management_hub, "tab_factory")
+        ):
             if getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes":
                 body_text = (
                     "Brakes Lab opened!\n\n"
                     "Inspect the specialized equipment items in the drawer on the right (Stress Rigs, Carbon Lathes, etc.).\n\n"
                     "Click 'BUY' or 'UPGRADE' on any item to equip our facility. The Board grant will reimburse 100% of the cost (+$800,000) as a completion bonus!"
                 )
-        elif step.step_id == "PERSONNEL_HIRING" and self.management_hub and hasattr(self.management_hub, "tab_workforce"):
+        elif (
+            step.step_id == "PERSONNEL_HIRING" and self.management_hub and hasattr(self.management_hub, "tab_workforce")
+        ):
             if getattr(self.management_hub.tab_workforce, "sub_tab", "") == "RECRUITMENT":
                 body_text = (
                     "Recruitment & Tryouts queue active!\n\n"
@@ -395,7 +450,7 @@ class TutorialOverlay:
             card.width - 32,
             self.font_body,
             (210, 220, 235),
-            line_spacing=16
+            line_spacing=16,
         )
 
         # Reward Banner (if any)
@@ -433,7 +488,17 @@ class TutorialOverlay:
         nx_lbl = self.font_btn.render(step.action_label, True, (10, 24, 18))
         surface.blit(nx_lbl, (btn_next.x + (btn_next.width - nx_lbl.get_width()) // 2, btn_next.y + 7))
 
-    def _render_wrapped_text(self, surface: pygame.Surface, text: str, x: int, y: int, max_width: int, font: pygame.font.Font, color: Tuple[int, int, int], line_spacing: int = 15):
+    def _render_wrapped_text(
+        self,
+        surface: pygame.Surface,
+        text: str,
+        x: int,
+        y: int,
+        max_width: int,
+        font: pygame.font.Font,
+        color: Tuple[int, int, int],
+        line_spacing: int = 15,
+    ):
         """Helper to render multi-line and paragraph-wrapped text cleanly."""
         paragraphs = text.split("\n")
         cur_y = y

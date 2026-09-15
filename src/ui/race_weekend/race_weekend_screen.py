@@ -1,7 +1,11 @@
+import random
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import pygame
-from typing import Dict, List, Any, Optional, Callable, Tuple
-from ...core.race_weekend import RaceWeekendManager, RaceWeekendSession, PracticePlan, CarSetup
+
+from ...core.race_weekend import PracticePlan, RaceWeekendManager, RaceWeekendSession
 from ...ui.theme import UITheme
+
 
 class RaceWeekendScreen:
     """
@@ -14,12 +18,16 @@ class RaceWeekendScreen:
     - Sprint Grid (with Tier 1 Top 10 Reverse Grid) & Grand Prix Strategy
     """
 
-    def __init__(self, width: int, height: int, 
-                 manager: RaceWeekendManager,
-                 drivers: List[Dict[str, Any]],
-                 on_start_live_session: Callable[[str, int, Optional[List[Dict[str, Any]]]], None],
-                 on_finish_weekend: Callable[[Dict[str, Any]], None],
-                 driver_car_pairs: Optional[List[Tuple[Any, Any]]] = None):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        manager: RaceWeekendManager,
+        drivers: List[Dict[str, Any]],
+        on_start_live_session: Callable[[str, int, Optional[List[Dict[str, Any]]]], None],
+        on_finish_weekend: Callable[[Dict[str, Any]], None],
+        driver_car_pairs: Optional[List[Tuple[Any, Any]]] = None,
+    ):
         self.width = width
         self.height = height
         self.manager = manager
@@ -77,9 +85,9 @@ class RaceWeekendScreen:
             ("rear_wing", 0.0, 100.0),
             ("suspension", 0.0, 100.0),
             ("gear_ratio", 0.0, 100.0),
-            ("brake_bias", 50.0, 65.0)
+            ("brake_bias", 50.0, 65.0),
         ]
-        
+
         for idx, (p_name, min_v, max_v) in enumerate(param_names):
             if self.dragging_param == p_name:
                 row_y = setup_rect.y + 42 + idx * 42
@@ -112,7 +120,7 @@ class RaceWeekendScreen:
                 ("rear_wing", 0.0, 100.0, 2.0),
                 ("suspension", 0.0, 100.0, 2.0),
                 ("gear_ratio", 0.0, 100.0, 2.0),
-                ("brake_bias", 50.0, 65.0, 0.5)
+                ("brake_bias", 50.0, 65.0, 0.5),
             ]
             for idx, (p_name, min_v, max_v, step) in enumerate(param_names):
                 row_y = setup_rect.y + 42 + idx * 42
@@ -151,7 +159,11 @@ class RaceWeekendScreen:
             # Action: Run Practice Run
             run_btn = pygame.Rect(24, self.height - 75, 260, 48)
             if run_btn.collidepoint(mx, my):
-                d_name = self.drivers[self.active_car_slot - 1]["name"] if len(self.drivers) >= self.active_car_slot else f"Driver {self.active_car_slot}"
+                d_name = (
+                    self.drivers[self.active_car_slot - 1]["name"]
+                    if len(self.drivers) >= self.active_car_slot
+                    else f"Driver {self.active_car_slot}"
+                )
                 res = mgr.run_practice_run(self.active_car_slot, d_name, laps_run=5)
                 self.status_message = f"Completed 5 laps! Confidence is now {res['confidence_pct']}%."
                 return True
@@ -173,7 +185,9 @@ class RaceWeekendScreen:
                     all_pairs = self._build_driver_car_pairs()
                     q_res = mgr.simulate_qualifying_session(all_pairs)
                     mgr.record_session_completion(RaceWeekendSession.QUALIFYING, q_res)
-                    self.status_message = f"Qualifying complete! Pole: {q_res[0]['driver_name']} ({q_res[0]['lap_time_str']})"
+                    self.status_message = (
+                        f"Qualifying complete! Pole: {q_res[0]['driver_name']} ({q_res[0]['lap_time_str']})"
+                    )
                     return True
             else:
                 next_btn = pygame.Rect(self.width // 2 - 140, self.height - 75, 280, 48)
@@ -251,7 +265,7 @@ class RaceWeekendScreen:
             "weekend_team_points": mgr.weekend_team_points,
             "sprint_results": mgr.sprint_results,
             "race_results": mgr.race_results,
-            "qualifying_results": mgr.qualifying_results
+            "qualifying_results": mgr.qualifying_results,
         }
         self.on_finish_weekend(summary)
 
@@ -260,6 +274,7 @@ class RaceWeekendScreen:
         if self.driver_car_pairs:
             return self.driver_car_pairs
         from ...database.db_manager import DatabaseManager
+
         return DatabaseManager("race_game.db").get_all_drivers_and_cars()
 
     def _quick_simulate_race_finish(self, starting_grid: List[Dict[str, Any]], laps: int) -> List[Dict[str, Any]]:
@@ -274,7 +289,7 @@ class RaceWeekendScreen:
                 bonuses = self.manager.practice_bonuses[c_slot]
                 conf = self.manager.setup_confidence[c_slot]
                 base_score += (conf / 100.0) * 8.0 + bonuses.get("race_wear_bonus", 0.0) * 15.0
-            
+
             # Variance
             score = base_score + random.uniform(-6.0, 6.0)
             ranked.append((score, g))
@@ -299,7 +314,9 @@ class RaceWeekendScreen:
         t_title = f"🏁 {mgr.track_name.upper()} — GRAND PRIX WEEKEND"
         surface.blit(self.font_title.render(t_title, True, UITheme.TEXT_WHITE), (24, 14))
 
-        tier_str = {1: "TIER 1 (WORLD SUPER FORMULA)", 2: "TIER 2 (CONTINENTAL)", 3: "TIER 3 (NATIONAL CUP)"}.get(mgr.tier, "TIER 3")
+        tier_str = {1: "TIER 1 (WORLD SUPER FORMULA)", 2: "TIER 2 (CONTINENTAL)", 3: "TIER 3 (NATIONAL CUP)"}.get(
+            mgr.tier, "TIER 3"
+        )
         t_badge = self.font_badge.render(f"[{tier_str}]", True, UITheme.ACCENT_YELLOW)
         surface.blit(t_badge, (self.width - 24 - t_badge.get_width(), 16))
 
@@ -320,7 +337,10 @@ class RaceWeekendScreen:
 
         # 4. Status Bar
         stat_bar = pygame.Rect(24, self.height - 24, self.width - 48, 20)
-        surface.blit(self.font_badge.render(f"PIT WALL: {self.status_message}", True, UITheme.ACCENT_CYAN), (stat_bar.x, stat_bar.y))
+        surface.blit(
+            self.font_badge.render(f"PIT WALL: {self.status_message}", True, UITheme.ACCENT_CYAN),
+            (stat_bar.x, stat_bar.y),
+        )
 
     def _render_session_stepper(self, surface: pygame.Surface, x: int, y: int, w: int, h: int):
         mgr = self.manager
@@ -333,14 +353,14 @@ class RaceWeekendScreen:
             RaceWeekendSession.QUALIFYING: "3. QUALIFYING" if mgr.tier == 1 else "QUALIFYING",
             RaceWeekendSession.SPRINT: "4. SPRINT (REV-10)" if mgr.tier == 1 else "SPRINT RACE",
             RaceWeekendSession.FP3: "5. RACE FP3",
-            RaceWeekendSession.RACE: "6. GRAND PRIX" if mgr.tier == 1 else "GRAND PRIX"
+            RaceWeekendSession.RACE: "6. GRAND PRIX" if mgr.tier == 1 else "GRAND PRIX",
         }
 
         for idx, sess in enumerate(mgr.sessions):
             sx = x + idx * (step_w + 8)
             s_rect = pygame.Rect(sx, y, step_w, h)
-            is_active = (idx == mgr.current_session_index and not mgr.is_weekend_completed)
-            is_done = (idx < mgr.current_session_index or mgr.is_weekend_completed)
+            is_active = idx == mgr.current_session_index and not mgr.is_weekend_completed
+            is_done = idx < mgr.current_session_index or mgr.is_weekend_completed
 
             if is_active:
                 pygame.draw.rect(surface, (25, 45, 65), s_rect, border_radius=4)
@@ -359,7 +379,10 @@ class RaceWeekendScreen:
             if is_done:
                 lbl = f"✓ {lbl}"
             txt = self.font_card.render(lbl, True, txt_col)
-            surface.blit(txt, (s_rect.x + (s_rect.width - txt.get_width()) // 2, s_rect.y + (s_rect.height - txt.get_height()) // 2))
+            surface.blit(
+                txt,
+                (s_rect.x + (s_rect.width - txt.get_width()) // 2, s_rect.y + (s_rect.height - txt.get_height()) // 2),
+            )
 
     def _render_practice_session(self, surface: pygame.Surface):
         mgr = self.manager
@@ -385,8 +408,12 @@ class RaceWeekendScreen:
         # B. Setup Tuning Panel (Left)
         setup_rect = pygame.Rect(24, 150, 480, 260)
         UITheme.draw_panel(surface, setup_rect)
-        is_fp3_race_prep = (mgr.current_session == RaceWeekendSession.FP3)
-        h_title = f"CAR #{slot} FP3 RACE FINE-TUNING (POST-SPRINT SETUP)" if is_fp3_race_prep else f"CAR #{slot} MECHANICAL & AERO SETUP"
+        is_fp3_race_prep = mgr.current_session == RaceWeekendSession.FP3
+        h_title = (
+            f"CAR #{slot} FP3 RACE FINE-TUNING (POST-SPRINT SETUP)"
+            if is_fp3_race_prep
+            else f"CAR #{slot} MECHANICAL & AERO SETUP"
+        )
         h_col = (255, 215, 0) if is_fp3_race_prep else UITheme.ACCENT_CYAN
         surface.blit(self.font_header.render(h_title, True, h_col), (setup_rect.x + 12, setup_rect.y + 6))
 
@@ -398,7 +425,7 @@ class RaceWeekendScreen:
             ("Rear Wing Angle", "rear_wing", cur_setup.rear_wing, 0.0, 100.0, ""),
             ("Suspension Stiffness", "suspension", cur_setup.suspension, 0.0, 100.0, ""),
             ("Gear Ratio Spread", "gear_ratio", cur_setup.gear_ratio, 0.0, 100.0, ""),
-            ("Brake Bias", "brake_bias", cur_setup.brake_bias, 50.0, 65.0, "%")
+            ("Brake Bias", "brake_bias", cur_setup.brake_bias, 50.0, 65.0, "%"),
         ]
 
         for idx, (label, p_key, val, min_v, max_v, unit) in enumerate(param_configs):
@@ -448,7 +475,10 @@ class RaceWeekendScreen:
         UITheme.draw_panel(surface, plan_panel)
         p_hdr = pygame.Rect(plan_panel.x, plan_panel.y, plan_panel.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, p_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_header.render("SELECT PRACTICE RUN PROGRAM", True, (255, 205, 30)), (plan_panel.x + 12, plan_panel.y + 5))
+        surface.blit(
+            self.font_header.render("SELECT PRACTICE RUN PROGRAM", True, (255, 205, 30)),
+            (plan_panel.x + 12, plan_panel.y + 5),
+        )
 
         active_plan = mgr.practice_plans[slot]
         plan_buttons = [
@@ -459,9 +489,11 @@ class RaceWeekendScreen:
         ]
 
         for plan_enum, lbl, btn_r in plan_buttons:
-            is_sel = (plan_enum == active_plan)
+            is_sel = plan_enum == active_plan
             pygame.draw.rect(surface, (30, 52, 75) if is_sel else (20, 26, 36), btn_r, border_radius=3)
-            pygame.draw.rect(surface, (0, 220, 255) if is_sel else (45, 55, 70), btn_r, width=2 if is_sel else 1, border_radius=3)
+            pygame.draw.rect(
+                surface, (0, 220, 255) if is_sel else (45, 55, 70), btn_r, width=2 if is_sel else 1, border_radius=3
+            )
             txt = self.font_card.render(lbl, True, (0, 240, 255) if is_sel else UITheme.TEXT_MUTED)
             surface.blit(txt, (btn_r.x + 10, btn_r.y + 8))
 
@@ -470,7 +502,7 @@ class RaceWeekendScreen:
             PracticePlan.BALANCED: "Balanced program: +6% extra setup confidence gain and well-rounded pace data.",
             PracticePlan.FAST_LAP: "Low-fuel hot-lap flying simulation: Awards up to +0.65s Qualifying Pace Boost.",
             PracticePlan.SPRINT_STINTS: "Medium-stint simulation: Reduces Sprint tire degradation by up to 30%.",
-            PracticePlan.LONG_RUNS: "Heavy-fuel simulation: Cuts Normal Race tire wear by 35% & saves 15% fuel."
+            PracticePlan.LONG_RUNS: "Heavy-fuel simulation: Cuts Normal Race tire wear by 35% & saves 15% fuel.",
         }
         desc_box = pygame.Rect(plan_panel.x + 14, plan_panel.y + 118, plan_panel.width - 28, 45)
         pygame.draw.rect(surface, (16, 22, 30), desc_box, border_radius=3)
@@ -481,11 +513,17 @@ class RaceWeekendScreen:
         UITheme.draw_panel(surface, fb_rect)
         fb_hdr = pygame.Rect(fb_rect.x, fb_rect.y, fb_rect.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, fb_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_header.render(f"CAR #{slot} TELEMETRY & DRIVER RADIO FEEDBACK", True, UITheme.ACCENT_CYAN), (fb_rect.x + 12, fb_rect.y + 6))
+        surface.blit(
+            self.font_header.render(f"CAR #{slot} TELEMETRY & DRIVER RADIO FEEDBACK", True, UITheme.ACCENT_CYAN),
+            (fb_rect.x + 12, fb_rect.y + 6),
+        )
 
         # Confidence Gauge
         conf = mgr.setup_confidence[slot]
-        surface.blit(self.font_card.render(f"SETUP CONFIDENCE: {conf:.1f}%", True, (255, 215, 0)), (fb_rect.x + 16, fb_rect.y + 40))
+        surface.blit(
+            self.font_card.render(f"SETUP CONFIDENCE: {conf:.1f}%", True, (255, 215, 0)),
+            (fb_rect.x + 16, fb_rect.y + 40),
+        )
         gauge_bar = pygame.Rect(fb_rect.x + 16, fb_rect.y + 62, fb_rect.width - 32, 16)
         pygame.draw.rect(surface, (16, 20, 26), gauge_bar, border_radius=3)
         fill_w = int(gauge_bar.width * (conf / 100.0))
@@ -494,19 +532,32 @@ class RaceWeekendScreen:
 
         # Plan bonuses list
         bonuses = mgr.practice_bonuses[slot]
-        b_txt = f"Accumulated Bonuses: Qualy Pace: +{bonuses['qualy_pace_bonus']:.2f}s | Sprint Wear: -{bonuses['sprint_wear_bonus']*100:.0f}% | Race Wear: -{bonuses['race_wear_bonus']*100:.0f}% | Fuel: -{bonuses['fuel_saving_bonus']*100:.0f}%"
+        b_txt = f"Accumulated Bonuses: Qualy Pace: +{bonuses['qualy_pace_bonus']:.2f}s | Sprint Wear: -{bonuses['sprint_wear_bonus'] * 100:.0f}% | Race Wear: -{bonuses['race_wear_bonus'] * 100:.0f}% | Fuel: -{bonuses['fuel_saving_bonus'] * 100:.0f}%"
         surface.blit(self.font_badge.render(b_txt, True, UITheme.ACCENT_CYAN), (fb_rect.x + 16, fb_rect.y + 86))
 
         # Recent Feedback items
         fb_list = mgr.driver_feedback[slot]
-        surface.blit(self.font_header.render("RADIO DEBRIEF & COMMENTS:", True, UITheme.TEXT_WHITE), (fb_rect.x + 16, fb_rect.y + 112))
-        
+        surface.blit(
+            self.font_header.render("RADIO DEBRIEF & COMMENTS:", True, UITheme.TEXT_WHITE),
+            (fb_rect.x + 16, fb_rect.y + 112),
+        )
+
         y_cursor = fb_rect.y + 135
         if not fb_list:
-            surface.blit(self.font_body.render("No practice runs completed yet. Click [RUN 5 PRACTICE LAPS] to test the setup.", True, UITheme.TEXT_MUTED), (fb_rect.x + 16, y_cursor))
+            surface.blit(
+                self.font_body.render(
+                    "No practice runs completed yet. Click [RUN 5 PRACTICE LAPS] to test the setup.",
+                    True,
+                    UITheme.TEXT_MUTED,
+                ),
+                (fb_rect.x + 16, y_cursor),
+            )
         else:
             latest = fb_list[-1]
-            surface.blit(self.font_card.render(f"Driver Debrief: \"{latest['summary_quote']}\"", True, (0, 240, 140)), (fb_rect.x + 16, y_cursor))
+            surface.blit(
+                self.font_card.render(f'Driver Debrief: "{latest["summary_quote"]}"', True, (0, 240, 140)),
+                (fb_rect.x + 16, y_cursor),
+            )
             y_cursor += 26
             for pt in latest["feedback_points"][:5]:
                 surface.blit(self.font_body.render(f"• {pt}", True, UITheme.TEXT_WHITE), (fb_rect.x + 20, y_cursor))
@@ -533,8 +584,18 @@ class RaceWeekendScreen:
         # Header Info Card
         info_rect = pygame.Rect(24, 110, self.width - 48, 55)
         UITheme.draw_panel(surface, info_rect)
-        surface.blit(self.font_header.render("⏱️ OFFICIAL QUALIFYING SHOOTOUT (SINGLE-LAP FLYING HOT LAP)", True, (255, 215, 0)), (info_rect.x + 14, info_rect.y + 10))
-        surface.blit(self.font_body.render("All 20 cars take to the track on low fuel and soft tires. Flying lap times establish the grid.", True, UITheme.TEXT_MUTED), (info_rect.x + 14, info_rect.y + 30))
+        surface.blit(
+            self.font_header.render("⏱️ OFFICIAL QUALIFYING SHOOTOUT (SINGLE-LAP FLYING HOT LAP)", True, (255, 215, 0)),
+            (info_rect.x + 14, info_rect.y + 10),
+        )
+        surface.blit(
+            self.font_body.render(
+                "All 20 cars take to the track on low fuel and soft tires. Flying lap times establish the grid.",
+                True,
+                UITheme.TEXT_MUTED,
+            ),
+            (info_rect.x + 14, info_rect.y + 30),
+        )
 
         if not q_results:
             # Action to run qualifying
@@ -549,7 +610,10 @@ class RaceWeekendScreen:
             UITheme.draw_panel(surface, board_rect)
             b_hdr = pygame.Rect(board_rect.x, board_rect.y, board_rect.width, 28)
             pygame.draw.rect(surface, UITheme.PANEL_HEADER, b_hdr, border_top_left_radius=4, border_top_right_radius=4)
-            surface.blit(self.font_header.render("QUALIFYING CLASSIFICATION (POLE TO P20)", True, (0, 220, 255)), (board_rect.x + 14, board_rect.y + 6))
+            surface.blit(
+                self.font_header.render("QUALIFYING CLASSIFICATION (POLE TO P20)", True, (0, 220, 255)),
+                (board_rect.x + 14, board_rect.y + 6),
+            )
 
             y_pos = board_rect.y + 34
             col_w = (board_rect.width - 28) // 2
@@ -565,14 +629,29 @@ class RaceWeekendScreen:
                     pygame.draw.rect(surface, (0, 220, 255), row_r, width=1, border_radius=2)
 
                 pos_str = f"P{entry['position']:02d}"
-                surface.blit(self.font_card.render(pos_str, True, (255, 215, 0) if entry['position'] <= 3 else UITheme.TEXT_WHITE), (row_r.x + 6, row_r.y + 4))
+                surface.blit(
+                    self.font_card.render(
+                        pos_str, True, (255, 215, 0) if entry["position"] <= 3 else UITheme.TEXT_WHITE
+                    ),
+                    (row_r.x + 6, row_r.y + 4),
+                )
 
                 d_str = f"{entry['driver_name']} ({entry['team_name'][:12]})"
-                surface.blit(self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE), (row_r.x + 46, row_r.y + 4))
+                surface.blit(
+                    self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE),
+                    (row_r.x + 46, row_r.y + 4),
+                )
 
                 time_str = entry["lap_time_str"]
                 gap_str = "POLE" if entry["position"] == 1 else f"+{entry['gap_to_pole']:.3f}s"
-                surface.blit(self.font_badge.render(f"{time_str}  [{gap_str}]", True, (0, 240, 140) if entry['position'] == 1 else UITheme.TEXT_MUTED), (row_r.x + row_r.width - 130, row_r.y + 4))
+                surface.blit(
+                    self.font_badge.render(
+                        f"{time_str}  [{gap_str}]",
+                        True,
+                        (0, 240, 140) if entry["position"] == 1 else UITheme.TEXT_MUTED,
+                    ),
+                    (row_r.x + row_r.width - 130, row_r.y + 4),
+                )
 
             # Proceed Button
             next_btn = pygame.Rect(self.width // 2 - 140, self.height - 75, 280, 48)
@@ -590,8 +669,18 @@ class RaceWeekendScreen:
         info_rect = pygame.Rect(24, 110, self.width - 48, 55)
         UITheme.draw_panel(surface, info_rect)
         rev_tag = " [TOP 10 IN REVERSE GRID!]" if mgr.tier == 1 else ""
-        surface.blit(self.font_header.render(f"🏎️ SPRINT RACE — {mgr.sprint_laps} LAPS{rev_tag}", True, (255, 215, 0)), (info_rect.x + 14, info_rect.y + 10))
-        surface.blit(self.font_body.render("Short sprint distance. Feasible on 0 stops with Hard tires, or an aggressive 1-stop with Softs.", True, UITheme.TEXT_MUTED), (info_rect.x + 14, info_rect.y + 30))
+        surface.blit(
+            self.font_header.render(f"🏎️ SPRINT RACE — {mgr.sprint_laps} LAPS{rev_tag}", True, (255, 215, 0)),
+            (info_rect.x + 14, info_rect.y + 10),
+        )
+        surface.blit(
+            self.font_body.render(
+                "Short sprint distance. Feasible on 0 stops with Hard tires, or an aggressive 1-stop with Softs.",
+                True,
+                UITheme.TEXT_MUTED,
+            ),
+            (info_rect.x + 14, info_rect.y + 30),
+        )
 
         if not mgr.sprint_results:
             # Show Starting Grid
@@ -624,8 +713,18 @@ class RaceWeekendScreen:
 
         info_rect = pygame.Rect(24, 110, self.width - 48, 55)
         UITheme.draw_panel(surface, info_rect)
-        surface.blit(self.font_header.render(f"🏆 GRAND PRIX — {mgr.race_laps} LAPS (2-3 PIT STOPS)", True, (255, 215, 0)), (info_rect.x + 14, info_rect.y + 10))
-        surface.blit(self.font_body.render("Full Grand Prix distance requiring multi-stop pit strategy, tire degradation management, and undercut timing.", True, UITheme.TEXT_MUTED), (info_rect.x + 14, info_rect.y + 30))
+        surface.blit(
+            self.font_header.render(f"🏆 GRAND PRIX — {mgr.race_laps} LAPS (2-3 PIT STOPS)", True, (255, 215, 0)),
+            (info_rect.x + 14, info_rect.y + 10),
+        )
+        surface.blit(
+            self.font_body.render(
+                "Full Grand Prix distance requiring multi-stop pit strategy, tire degradation management, and undercut timing.",
+                True,
+                UITheme.TEXT_MUTED,
+            ),
+            (info_rect.x + 14, info_rect.y + 30),
+        )
 
         if not mgr.race_results:
             # Show Starting Grid
@@ -674,13 +773,22 @@ class RaceWeekendScreen:
             pos_key = "sprint_grid_pos" if is_sprint else "race_grid_pos"
             pos_num = entry.get(pos_key, idx + 1)
             pos_str = f"P{pos_num:02d}"
-            surface.blit(self.font_card.render(pos_str, True, (255, 215, 0) if pos_num <= 3 else UITheme.TEXT_WHITE), (row_r.x + 6, row_r.y + 4))
+            surface.blit(
+                self.font_card.render(pos_str, True, (255, 215, 0) if pos_num <= 3 else UITheme.TEXT_WHITE),
+                (row_r.x + 6, row_r.y + 4),
+            )
 
             d_str = f"{entry.get('driver_name', 'Driver')} ({entry.get('team_name', 'Team')[:12]})"
-            surface.blit(self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE), (row_r.x + 46, row_r.y + 4))
+            surface.blit(
+                self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE),
+                (row_r.x + 46, row_r.y + 4),
+            )
 
             if is_sprint and entry.get("is_reversed_grid", False):
-                surface.blit(self.font_badge.render("[REVERSED]", True, (255, 180, 40)), (row_r.x + row_r.width - 90, row_r.y + 4))
+                surface.blit(
+                    self.font_badge.render("[REVERSED]", True, (255, 180, 40)),
+                    (row_r.x + row_r.width - 90, row_r.y + 4),
+                )
 
     def _render_classification_table(self, surface: pygame.Surface, results: List[Dict[str, Any]], is_sprint: bool):
         board_rect = pygame.Rect(24, 175, self.width - 48, self.height - 270)
@@ -706,27 +814,44 @@ class RaceWeekendScreen:
                 pygame.draw.rect(surface, (0, 220, 255), row_r, width=1, border_radius=2)
 
             pos_num = entry.get("position", idx + 1)
-            surface.blit(self.font_card.render(f"P{pos_num:02d}", True, (255, 215, 0) if pos_num <= 3 else UITheme.TEXT_WHITE), (row_r.x + 6, row_r.y + 4))
+            surface.blit(
+                self.font_card.render(f"P{pos_num:02d}", True, (255, 215, 0) if pos_num <= 3 else UITheme.TEXT_WHITE),
+                (row_r.x + 6, row_r.y + 4),
+            )
 
             d_str = f"{entry.get('driver_name', 'Driver')} ({entry.get('team_name', 'Team')[:12]})"
-            surface.blit(self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE), (row_r.x + 46, row_r.y + 4))
+            surface.blit(
+                self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE),
+                (row_r.x + 46, row_r.y + 4),
+            )
 
             pts = pts_table[pos_num - 1] if pos_num - 1 < len(pts_table) else 0
             if pts > 0:
-                surface.blit(self.font_badge.render(f"+{pts} PTS", True, (0, 240, 140)), (row_r.x + row_r.width - 65, row_r.y + 4))
+                surface.blit(
+                    self.font_badge.render(f"+{pts} PTS", True, (0, 240, 140)),
+                    (row_r.x + row_r.width - 65, row_r.y + 4),
+                )
 
     def _render_weekend_summary(self, surface: pygame.Surface):
         sum_rect = pygame.Rect(self.width // 2 - 320, 130, 640, 420)
         UITheme.draw_panel(surface, sum_rect)
         hdr = pygame.Rect(sum_rect.x, sum_rect.y, sum_rect.width, 32)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(self.font_header.render("🏆 RACE WEEKEND COMPLETED — SUMMARY", True, (255, 215, 0)), (sum_rect.x + 14, sum_rect.y + 8))
+        surface.blit(
+            self.font_header.render("🏆 RACE WEEKEND COMPLETED — SUMMARY", True, (255, 215, 0)),
+            (sum_rect.x + 14, sum_rect.y + 8),
+        )
 
         # Points
-        surface.blit(self.font_card.render("WEEKEND CHAMPIONSHIP POINTS AWARDED:", True, UITheme.TEXT_WHITE), (sum_rect.x + 20, sum_rect.y + 50))
+        surface.blit(
+            self.font_card.render("WEEKEND CHAMPIONSHIP POINTS AWARDED:", True, UITheme.TEXT_WHITE),
+            (sum_rect.x + 20, sum_rect.y + 50),
+        )
         y_c = sum_rect.y + 75
         for d_name, pts in list(self.manager.weekend_driver_points.items())[:8]:
-            surface.blit(self.font_body.render(f"• {d_name}: +{pts} Points", True, (0, 240, 140)), (sum_rect.x + 24, y_c))
+            surface.blit(
+                self.font_body.render(f"• {d_name}: +{pts} Points", True, (0, 240, 140)), (sum_rect.x + 24, y_c)
+            )
             y_c += 22
 
         fin_btn = pygame.Rect(self.width // 2 - 160, self.height - 80, 320, 48)

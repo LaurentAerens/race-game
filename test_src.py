@@ -1,5 +1,7 @@
 import os
+
 from src.database.career_db import CareerDatabase
+
 
 def run():
     """
@@ -8,12 +10,13 @@ def run():
     2. Commercial / Marketing Factory impact on Appeal, Retainers, and Portfolios per tier.
     3. Staff & Driver Training Progression and Salary Costs.
     """
-    import tempfile
     import gc
-    from src.management.engineering_manager import EngineeringManager, FACTORY_PART_SPECS
+    import tempfile
+
+    from src.management.driver_manager import DriverManager
+    from src.management.engineering_manager import EngineeringManager
     from src.management.sponsor_manager import SponsorManager
     from src.management.staff_manager import StaffManager
-    from src.management.driver_manager import DriverManager
 
     temp_dir = tempfile.TemporaryDirectory()
     db_path = os.path.join(temp_dir.name, "factory_skills.db")
@@ -34,18 +37,32 @@ def run():
             t3_team_id = cur.fetchone()[0]
 
             # Max out Brakes and Front Wing dedicated facilities + QA lab for apex conditions
-            for node in ["eng_brakes", "eng_wings_front", "eng_windtunnel", "test_qa_ndt", "eng_comp_materials", "eng_kinematics_lab", "test_shaker_rig"]:
-                cur.execute("""
+            for node in [
+                "eng_brakes",
+                "eng_wings_front",
+                "eng_windtunnel",
+                "test_qa_ndt",
+                "eng_comp_materials",
+                "eng_kinematics_lab",
+                "test_shaker_rig",
+            ]:
+                cur.execute(
+                    """
                 INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked, monthly_sub_budget)
                 VALUES (?, ?, 3, 1, 250000)
                 ON CONFLICT(team_id, node_id) DO UPDATE SET current_tier = 3, is_unlocked = 1;
-                """, (t3_team_id, node))
+                """,
+                    (t3_team_id, node),
+                )
 
             # Inject $50M for R&D builds
             cur.execute("UPDATE teams SET cash = 50000000.0 WHERE id = ?;", (t3_team_id,))
 
             # Query initial BRAKES component
-            cur.execute("SELECT id, performance, reliability FROM car_components WHERE team_id = ? AND category = 'BRAKES';", (t3_team_id,))
+            cur.execute(
+                "SELECT id, performance, reliability FROM car_components WHERE team_id = ? AND category = 'BRAKES';",
+                (t3_team_id,),
+            )
             comp = cur.fetchone()
             comp_id = comp["id"]
             initial_perf = float(comp["performance"])
@@ -56,22 +73,31 @@ def run():
         cycles = []
         for gen_idx in range(1, 4):
             # Gather race telemetry with top driver stats
-            em.process_post_race_telemetry(t3_team_id, driver_tech_skill=90.0, driver_comm_skill=90.0, dev_gain_mult=1.0)
-            em.process_post_race_telemetry(t3_team_id, driver_tech_skill=90.0, driver_comm_skill=90.0, dev_gain_mult=1.0)
+            em.process_post_race_telemetry(
+                t3_team_id, driver_tech_skill=90.0, driver_comm_skill=90.0, dev_gain_mult=1.0
+            )
+            em.process_post_race_telemetry(
+                t3_team_id, driver_tech_skill=90.0, driver_comm_skill=90.0, dev_gain_mult=1.0
+            )
 
             # Build next generation
             success, msg, gain = em.build_next_generation_part(t3_team_id, comp_id)
             with db.get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT generation, performance, reliability, max_durability FROM car_components WHERE id = ?;", (comp_id,))
+                cur.execute(
+                    "SELECT generation, performance, reliability, max_durability FROM car_components WHERE id = ?;",
+                    (comp_id,),
+                )
                 c_row = cur.fetchone()
-                cycles.append({
-                    "generation": c_row["generation"],
-                    "performance": float(c_row["performance"]),
-                    "reliability": float(c_row["reliability"]),
-                    "max_durability": float(c_row["max_durability"]),
-                    "perf_gain": gain
-                })
+                cycles.append(
+                    {
+                        "generation": c_row["generation"],
+                        "performance": float(c_row["performance"]),
+                        "reliability": float(c_row["reliability"]),
+                        "max_durability": float(c_row["max_durability"]),
+                        "perf_gain": gain,
+                    }
+                )
 
         final_brakes_perf = cycles[-1]["performance"]
         final_brakes_rel = cycles[-1]["reliability"]
@@ -91,13 +117,23 @@ def run():
                 appeal_stock = sm.calculate_sponsor_appeal(tid)["total_appeal"]
 
                 # Unlock and upgrade commercial suites for this tier
-                comm_nodes = ["mkt_press", "mkt_brand_design", "mkt_digital", "mkt_merch", "mkt_studio", "mkt_hospitality"]
+                comm_nodes = [
+                    "mkt_press",
+                    "mkt_brand_design",
+                    "mkt_digital",
+                    "mkt_merch",
+                    "mkt_studio",
+                    "mkt_hospitality",
+                ]
                 for cn in comm_nodes:
-                    cur.execute("""
+                    cur.execute(
+                        """
                     INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked, monthly_sub_budget)
                     VALUES (?, ?, 2, 1, 150000)
                     ON CONFLICT(team_id, node_id) DO UPDATE SET current_tier = 2, is_unlocked = 1;
-                    """, (tid, cn))
+                    """,
+                        (tid, cn),
+                    )
                 conn.commit()
 
                 appeal_upgraded = sm.calculate_sponsor_appeal(tid)["total_appeal"]
@@ -110,7 +146,7 @@ def run():
                 mult_stock = (0.8 + (appeal_stock / 100.0) * 0.5) * tier_mult
                 mult_upgraded = (0.8 + (appeal_upgraded / 100.0) * 0.5) * tier_mult
 
-                base_portfolio_per_season = (2 * 4_800_000.0 + 4 * 1_500_000.0 + 10 * 385_000.0)
+                base_portfolio_per_season = 2 * 4_800_000.0 + 4 * 1_500_000.0 + 10 * 385_000.0
                 rev_stock = round(base_portfolio_per_season * mult_stock, 0)
                 rev_upgraded = round(base_portfolio_per_season * mult_upgraded, 0)
 
@@ -121,7 +157,7 @@ def run():
                     "appeal_gain": appeal_upgraded - appeal_stock,
                     "seasonal_sponsor_stock": f"${rev_stock:,.0f}",
                     "seasonal_sponsor_upgraded": f"${rev_upgraded:,.0f}",
-                    "marketing_revenue_boost": f"+${(rev_upgraded - rev_stock):,.0f}/yr"
+                    "marketing_revenue_boost": f"+${(rev_upgraded - rev_stock):,.0f}/yr",
                 }
 
         # -------------------------------------------------------------
@@ -135,13 +171,19 @@ def run():
 
             # Build HR Tech Academy & Leadership Institute
             for hr_node in ["hr_tech_academy", "hr_craft_workshop", "hr_leadership_institute"]:
-                cur.execute("""
+                cur.execute(
+                    """
                 INSERT INTO team_facilities (team_id, node_id, current_tier, is_unlocked, monthly_sub_budget)
                 VALUES (?, ?, 2, 1, 120000)
                 ON CONFLICT(team_id, node_id) DO UPDATE SET current_tier = 2, is_unlocked = 1;
-                """, (t_hr_id, hr_node))
+                """,
+                    (t_hr_id, hr_node),
+                )
 
-            cur.execute("SELECT id, name, stat_engineering, stat_leadership, salary_monthly FROM personnel WHERE team_id = ? AND role_type = 'DEPARTMENT_HEAD' LIMIT 1;", (t_hr_id,))
+            cur.execute(
+                "SELECT id, name, stat_engineering, stat_leadership, salary_monthly FROM personnel WHERE team_id = ? AND role_type = 'DEPARTMENT_HEAD' LIMIT 1;",
+                (t_hr_id,),
+            )
             staff_row = cur.fetchone()
             init_staff_eng = float(staff_row["stat_engineering"])
             init_staff_lead = float(staff_row["stat_leadership"])
@@ -170,7 +212,7 @@ def run():
                 "initial_rel": initial_rel,
                 "final_rel": final_brakes_rel,
                 "is_3x_achieved": perf_ratio >= 2.2 and perf_ratio <= 3.0,
-                "cycles": cycles
+                "cycles": cycles,
             },
             "marketing_system": marketing_tiers,
             "staff_and_driver_training": {
@@ -179,8 +221,8 @@ def run():
                 "training_weeks": 10,
                 "engineering_stat": f"{init_staff_eng:.0f} -> {final_staff_eng:.0f} (+{staff_eng_gain})",
                 "leadership_stat": f"{init_staff_lead:.0f} -> {final_staff_lead:.0f} (+{staff_lead_gain})",
-                "status": "Verified Steady Progression"
-            }
+                "status": "Verified Steady Progression",
+            },
         }
 
     finally:
@@ -192,5 +234,6 @@ def run():
                 temp_dir.cleanup()
             except Exception:
                 pass
+
 
 run()

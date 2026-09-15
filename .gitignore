@@ -58,3 +58,4 @@ site/
 *.spec
 !packaging/*.spec
 
+AGENTS.md

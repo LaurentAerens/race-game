@@ -1,17 +1,20 @@
-import os
 import math
+import os
+from typing import Callable, Dict, List, Optional, Tuple
+
 import pygame
-from typing import List, Tuple, Optional, Callable, Dict
+
 from ..core.circuit import Circuit
 from ..core.tires import TIRE_COMPOUNDS
 from ..render.camera import Camera
 from ..render.track_renderer import TrackRenderer
 from ..ui.theme import UITheme
-from .osm_map_modal import OSMMapModal
 from .load_track_modal import LoadTrackModal
+from .osm_map_modal import OSMMapModal
 
 DRY_COMPOUND_KEYS = ["HARD", "MEDIUM", "SOFT", "SUPERSOFT", "HYPERSOFT"]
 DRY_COMPOUND_TIERS = ["C1", "C2", "C3", "C4", "C5"]
+
 
 class TrackEditor:
     """
@@ -21,17 +24,18 @@ class TrackEditor:
     mouse-wheel zoom, pan canvas, pick free 3-compound tyre allocations,
     save/load tracks and race on them.
     """
+
     def __init__(self, screen_width: int, screen_height: int, on_test_race: Callable[[Circuit], None]):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.on_test_race = on_test_race
-        
+
         self.circuit = Circuit(name="My Custom Circuit", width=14.0)
         self.track_renderer = TrackRenderer()
         self.camera = Camera(screen_width, screen_height)
         self.osm_modal = OSMMapModal(on_circuit_created=self.on_osm_circuit_loaded)
         self.load_modal = LoadTrackModal(on_track_loaded=self.on_track_loaded)
-        
+
         self.view_rect = pygame.Rect(280, 50, screen_width - 290, screen_height - 60)
         self.panel_rect = pygame.Rect(10, 50, 260, screen_height - 60)
 
@@ -47,8 +51,10 @@ class TrackEditor:
         # Undo / Redo History
         self.undo_stack: List[dict] = []
         self.redo_stack: List[dict] = []
-        
-        self.status_message: str = "Left-click: Drag/Insert • Right-click/Del: Remove Point • Ctrl+Z: Undo • Scroll: Zoom"
+
+        self.status_message: str = (
+            "Left-click: Drag/Insert • Right-click/Del: Remove Point • Ctrl+Z: Undo • Scroll: Zoom"
+        )
         self._init_fonts()
         self._init_template()
 
@@ -192,8 +198,9 @@ class TrackEditor:
         self.camera.target_x = self.camera.overview_x
         self.camera.target_y = self.camera.overview_y
         self.camera.target_zoom = self.camera.overview_zoom
-        self.status_message = f"Loaded track '{new_circuit.name}' ({new_circuit.length:.0f}m, {new_circuit.corners_count} Turns)!"
-
+        self.status_message = (
+            f"Loaded track '{new_circuit.name}' ({new_circuit.length:.0f}m, {new_circuit.corners_count} Turns)!"
+        )
 
     def _init_fonts(self):
         self.font_title = UITheme.get_font(13, bold=True)
@@ -211,13 +218,8 @@ class TrackEditor:
         self.panel_rect = pygame.Rect(10, 50, 260, screen_height - 60)
         self._init_fonts()
 
-
-
     def _init_template(self):
-        pts = [
-            (-250, -150), (0, -160), (250, -150),
-            (350, 0), (250, 150), (0, 160), (-250, 150), (-350, 0)
-        ]
+        pts = [(-250, -150), (0, -160), (250, -150), (350, 0), (250, 150), (0, 160), (-250, 150), (-350, 0)]
         widths = [16.0, 16.0, 15.0, 12.0, 11.0, 13.0, 14.0, 15.0]
         self.circuit.set_control_points(pts, widths)
         self.circuit.nominated_compounds = ["HARD", "SOFT", "SUPERSOFT"]
@@ -232,41 +234,36 @@ class TrackEditor:
         px = self.panel_rect.x + 10
         pw = self.panel_rect.width - 20
         py = self.panel_rect.y
-        
+
         btns = {
             # Row 1: Undo / Redo / Delete Point
             "undo": pygame.Rect(px, py + 70, 68, 22),
             "redo": pygame.Rect(px + 73, py + 70, 68, 22),
             "delete_node": pygame.Rect(px + 146, py + 70, pw - 146, 22),
-
             # Row 2: Camera View & Zoom
             "fit": pygame.Rect(px, py + 96, 96, 22),
             "zoom_in": pygame.Rect(px + 101, py + 96, 67, 22),
             "zoom_out": pygame.Rect(px + 173, py + 96, 67, 22),
-
             # Row 3 & 4: Width adjustments
             "width_plus": pygame.Rect(px, py + 122, 115, 24),
             "width_minus": pygame.Rect(px + 125, py + 122, 115, 24),
             "span_width": pygame.Rect(px, py + 150, 115, 22),
             "all_width": pygame.Rect(px + 125, py + 150, 115, 22),
-
             # Row 5: DRS
             "add_drs": pygame.Rect(px, py + 176, pw, 24),
             "clear_drs": pygame.Rect(px, py + 248, pw, 20),
-
             # Pit Lane Buttons
             "set_pit_in": pygame.Rect(px, py + 288, 115, 24),
             "set_pit_out": pygame.Rect(px + 125, py + 288, 115, 24),
             "toggle_pit_side": pygame.Rect(px, py + 316, 115, 24),
             "cycle_pit_offset": pygame.Rect(px + 125, py + 316, 115, 24),
-
             # File Actions
             "save_json": pygame.Rect(px, py + 388, 115, 24),
             "load_json": pygame.Rect(px + 125, py + 388, 115, 24),
             "import_osm": pygame.Rect(px, py + 416, 115, 24),
             "reset_track": pygame.Rect(px + 125, py + 416, 115, 24),
             "add_to_calendar": pygame.Rect(px, py + 444, pw, 24),
-            "race_now": pygame.Rect(px, py + 472, pw, 34)
+            "race_now": pygame.Rect(px, py + 472, pw, 34),
         }
         return btns
 
@@ -315,28 +312,27 @@ class TrackEditor:
             mx, my = pygame.mouse.get_pos()
             if not self.view_rect.collidepoint(mx, my):
                 mx, my = self.view_rect.centerx, self.view_rect.centery
-                
+
             # Zoom in/out centered around cursor
             wx_before, wy_before = self.camera.screen_to_world(mx, my, self.view_rect)
             factor = 1.15 if event.y > 0 else 0.87
             new_zoom = max(0.2, min(5.0, self.camera.zoom * factor))
             self.camera.zoom = new_zoom
             self.camera.target_zoom = new_zoom
-            
+
             # Adjust camera pos so cursor remains anchored over same world point
             wx_after, wy_after = self.camera.screen_to_world(mx, my, self.view_rect)
-            self.camera.x += (wx_before - wx_after)
-            self.camera.y += (wy_before - wy_after)
+            self.camera.x += wx_before - wx_after
+            self.camera.y += wy_before - wy_after
             self.camera.target_x = self.camera.x
             self.camera.target_y = self.camera.y
             self.status_message = f"Zoom: {int(self.camera.zoom * 100)}%"
             return
 
-
         # 2. Mouse Button Press
         if event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos
-            
+
             # Side Control Panel Click
             if self.panel_rect.collidepoint(mx, my):
                 self._handle_panel_click(mx, my, event.button)
@@ -345,8 +341,8 @@ class TrackEditor:
             # Canvas interactions
             if self.view_rect.collidepoint(mx, my):
                 wx, wy = self.camera.screen_to_world(mx, my, self.view_rect)
-                
-                if event.button == 1: # Left click: Select or Drag node
+
+                if event.button == 1:  # Left click: Select or Drag node
                     clicked_idx = self._get_node_at(wx, wy)
                     mods = pygame.key.get_mods()
                     is_shift = bool(mods & pygame.KMOD_SHIFT)
@@ -359,13 +355,17 @@ class TrackEditor:
                             self.selected_node_a = clicked_idx
                             self.is_dragging = True
                             self._drag_start_state = self._get_state_snapshot()
-                            w = self.circuit.node_widths[clicked_idx] if clicked_idx < len(self.circuit.node_widths) else self.circuit.width
+                            w = (
+                                self.circuit.node_widths[clicked_idx]
+                                if clicked_idx < len(self.circuit.node_widths)
+                                else self.circuit.width
+                            )
                             self.status_message = f"Selected Point #{clicked_idx + 1} (Width: {w:.1f}m)."
                     else:
                         self._insert_node_at(wx, wy)
                         self.is_dragging = True
 
-                elif event.button in (2, 3): # Right or Middle click: Delete node or Pan canvas
+                elif event.button in (2, 3):  # Right or Middle click: Delete node or Pan canvas
                     clicked_idx = self._get_node_at(wx, wy)
                     if clicked_idx is not None:
                         self.selected_node_a = clicked_idx
@@ -393,7 +393,7 @@ class TrackEditor:
             if self.view_rect.collidepoint(mx, my):
                 wx, wy = self.camera.screen_to_world(mx, my, self.view_rect)
                 self.hovered_node_idx = self._get_node_at(wx, wy)
-                
+
                 # Drag node
                 if self.is_dragging and self.selected_node_a is not None:
                     if 0 <= self.selected_node_a < len(self.circuit.control_points):
@@ -428,7 +428,7 @@ class TrackEditor:
             return
 
         best_idx = len(pts)
-        min_dist = float('inf')
+        min_dist = float("inf")
         for i in range(len(pts)):
             next_i = (i + 1) % len(pts)
             p1 = pts[i]
@@ -447,20 +447,18 @@ class TrackEditor:
         self.status_message = f"Point #{best_idx + 1} added (Width: {prev_w:.1f}m)."
 
     def add_drs_between_nodes(self, node_a: int, node_b: int):
-        if not self.circuit.node_s_distances or node_a >= len(self.circuit.node_s_distances) or node_b >= len(self.circuit.node_s_distances):
+        if (
+            not self.circuit.node_s_distances
+            or node_a >= len(self.circuit.node_s_distances)
+            or node_b >= len(self.circuit.node_s_distances)
+        ):
             return
-        
+
         start_s = self.circuit.node_s_distances[node_a]
         end_s = self.circuit.node_s_distances[node_b]
-        
+
         zone_name = f"DRS #{node_a + 1}->#{node_b + 1}"
-        new_zone = {
-            "name": zone_name,
-            "node_a": node_a,
-            "node_b": node_b,
-            "start_s": start_s,
-            "end_s": end_s
-        }
+        new_zone = {"name": zone_name, "node_a": node_a, "node_b": node_b, "start_s": start_s, "end_s": end_s}
         self.circuit.drs_zones.append(new_zone)
         self.status_message = f"Placed {zone_name}."
 
@@ -527,7 +525,7 @@ class TrackEditor:
                     if idx < len(self.circuit.node_widths):
                         self.circuit.node_widths[idx] = src_w
                 self.circuit.build_circuit()
-                self.status_message = f"Applied width {src_w:.1f}m to Nodes #{a+1}..#{b+1}."
+                self.status_message = f"Applied width {src_w:.1f}m to Nodes #{a + 1}..#{b + 1}."
             return
         elif btns["all_width"].collidepoint(mx, my):
             if self.selected_node_a is not None:
@@ -591,7 +589,11 @@ class TrackEditor:
         elif btns["cycle_pit_offset"].collidepoint(mx, my):
             self._push_undo()
             offsets = [10.0, 14.0, 18.0, 22.0]
-            next_idx = (offsets.index(self.circuit.pit_offset_m) + 1) % len(offsets) if self.circuit.pit_offset_m in offsets else 1
+            next_idx = (
+                (offsets.index(self.circuit.pit_offset_m) + 1) % len(offsets)
+                if self.circuit.pit_offset_m in offsets
+                else 1
+            )
             self.circuit.pit_offset_m = offsets[next_idx]
             self.circuit.build_circuit()
             self.status_message = f"Pit Lane spacing set to {self.circuit.pit_offset_m:.0f}m."
@@ -609,8 +611,10 @@ class TrackEditor:
                     if len(self.circuit.nominated_compounds) >= 3:
                         self.circuit.nominated_compounds.pop(0)
                     self.circuit.nominated_compounds.append(c_key)
-                
-                self.circuit.nominated_compounds = [c for c in DRY_COMPOUND_KEYS if c in self.circuit.nominated_compounds]
+
+                self.circuit.nominated_compounds = [
+                    c for c in DRY_COMPOUND_KEYS if c in self.circuit.nominated_compounds
+                ]
                 selected_tiers = [TIRE_COMPOUNDS[c].tier for c in self.circuit.nominated_compounds]
                 self.status_message = f"Selected Tyre Trio: {', '.join(selected_tiers)}"
                 return
@@ -634,7 +638,7 @@ class TrackEditor:
         if btns["reset_track"].collidepoint(mx, my):
             self._push_undo()
             pts = [(-200, -100), (0, -100), (200, -100), (200, 100), (0, 100), (-200, 100)]
-            self.circuit.set_control_points(pts, [14.0]*len(pts))
+            self.circuit.set_control_points(pts, [14.0] * len(pts))
             self.circuit.drs_zones = []
             self.circuit.nominated_compounds = ["HARD", "SOFT", "SUPERSOFT"]
             self.circuit.set_pit_lane_endpoints(entry_node=5, exit_node=1, side="INSIDE", offset_m=14.0)
@@ -657,6 +661,7 @@ class TrackEditor:
             self.circuit.save_json(save_path)
             try:
                 from ..database.career_db import CareerDatabase
+
                 cdb = CareerDatabase("career.db")
                 rnd = cdb.add_calendar_round(self.circuit.name, safe_name, total_laps=16, weather_profile="DYNAMIC")
                 self.status_message = f"Track '{self.circuit.name}' added to Season Calendar as Round {rnd}!"
@@ -683,16 +688,16 @@ class TrackEditor:
 
         for i, (nx, ny) in enumerate(self.circuit.control_points):
             sx, sy = self.camera.world_to_screen(nx, ny, self.view_rect)
-            is_a = (i == self.selected_node_a)
-            is_b = (i == self.selected_node_b)
-            is_pit_in = (i == self.circuit.pit_entry_node)
-            is_pit_out = (i == self.circuit.pit_exit_node)
-            is_drs_start = (i in drs_start_nodes)
-            is_drs_end = (i in drs_end_nodes)
-            is_hov = (i == self.hovered_node_idx)
+            is_a = i == self.selected_node_a
+            is_b = i == self.selected_node_b
+            is_pit_in = i == self.circuit.pit_entry_node
+            is_pit_out = i == self.circuit.pit_exit_node
+            is_drs_start = i in drs_start_nodes
+            is_drs_end = i in drs_end_nodes
+            is_hov = i == self.hovered_node_idx
             turn_num = turn_map.get(i)
-            is_turn = (turn_num is not None)
-            
+            is_turn = turn_num is not None
+
             # Highlight special nodes clearly; all regular control points remain clearly visible and interactive
             if is_a or is_b or is_hov or is_pit_in or is_pit_out or is_drs_start or is_drs_end:
                 rad = 8
@@ -700,7 +705,7 @@ class TrackEditor:
                 rad = 7
             else:
                 rad = 5  # Clearly visible, clickable control node
-            
+
             if is_a:
                 col = (255, 215, 0)
                 pygame.draw.circle(surface, (255, 240, 120), (sx, sy), rad + 3, 2)
@@ -727,9 +732,9 @@ class TrackEditor:
 
             pygame.draw.circle(surface, col, (sx, sy), rad)
             pygame.draw.circle(surface, (10, 12, 16), (sx, sy), rad, 1)
-            
+
             node_w = self.circuit.node_widths[i] if i < len(self.circuit.node_widths) else 14.0
-            
+
             # Badge text: ALWAYS show node index #{i+1} alongside any roles so no points are ever missing!
             roles = []
             if is_turn:
@@ -747,7 +752,7 @@ class TrackEditor:
             if is_pit_out:
                 roles.append("PIT OUT")
 
-            tag = f"#{i+1}"
+            tag = f"#{i + 1}"
             if roles:
                 tag += " [" + "/".join(roles) + "]"
             tag += f" ({node_w:.0f}m)"
@@ -774,7 +779,7 @@ class TrackEditor:
 
         # 3. Render Side Control Panel
         UITheme.draw_panel(surface, self.panel_rect)
-        
+
         # Header
         hdr_rect = pygame.Rect(self.panel_rect.x, self.panel_rect.y, self.panel_rect.width, 26)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
@@ -785,27 +790,41 @@ class TrackEditor:
         km_len = self.circuit.length / 1000.0
         n_corners = self.circuit.corners_count
         stats1 = f"Length: {km_len:04.2f} km | Turns: {n_corners} | Nodes: {len(self.circuit.control_points)}"
-        
-        cur_w = self.circuit.node_widths[self.selected_node_a] if self.selected_node_a is not None and self.selected_node_a < len(self.circuit.node_widths) else 14.0
+
+        cur_w = (
+            self.circuit.node_widths[self.selected_node_a]
+            if self.selected_node_a is not None and self.selected_node_a < len(self.circuit.node_widths)
+            else 14.0
+        )
         node_a_str = f"#{self.selected_node_a + 1}" if self.selected_node_a is not None else "None"
         node_b_str = f"#{self.selected_node_b + 1}" if self.selected_node_b is not None else "None"
         stats2 = f"Node {node_a_str} Width: {cur_w:.1f}m | Span: {node_a_str}->{node_b_str}"
-        
-        surface.blit(self.font_desc.render(stats1, True, UITheme.TEXT_WHITE), (self.panel_rect.x + 10, self.panel_rect.y + 30))
-        surface.blit(self.font_desc.render(stats2, True, UITheme.ACCENT_YELLOW), (self.panel_rect.x + 10, self.panel_rect.y + 46))
+
+        surface.blit(
+            self.font_desc.render(stats1, True, UITheme.TEXT_WHITE), (self.panel_rect.x + 10, self.panel_rect.y + 30)
+        )
+        surface.blit(
+            self.font_desc.render(stats2, True, UITheme.ACCENT_YELLOW), (self.panel_rect.x + 10, self.panel_rect.y + 46)
+        )
 
         # Render Row 1: Undo / Redo / Delete Node Buttons (y = py + 70)
         btns = self._get_panel_buttons()
         UITheme.draw_button(surface, btns["undo"], "UNDO", self.font_btn)
         UITheme.draw_button(surface, btns["redo"], "REDO", self.font_btn)
-        
+
         # Danger button styling for Delete Node
         del_node_bg = (160, 36, 36)
         del_node_border = (220, 60, 60)
         pygame.draw.rect(surface, del_node_bg, btns["delete_node"], border_radius=3)
         pygame.draw.rect(surface, del_node_border, btns["delete_node"], width=1, border_radius=3)
         del_node_txt = self.font_btn.render("DEL POINT", True, (255, 255, 255))
-        surface.blit(del_node_txt, (btns["delete_node"].x + (btns["delete_node"].width - del_node_txt.get_width()) // 2, btns["delete_node"].y + 3))
+        surface.blit(
+            del_node_txt,
+            (
+                btns["delete_node"].x + (btns["delete_node"].width - del_node_txt.get_width()) // 2,
+                btns["delete_node"].y + 3,
+            ),
+        )
 
         # Render Row 2: View & Zoom Buttons (y = py + 96)
         UITheme.draw_button(surface, btns["fit"], "FIT VIEW", self.font_btn)
@@ -813,8 +832,8 @@ class TrackEditor:
         UITheme.draw_button(surface, btns["zoom_out"], "ZOOM -", self.font_btn)
 
         # Width buttons (y = py + 122 & py + 150)
-        UITheme.draw_button(surface, btns["width_plus"], f"WIDTH + ({cur_w+1:.0f}m)", self.font_btn)
-        UITheme.draw_button(surface, btns["width_minus"], f"WIDTH - ({cur_w-1:.0f}m)", self.font_btn)
+        UITheme.draw_button(surface, btns["width_plus"], f"WIDTH + ({cur_w + 1:.0f}m)", self.font_btn)
+        UITheme.draw_button(surface, btns["width_minus"], f"WIDTH - ({cur_w - 1:.0f}m)", self.font_btn)
         UITheme.draw_button(surface, btns["span_width"], "SPAN WIDTH", self.font_btn)
         UITheme.draw_button(surface, btns["all_width"], "ALL WIDTH", self.font_btn)
 
@@ -822,7 +841,9 @@ class TrackEditor:
         pygame.draw.rect(surface, (0, 180, 90), btns["add_drs"], border_radius=3)
         pygame.draw.rect(surface, (0, 240, 120), btns["add_drs"], width=1, border_radius=3)
         d_txt = self.font_btn.render(f"+ SET DRS: {node_a_str} -> {node_b_str}", True, (255, 255, 255))
-        surface.blit(d_txt, (btns["add_drs"].x + (btns["add_drs"].width - d_txt.get_width()) // 2, btns["add_drs"].y + 4))
+        surface.blit(
+            d_txt, (btns["add_drs"].x + (btns["add_drs"].width - d_txt.get_width()) // 2, btns["add_drs"].y + 4)
+        )
 
         # DRS List (y = py + 204)
         drs_y_start = self.panel_rect.y + 204
@@ -830,9 +851,9 @@ class TrackEditor:
             zone = self.circuit.drs_zones[idx]
             z_rect = pygame.Rect(self.panel_rect.x + 10, drs_y_start + idx * 20, self.panel_rect.width - 50, 16)
             pygame.draw.rect(surface, (28, 36, 44), z_rect, border_radius=2)
-            z_txt = self.font_desc.render(zone.get("name", f"DRS {idx+1}"), True, UITheme.ACCENT_GREEN)
+            z_txt = self.font_desc.render(zone.get("name", f"DRS {idx + 1}"), True, UITheme.ACCENT_GREEN)
             surface.blit(z_txt, (z_rect.x + 6, z_rect.y + 1))
-            
+
             del_rect = pygame.Rect(self.panel_rect.x + self.panel_rect.width - 36, drs_y_start + idx * 20, 26, 16)
             pygame.draw.rect(surface, (180, 40, 40), del_rect, border_radius=2)
             del_txt = self.font_badge.render("X", True, (255, 255, 255))
@@ -842,28 +863,34 @@ class TrackEditor:
         UITheme.draw_button(surface, btns["clear_drs"], "CLEAR ALL DRS", self.font_btn)
 
         # PIT LANE DESIGNER SECTION (y = py + 272)
-        pit_hdr = self.font_desc.render(f"PIT LANE: #{self.circuit.pit_entry_node+1} -> #{self.circuit.pit_exit_node+1} [{self.circuit.pit_side}]", True, (240, 210, 40))
+        pit_hdr = self.font_desc.render(
+            f"PIT LANE: #{self.circuit.pit_entry_node + 1} -> #{self.circuit.pit_exit_node + 1} [{self.circuit.pit_side}]",
+            True,
+            (240, 210, 40),
+        )
         surface.blit(pit_hdr, (self.panel_rect.x + 10, self.panel_rect.y + 272))
 
         UITheme.draw_button(surface, btns["set_pit_in"], f"PIT IN: #{node_a_str}", self.font_btn)
         UITheme.draw_button(surface, btns["set_pit_out"], f"PIT OUT: #{node_b_str}", self.font_btn)
         UITheme.draw_button(surface, btns["toggle_pit_side"], f"SIDE: {self.circuit.pit_side[:3]}", self.font_btn)
-        UITheme.draw_button(surface, btns["cycle_pit_offset"], f"OFFSET: {self.circuit.pit_offset_m:.0f}m", self.font_btn)
+        UITheme.draw_button(
+            surface, btns["cycle_pit_offset"], f"OFFSET: {self.circuit.pit_offset_m:.0f}m", self.font_btn
+        )
 
         # Free 5-Compound Selection Chips (C1 to C5) at y = py + 344
         t_hdr = self.font_desc.render("TYRES (PICK 3):", True, UITheme.TEXT_MUTED)
         surface.blit(t_hdr, (self.panel_rect.x + 10, self.panel_rect.y + 344))
-        
+
         chips = self._get_compound_chip_rects()
         for c_key, tier, r in chips:
             comp = TIRE_COMPOUNDS[c_key]
             is_selected = c_key in self.circuit.nominated_compounds
             bg_col = (45, 55, 75) if is_selected else (22, 26, 34)
             border_col = comp.color_rgb if is_selected else (60, 68, 80)
-            
+
             pygame.draw.rect(surface, bg_col, r, border_radius=3)
             pygame.draw.rect(surface, border_col, r, width=2 if is_selected else 1, border_radius=3)
-            
+
             pygame.draw.circle(surface, comp.color_rgb, (r.x + 10, r.y + 12), 4)
             t_lbl = self.font_badge.render(tier, True, (255, 255, 255) if is_selected else UITheme.TEXT_MUTED)
             surface.blit(t_lbl, (r.x + 18, r.y + 5))
@@ -876,7 +903,10 @@ class TrackEditor:
         pygame.draw.rect(surface, (28, 45, 60), btns["import_osm"], border_radius=3)
         pygame.draw.rect(surface, (0, 180, 240), btns["import_osm"], width=1, border_radius=3)
         osm_txt = self.font_btn.render("IMPORT OSM", True, (0, 220, 255))
-        surface.blit(osm_txt, (btns["import_osm"].x + (btns["import_osm"].width - osm_txt.get_width()) // 2, btns["import_osm"].y + 3))
+        surface.blit(
+            osm_txt,
+            (btns["import_osm"].x + (btns["import_osm"].width - osm_txt.get_width()) // 2, btns["import_osm"].y + 3),
+        )
 
         UITheme.draw_button(surface, btns["reset_track"], "RESET TRACK", self.font_btn)
 
@@ -884,12 +914,20 @@ class TrackEditor:
         pygame.draw.rect(surface, (30, 48, 70), btns["add_to_calendar"], border_radius=3)
         pygame.draw.rect(surface, (0, 220, 255), btns["add_to_calendar"], width=1, border_radius=3)
         cal_txt = self.font_badge.render("+ ADD TO CAREER CALENDAR", True, (0, 240, 255))
-        surface.blit(cal_txt, (btns["add_to_calendar"].x + (btns["add_to_calendar"].width - cal_txt.get_width()) // 2, btns["add_to_calendar"].y + 4))
+        surface.blit(
+            cal_txt,
+            (
+                btns["add_to_calendar"].x + (btns["add_to_calendar"].width - cal_txt.get_width()) // 2,
+                btns["add_to_calendar"].y + 4,
+            ),
+        )
 
         # Race Button (y = py + 472)
         pygame.draw.rect(surface, (0, 200, 120), btns["race_now"], border_radius=4)
         t_txt = self.font_btn.render("RACE ON THIS TRACK >>", True, (10, 20, 20))
-        surface.blit(t_txt, (btns["race_now"].x + (btns["race_now"].width - t_txt.get_width()) // 2, btns["race_now"].y + 8))
+        surface.blit(
+            t_txt, (btns["race_now"].x + (btns["race_now"].width - t_txt.get_width()) // 2, btns["race_now"].y + 8)
+        )
 
         # Bottom Status Message Bar
         stat_bar = pygame.Rect(self.view_rect.x, self.view_rect.bottom - 24, self.view_rect.width, 24)
@@ -902,4 +940,3 @@ class TrackEditor:
             self.osm_modal.render(surface)
         if self.load_modal.is_open:
             self.load_modal.render(surface)
-

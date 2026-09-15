@@ -1,13 +1,14 @@
-import math
+from typing import Any, Optional, Tuple
+
 import pygame
-import numpy as np
-from typing import List, Tuple, Any, Union, Dict, Optional
+
 from ..core.circuit import Circuit
 from .camera import Camera
 
+
 class TrackRenderer:
     """Renders the racing circuit with variable section widths, kerbs, DRS zones, and pit lane."""
-    
+
     # Palette
     COLOR_GRASS = (24, 32, 28)
     COLOR_ASPHALT = (45, 48, 54)
@@ -20,14 +21,23 @@ class TrackRenderer:
     COLOR_PIT_LANE = (40, 42, 48)
     COLOR_SECTOR_LINE = (240, 200, 20)
 
-    def render(self, surface: pygame.Surface, circuit: Circuit, camera: Camera, view_rect: pygame.Rect, track_wetness: Any = 0.0):
+    def render(
+        self,
+        surface: pygame.Surface,
+        circuit: Circuit,
+        camera: Camera,
+        view_rect: pygame.Rect,
+        track_wetness: Any = 0.0,
+    ):
         """Draws the complete circuit geometry."""
         if len(circuit.points) < 3:
             return
 
         # Handle WeatherSystem or numeric float wetness
         weather_obj = track_wetness if hasattr(track_wetness, "get_sector_wetness") else None
-        overall_wet = getattr(track_wetness, "track_wetness", float(track_wetness) if isinstance(track_wetness, (int, float)) else 0.0)
+        overall_wet = getattr(
+            track_wetness, "track_wetness", float(track_wetness) if isinstance(track_wetness, (int, float)) else 0.0
+        )
 
         # 1. Fill background / grass
         pygame.draw.rect(surface, self.COLOR_GRASS, view_rect)
@@ -51,12 +61,19 @@ class TrackRenderer:
         # 7. Draw Start / Finish Line
         self._render_start_finish(surface, circuit, camera, view_rect)
 
-    def _render_asphalt_ribbon(self, surface: pygame.Surface, circuit: Circuit, camera: Camera, 
-                               view_rect: pygame.Rect, overall_wet: float, weather_obj: Optional[Any] = None):
+    def _render_asphalt_ribbon(
+        self,
+        surface: pygame.Surface,
+        circuit: Circuit,
+        camera: Camera,
+        view_rect: pygame.Rect,
+        overall_wet: float,
+        weather_obj: Optional[Any] = None,
+    ):
         n_pts = len(circuit.points)
-        has_widths = (len(circuit.widths_sample) == n_pts)
+        has_widths = len(circuit.widths_sample) == n_pts
         default_color = self._blend_color(self.COLOR_ASPHALT, self.COLOR_ASPHALT_WET, overall_wet)
-        
+
         # Build left and right boundary screen points
         poly_left = []
         poly_right = []
@@ -64,7 +81,7 @@ class TrackRenderer:
             px, py = circuit.points[i]
             nx, ny = circuit.normals[i]
             half_w = (circuit.widths_sample[i] / 2.0) if has_widths else (circuit.width / 2.0)
-            
+
             # Left edge
             lx = px + nx * half_w
             ly = py + ny * half_w
@@ -91,14 +108,18 @@ class TrackRenderer:
         # Draw outer white edge boundary lines
         for i in range(n_pts):
             next_i = (i + 1) % n_pts
-            pygame.draw.line(surface, self.COLOR_EDGE_LINE, poly_left[i], poly_left[next_i], max(1, int(1.5 * camera.zoom)))
-            pygame.draw.line(surface, self.COLOR_EDGE_LINE, poly_right[i], poly_right[next_i], max(1, int(1.5 * camera.zoom)))
+            pygame.draw.line(
+                surface, self.COLOR_EDGE_LINE, poly_left[i], poly_left[next_i], max(1, int(1.5 * camera.zoom))
+            )
+            pygame.draw.line(
+                surface, self.COLOR_EDGE_LINE, poly_right[i], poly_right[next_i], max(1, int(1.5 * camera.zoom))
+            )
 
     def _render_kerbs(self, surface: pygame.Surface, circuit: Circuit, camera: Camera, view_rect: pygame.Rect):
         """Draws red-and-white alternating kerbs on tight corners."""
         kerb_w = 2.2
         n_pts = len(circuit.points)
-        has_widths = (len(circuit.widths_sample) == n_pts)
+        has_widths = len(circuit.widths_sample) == n_pts
 
         for i in range(n_pts):
             curv = circuit.curvatures[i]
@@ -113,12 +134,12 @@ class TrackRenderer:
                 half_w2 = (circuit.widths_sample[next_i] / 2.0) if has_widths else (circuit.width / 2.0)
 
                 k_color = self.COLOR_KERB_RED if (i // 3) % 2 == 0 else self.COLOR_KERB_WHITE
-                
+
                 k_p1 = camera.world_to_screen(px + nx * half_w1, py + ny * half_w1, view_rect)
                 k_p2 = camera.world_to_screen(px + nx * (half_w1 + kerb_w), py + ny * (half_w1 + kerb_w), view_rect)
                 k_p3 = camera.world_to_screen(npx + nnx * (half_w2 + kerb_w), npy + nny * (half_w2 + kerb_w), view_rect)
                 k_p4 = camera.world_to_screen(npx + nnx * half_w2, npy + nny * half_w2, view_rect)
-                
+
                 pygame.draw.polygon(surface, k_color, [k_p1, k_p2, k_p3, k_p4])
 
     def _render_pit_lane(self, surface: pygame.Surface, circuit: Circuit, camera: Camera, view_rect: pygame.Rect):
@@ -127,7 +148,7 @@ class TrackRenderer:
         n_pts = len(circuit.pit_points)
         if n_pts < 2:
             return
-        
+
         poly_left = []
         poly_right = []
         for i in range(n_pts):
@@ -138,10 +159,14 @@ class TrackRenderer:
             poly_right.append(camera.world_to_screen(px - nx * half_w, py - ny * half_w, view_rect))
 
         for i in range(n_pts - 1):
-            quad = [poly_left[i], poly_left[i+1], poly_right[i+1], poly_right[i]]
+            quad = [poly_left[i], poly_left[i + 1], poly_right[i + 1], poly_right[i]]
             pygame.draw.polygon(surface, self.COLOR_PIT_LANE, quad)
-            pygame.draw.line(surface, self.COLOR_EDGE_LINE, poly_left[i], poly_left[i+1], max(1, int(1.2 * camera.zoom)))
-            pygame.draw.line(surface, self.COLOR_EDGE_LINE, poly_right[i], poly_right[i+1], max(1, int(1.2 * camera.zoom)))
+            pygame.draw.line(
+                surface, self.COLOR_EDGE_LINE, poly_left[i], poly_left[i + 1], max(1, int(1.2 * camera.zoom))
+            )
+            pygame.draw.line(
+                surface, self.COLOR_EDGE_LINE, poly_right[i], poly_right[i + 1], max(1, int(1.2 * camera.zoom))
+            )
 
         # Pit Entry Line (Yellow)
         pygame.draw.line(surface, (240, 210, 40), poly_left[0], poly_right[0], max(2, int(2.5 * camera.zoom)))
@@ -156,17 +181,16 @@ class TrackRenderer:
         pygame.draw.circle(surface, (230, 200, 40), s_box, box_rad, max(1, int(2.0 * camera.zoom)))
         pygame.draw.circle(surface, (255, 255, 255), s_box, max(2, int(3.0 * camera.zoom)))
 
-
     def _render_drs_zones(self, surface: pygame.Surface, circuit: Circuit, camera: Camera, view_rect: pygame.Rect):
         for zone in circuit.drs_zones:
             start_s = zone.get("start_s", 0.0)
             end_s = zone.get("end_s", 0.0)
-            
+
             dist = (end_s - start_s) % circuit.length
             if dist <= 10.0:
                 continue
             num_steps = max(5, int(dist / 6.0))
-            
+
             pts_left = []
             pts_right = []
             for step in range(num_steps + 1):
@@ -230,5 +254,5 @@ class TrackRenderer:
         return (
             int(c1[0] + (c2[0] - c1[0]) * factor),
             int(c1[1] + (c2[1] - c1[1]) * factor),
-            int(c1[2] + (c2[2] - c1[2]) * factor)
+            int(c1[2] + (c2[2] - c1[2]) * factor),
         )

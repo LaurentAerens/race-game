@@ -1,7 +1,8 @@
 import os
 import unittest
+
 import pygame
-from src.core.circuit import Circuit
+
 from src.editor.load_track_modal import LoadTrackModal
 from src.editor.track_editor import TrackEditor
 
@@ -26,7 +27,7 @@ class TestLoadTrackModal(unittest.TestCase):
     def test_search_filter(self):
         modal = LoadTrackModal(on_track_loaded=lambda c: None)
         modal.open()
-        
+
         modal.search_query = "apex"
         filtered = modal._get_filtered_items()
         self.assertEqual(len(filtered), 1)
@@ -39,7 +40,7 @@ class TestLoadTrackModal(unittest.TestCase):
         loaded_circuits = []
         modal = LoadTrackModal(on_track_loaded=lambda c: loaded_circuits.append(c))
         modal.open()
-        
+
         target_path = os.path.join("tracks", "apex_park.json")
         self.assertTrue(os.path.exists(target_path))
         modal._load_track_file(target_path)
@@ -48,7 +49,7 @@ class TestLoadTrackModal(unittest.TestCase):
         c = loaded_circuits[0]
         self.assertEqual(c.name, "Apex Park")
         self.assertEqual(len(c.control_points), 13)
-        self.assertFalse(modal.is_open) # Modal closes after loading
+        self.assertFalse(modal.is_open)  # Modal closes after loading
 
     def test_track_editor_integration(self):
         editor = TrackEditor(1280, 720, lambda c: None)

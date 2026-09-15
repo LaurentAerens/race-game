@@ -1,9 +1,12 @@
+from typing import Any, Callable, Dict, List, Optional
+
 import pygame
-from typing import Dict, List, Any, Optional, Callable
-from ..theme import UITheme
+
+from ...management.engineering_manager import EngineeringManager
 from ...management.game_manager import GameManager
 from ...management.league_simulator import LeagueSimulator
-from ...management.engineering_manager import EngineeringManager
+from ..theme import UITheme
+
 
 class SeasonFinaleModal:
     """
@@ -15,6 +18,7 @@ class SeasonFinaleModal:
     4. Next Season Engine Supplier Selection
     5. Season Kickoff Overview & Start Season Rollover
     """
+
     def __init__(self, screen_width: int, screen_height: int, on_season_started: Optional[Callable[[], None]] = None):
         self.width = screen_width
         self.height = screen_height
@@ -66,19 +70,23 @@ class SeasonFinaleModal:
     def _refresh_available_engines(self, gm: GameManager, em: EngineeringManager):
         """Loads engine suppliers based on effective tier."""
         eff_tier = self._get_effective_tier()
-        
+
         # Query if Works Engine Factory is built
         has_works_factory = False
         with gm.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
             SELECT is_unlocked FROM team_facilities 
             WHERE team_id = ? AND node_id = 'eng_works_powertrain';
-            """, (gm.team_id,))
+            """,
+                (gm.team_id,),
+            )
             w_row = cur.fetchone()
             has_works_factory = bool(w_row[0]) if w_row else False
 
         from ...management.engineering_manager import ENGINE_SUPPLIERS
+
         available = []
         for name, data in ENGINE_SUPPLIERS.items():
             if data.get("is_in_house", False):
@@ -96,7 +104,9 @@ class SeasonFinaleModal:
     def close(self):
         self.is_open = False
 
-    def handle_click(self, mx: int, my: int, gm: GameManager, ls: LeagueSimulator, em: EngineeringManager, diff_cfg: Dict[str, Any]) -> bool:
+    def handle_click(
+        self, mx: int, my: int, gm: GameManager, ls: LeagueSimulator, em: EngineeringManager, diff_cfg: Dict[str, Any]
+    ) -> bool:
         if not self.is_open:
             return False
 
@@ -143,7 +153,7 @@ class SeasonFinaleModal:
                 player_team_id=gm.team_id,
                 player_choice_promote=self.player_choice_promote,
                 selected_engine=self.selected_engine_name,
-                prize_cash_multiplier=prize_mult
+                prize_cash_multiplier=prize_mult,
             )
             gm.reset_for_new_season()
             self.close()
@@ -206,9 +216,14 @@ class SeasonFinaleModal:
         # 3. Header Banner
         hdr_rect = pygame.Rect(modal_x, modal_y, modal_w, 38)
         pygame.draw.rect(surface, (20, 30, 46), hdr_rect, border_top_left_radius=6, border_top_right_radius=6)
-        
+
         season_num = self.finale_data.get("season_num", 1)
-        surface.blit(self.font_title.render(f"🏆 SEASON {season_num} CHAMPIONSHIP FINALE & NEXT SEASON LAUNCH", True, (255, 215, 0)), (modal_x + 16, modal_y + 10))
+        surface.blit(
+            self.font_title.render(
+                f"🏆 SEASON {season_num} CHAMPIONSHIP FINALE & NEXT SEASON LAUNCH", True, (255, 215, 0)
+            ),
+            (modal_x + 16, modal_y + 10),
+        )
 
         # 4. Top Stage Tabs
         tab_names = ["1. PRIZES", "2. DRIVERS", "3. PROMOTION", "4. ENGINE", "5. KICKOFF"]
@@ -220,8 +235,8 @@ class SeasonFinaleModal:
 
         for idx, t_name in enumerate(tab_names):
             t_num = idx + 1
-            is_active = (self.stage == t_num)
-            is_done = (self.stage > t_num)
+            is_active = self.stage == t_num
+            is_done = self.stage > t_num
 
             t_rect = pygame.Rect(tab_start_x + idx * (tab_w + tab_gap), tab_y, tab_w, 26)
             bg_col = (35, 60, 85) if is_active else ((22, 38, 30) if is_done else (18, 22, 30))
@@ -284,7 +299,7 @@ class SeasonFinaleModal:
 
         # Top Celebratory Banner
         banner_rect = pygame.Rect(rect.x + 14, rect.y + 10, rect.width - 28, 56)
-        is_champ = (pos == 1)
+        is_champ = pos == 1
         bg_col = (38, 52, 28) if is_champ else (24, 34, 48)
         border_col = (255, 215, 0) if is_champ else (0, 220, 255)
         pygame.draw.rect(surface, bg_col, banner_rect, border_radius=4)
@@ -292,13 +307,21 @@ class SeasonFinaleModal:
 
         if is_champ:
             title_str = "🏆 CONSTRUCTORS' WORLD CHAMPIONS! 🏆"
-            desc_str = f"Incredible achievement! You secured 1st Place. Payout: ${payout:,.0f} (Massive HQ Upgrade scale)"
+            desc_str = (
+                f"Incredible achievement! You secured 1st Place. Payout: ${payout:,.0f} (Massive HQ Upgrade scale)"
+            )
         else:
             title_str = f"CHAMPIONSHIP CONCLUDED - FINISHED P{pos}"
             desc_str = f"Official Constructors' Prize Payout: ${payout:,.0f} has been deposited into your treasury."
 
-        surface.blit(self.font_card_title.render(title_str, True, (255, 215, 0) if is_champ else UITheme.TEXT_WHITE), (banner_rect.x + 14, banner_rect.y + 8))
-        surface.blit(self.font_body.render(desc_str, True, (0, 240, 140) if is_champ else UITheme.TEXT_MUTED), (banner_rect.x + 14, banner_rect.y + 30))
+        surface.blit(
+            self.font_card_title.render(title_str, True, (255, 215, 0) if is_champ else UITheme.TEXT_WHITE),
+            (banner_rect.x + 14, banner_rect.y + 8),
+        )
+        surface.blit(
+            self.font_body.render(desc_str, True, (0, 240, 140) if is_champ else UITheme.TEXT_MUTED),
+            (banner_rect.x + 14, banner_rect.y + 30),
+        )
 
         # Standings Table (Left Side)
         table_rect = pygame.Rect(rect.x + 14, rect.y + 74, 580, rect.height - 84)
@@ -311,7 +334,9 @@ class SeasonFinaleModal:
         surface.blit(self.font_badge.render("POS", True, UITheme.TEXT_MUTED), (th_rect.x + 8, th_rect.y + 5))
         surface.blit(self.font_badge.render("CONSTRUCTOR", True, UITheme.TEXT_MUTED), (th_rect.x + 54, th_rect.y + 5))
         surface.blit(self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED), (th_rect.x + 320, th_rect.y + 5))
-        surface.blit(self.font_badge.render("SEASON PRIZE MONEY", True, UITheme.TEXT_MUTED), (th_rect.x + 420, th_rect.y + 5))
+        surface.blit(
+            self.font_badge.render("SEASON PRIZE MONEY", True, UITheme.TEXT_MUTED), (th_rect.x + 420, th_rect.y + 5)
+        )
 
         for idx, t in enumerate(teams[:10]):
             ry = th_rect.y + 26 + idx * 30
@@ -323,7 +348,7 @@ class SeasonFinaleModal:
             if is_player:
                 pygame.draw.rect(surface, UITheme.ACCENT_CYAN, r_box, width=1, border_radius=2)
 
-            pos_txt = f"P{idx+1}"
+            pos_txt = f"P{idx + 1}"
             pos_col = (255, 215, 0) if idx == 0 else ((240, 90, 90) if idx == 9 else UITheme.TEXT_WHITE)
             surface.blit(self.font_badge.render(pos_txt, True, pos_col), (r_box.x + 8, r_box.y + 6))
 
@@ -331,19 +356,30 @@ class SeasonFinaleModal:
             pygame.draw.rect(surface, col_rgb, (r_box.x + 40, r_box.y + 6, 6, 14), border_radius=1)
 
             t_name = f"{t['name']} {'[YOU]' if is_player else ''}"
-            surface.blit(self.font_badge.render(t_name, True, (255, 215, 0) if is_player else UITheme.TEXT_WHITE), (r_box.x + 54, r_box.y + 6))
+            surface.blit(
+                self.font_badge.render(t_name, True, (255, 215, 0) if is_player else UITheme.TEXT_WHITE),
+                (r_box.x + 54, r_box.y + 6),
+            )
 
-            surface.blit(self.font_badge.render(f"{t['points']} PTS", True, (0, 220, 255)), (r_box.x + 320, r_box.y + 6))
+            surface.blit(
+                self.font_badge.render(f"{t['points']} PTS", True, (0, 220, 255)), (r_box.x + 320, r_box.y + 6)
+            )
 
             pz_txt = f"${t.get('prize_money', 0):,.0f}"
-            surface.blit(self.font_badge.render(pz_txt, True, (0, 240, 140) if is_player else UITheme.TEXT_WHITE), (r_box.x + 420, r_box.y + 6))
+            surface.blit(
+                self.font_badge.render(pz_txt, True, (0, 240, 140) if is_player else UITheme.TEXT_WHITE),
+                (r_box.x + 420, r_box.y + 6),
+            )
 
         # Right Side: Financial Impact Card
         info_rect = pygame.Rect(rect.x + 606, rect.y + 74, rect.width - 620, rect.height - 84)
         pygame.draw.rect(surface, (14, 18, 24), info_rect, border_radius=3)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, info_rect, width=1, border_radius=3)
 
-        surface.blit(self.font_card_title.render("TREASURY UPGRADE POWER", True, (255, 215, 0)), (info_rect.x + 14, info_rect.y + 12))
+        surface.blit(
+            self.font_card_title.render("TREASURY UPGRADE POWER", True, (255, 215, 0)),
+            (info_rect.x + 14, info_rect.y + 12),
+        )
         lines = [
             f"Your Payout: ${payout:,.0f}",
             "",
@@ -355,7 +391,7 @@ class SeasonFinaleModal:
             "  - Expand CAD Offices & Dyno cells",
             "",
             "Funds are already deposited into your cash balance",
-            "ready to invest into next season's championship car!"
+            "ready to invest into next season's championship car!",
         ]
         for l_idx, line in enumerate(lines):
             col = (0, 240, 140) if l_idx == 0 else (UITheme.TEXT_WHITE if line.startswith("•") else UITheme.TEXT_MUTED)
@@ -391,17 +427,22 @@ class SeasonFinaleModal:
             if idx == 0:
                 pygame.draw.rect(surface, (255, 215, 0), r_box, width=1, border_radius=2)
 
-            pos_txt = "👑 P1" if idx == 0 else f"P{idx+1}"
+            pos_txt = "👑 P1" if idx == 0 else f"P{idx + 1}"
             pos_col = (255, 215, 0) if idx == 0 else UITheme.TEXT_WHITE
             surface.blit(self.font_badge.render(pos_txt, True, pos_col), (r_box.x + 6, r_box.y + 6))
 
             d_name = d.get("name", "Driver")
-            surface.blit(self.font_badge.render(d_name, True, (255, 215, 0) if idx == 0 else UITheme.TEXT_WHITE), (r_box.x + 50, r_box.y + 6))
+            surface.blit(
+                self.font_badge.render(d_name, True, (255, 215, 0) if idx == 0 else UITheme.TEXT_WHITE),
+                (r_box.x + 50, r_box.y + 6),
+            )
 
             t_name = d.get("team_name", "Team")
             surface.blit(self.font_body.render(t_name, True, UITheme.TEXT_MUTED), (r_box.x + 240, r_box.y + 6))
 
-            surface.blit(self.font_badge.render(f"{d.get('points', 0)} PTS", True, (0, 220, 255)), (r_box.x + 440, r_box.y + 6))
+            surface.blit(
+                self.font_badge.render(f"{d.get('points', 0)} PTS", True, (0, 220, 255)), (r_box.x + 440, r_box.y + 6)
+            )
 
         # Right Side: Champion Spotlight Card
         spot_rect = pygame.Rect(rect.x + 546, rect.y + 10, rect.width - 560, rect.height - 20)
@@ -413,35 +454,67 @@ class SeasonFinaleModal:
             c_team = champ.get("team_name", "Championship Team")
             is_ply_champ = champ.get("is_player_champion", False)
 
-            surface.blit(self.font_card_title.render("👑 DRIVERS' WORLD CHAMPION SPOTLIGHT", True, (255, 215, 0)), (spot_rect.x + 14, spot_rect.y + 12))
-            surface.blit(self.font_giant.render(c_name.upper(), True, UITheme.TEXT_WHITE), (spot_rect.x + 14, spot_rect.y + 36))
-            surface.blit(self.font_body.render(f"Constructor: {c_team} | {champ.get('points', 0)} Championship Points", True, UITheme.TEXT_MUTED), (spot_rect.x + 14, spot_rect.y + 62))
+            surface.blit(
+                self.font_card_title.render("👑 DRIVERS' WORLD CHAMPION SPOTLIGHT", True, (255, 215, 0)),
+                (spot_rect.x + 14, spot_rect.y + 12),
+            )
+            surface.blit(
+                self.font_giant.render(c_name.upper(), True, UITheme.TEXT_WHITE), (spot_rect.x + 14, spot_rect.y + 36)
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"Constructor: {c_team} | {champ.get('points', 0)} Championship Points", True, UITheme.TEXT_MUTED
+                ),
+                (spot_rect.x + 14, spot_rect.y + 62),
+            )
 
             # Champion Mood Pill
             pill_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 92, spot_rect.width - 28, 44)
             pygame.draw.rect(surface, (36, 48, 30), pill_rect, border_radius=4)
             pygame.draw.rect(surface, (0, 240, 140), pill_rect, width=1, border_radius=4)
-            surface.blit(self.font_card_title.render("CHAMPION MOOD: 'WORLD CHAMPION' (Active for Season)", True, (0, 240, 140)), (pill_rect.x + 10, pill_rect.y + 6))
-            surface.blit(self.font_body.render("100% Morale, Immune to low morale drops, +35% Composure under pressure", True, UITheme.TEXT_WHITE), (pill_rect.x + 10, pill_rect.y + 24))
+            surface.blit(
+                self.font_card_title.render("CHAMPION MOOD: 'WORLD CHAMPION' (Active for Season)", True, (0, 240, 140)),
+                (pill_rect.x + 10, pill_rect.y + 6),
+            )
+            surface.blit(
+                self.font_body.render(
+                    "100% Morale, Immune to low morale drops, +35% Composure under pressure", True, UITheme.TEXT_WHITE
+                ),
+                (pill_rect.x + 10, pill_rect.y + 24),
+            )
 
             # Stat Buffs
-            surface.blit(self.font_card_title.render("CHAMPION PERMANENT ATTRIBUTE GAINS:", True, (0, 220, 255)), (spot_rect.x + 14, spot_rect.y + 152))
+            surface.blit(
+                self.font_card_title.render("CHAMPION PERMANENT ATTRIBUTE GAINS:", True, (0, 220, 255)),
+                (spot_rect.x + 14, spot_rect.y + 152),
+            )
             buff_lines = [
                 "• Pace: +2 Permanent Rating Gain",
                 "• Consistency: +2 Mistake Reduction Gain",
                 "• Defending: +2 Wheel-to-Wheel Defense",
-                "• Marketability: +12 Fan & Sponsor Magnet Surge"
+                "• Marketability: +12 Fan & Sponsor Magnet Surge",
             ]
             for b_idx, bl in enumerate(buff_lines):
-                surface.blit(self.font_body.render(bl, True, UITheme.TEXT_WHITE), (spot_rect.x + 14, spot_rect.y + 176 + b_idx * 18))
+                surface.blit(
+                    self.font_body.render(bl, True, UITheme.TEXT_WHITE),
+                    (spot_rect.x + 14, spot_rect.y + 176 + b_idx * 18),
+                )
 
             # Player Team Royalty Bonus or Academy Champion Banner
             if is_ply_champ:
                 roy_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 258, spot_rect.width - 28, 52)
                 pygame.draw.rect(surface, (38, 50, 28), roy_rect, border_radius=4)
                 pygame.draw.rect(surface, (255, 215, 0), roy_rect, width=1, border_radius=4)
-                surface.blit(self.font_card_title.render("💰 TEAM COMMERCIAL ROYALTY BONUS", True, (255, 215, 0)), (roy_rect.x + 10, roy_rect.y + 6))
-                surface.blit(self.font_body.render("+$2,500,000 Merchandising Bonus + 8 Global Team Reputation!", True, (0, 240, 140)), (roy_rect.x + 10, roy_rect.y + 26))
+                surface.blit(
+                    self.font_card_title.render("💰 TEAM COMMERCIAL ROYALTY BONUS", True, (255, 215, 0)),
+                    (roy_rect.x + 10, roy_rect.y + 6),
+                )
+                surface.blit(
+                    self.font_body.render(
+                        "+$2,500,000 Merchandising Bonus + 8 Global Team Reputation!", True, (0, 240, 140)
+                    ),
+                    (roy_rect.x + 10, roy_rect.y + 26),
+                )
 
         # Academy Champion Spotlight (if player's junior driver won Tier 4 or 5)
         acad_champs = self.finale_data.get("player_academy_champions", [])
@@ -458,16 +531,40 @@ class SeasonFinaleModal:
             ac_rep = ac.get("reputation_boost", 5 if ac_tier == 4 else 3)
             is_grad = ac.get("forced_graduation", False)
 
-            surface.blit(self.font_card_title.render(f"🌟 ACADEMY CHAMPION: {ac_name.upper()} ({ac_tier_name})", True, (0, 220, 255)), (ac_rect.x + 10, ac_rect.y + 6))
-            surface.blit(self.font_body.render(f"Driver Prize Bonus: ${ac_pz:,.0f} (Pure Driver Bonus) | Team Marketing: +{ac_rep} Reputation", True, (0, 240, 140)), (ac_rect.x + 10, ac_rect.y + 26))
-            surface.blit(self.font_body.render("Driver Stat Surge: +5 Pace, +4 Braking, +4 Consistency, +15 Marketability!", True, UITheme.TEXT_WHITE), (ac_rect.x + 10, ac_rect.y + 46))
-            
+            surface.blit(
+                self.font_card_title.render(
+                    f"🌟 ACADEMY CHAMPION: {ac_name.upper()} ({ac_tier_name})", True, (0, 220, 255)
+                ),
+                (ac_rect.x + 10, ac_rect.y + 6),
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"Driver Prize Bonus: ${ac_pz:,.0f} (Pure Driver Bonus) | Team Marketing: +{ac_rep} Reputation",
+                    True,
+                    (0, 240, 140),
+                ),
+                (ac_rect.x + 10, ac_rect.y + 26),
+            )
+            surface.blit(
+                self.font_body.render(
+                    "Driver Stat Surge: +5 Pace, +4 Braking, +4 Consistency, +15 Marketability!",
+                    True,
+                    UITheme.TEXT_WHITE,
+                ),
+                (ac_rect.x + 10, ac_rect.y + 46),
+            )
+
             if is_grad:
                 target_t = ac.get("next_tier", ac_tier - 1)
                 grad_str = f"🚀 MANDATORY PROMOTION: Age requirement met! Promoted to Tier {target_t} seat!"
                 surface.blit(self.font_body.render(grad_str, True, (255, 215, 0)), (ac_rect.x + 10, ac_rect.y + 68))
             else:
-                surface.blit(self.font_body.render("Driver will continue skill development in feeder category.", True, UITheme.TEXT_MUTED), (ac_rect.x + 10, ac_rect.y + 68))
+                surface.blit(
+                    self.font_body.render(
+                        "Driver will continue skill development in feeder category.", True, UITheme.TEXT_MUTED
+                    ),
+                    (ac_rect.x + 10, ac_rect.y + 68),
+                )
 
     # =========================================================================
     # STAGE 3: PROMOTION & RELEGATION
@@ -480,7 +577,10 @@ class SeasonFinaleModal:
         cands = self.finale_data.get("candidates", {})
         t2_relegated = cands.get("t2_p10") if p_tier == 3 else cands.get("t1_p10")
 
-        surface.blit(self.font_card_title.render("SEASON TRANSITION: PROMOTION & RELEGATION", True, (255, 215, 0)), (rect.x + 14, rect.y + 12))
+        surface.blit(
+            self.font_card_title.render("SEASON TRANSITION: PROMOTION & RELEGATION", True, (255, 215, 0)),
+            (rect.x + 14, rect.y + 12),
+        )
 
         # Promotion Section
         if can_choose:
@@ -494,40 +594,104 @@ class SeasonFinaleModal:
             opt1_rect = pygame.Rect(rect.x + 14, rect.y + 56, card_w, card_h)
             is_sel1 = self.player_choice_promote
             pygame.draw.rect(surface, (28, 48, 38) if is_sel1 else (18, 24, 32), opt1_rect, border_radius=4)
-            pygame.draw.rect(surface, (0, 240, 140) if is_sel1 else (40, 52, 68), opt1_rect, width=2 if is_sel1 else 1, border_radius=4)
+            pygame.draw.rect(
+                surface,
+                (0, 240, 140) if is_sel1 else (40, 52, 68),
+                opt1_rect,
+                width=2 if is_sel1 else 1,
+                border_radius=4,
+            )
 
-            surface.blit(self.font_card_title.render("OPTION A: ACCEPT PROMOTION ↗", True, (0, 240, 140) if is_sel1 else UITheme.TEXT_WHITE), (opt1_rect.x + 12, opt1_rect.y + 10))
-            surface.blit(self.font_body.render(f"Promote team to Tier {p_tier - 1}!", True, UITheme.TEXT_WHITE), (opt1_rect.x + 12, opt1_rect.y + 32))
-            surface.blit(self.font_badge.render("• Bigger prize money & lucrative sponsors", True, UITheme.TEXT_MUTED), (opt1_rect.x + 12, opt1_rect.y + 54))
+            surface.blit(
+                self.font_card_title.render(
+                    "OPTION A: ACCEPT PROMOTION ↗", True, (0, 240, 140) if is_sel1 else UITheme.TEXT_WHITE
+                ),
+                (opt1_rect.x + 12, opt1_rect.y + 10),
+            )
+            surface.blit(
+                self.font_body.render(f"Promote team to Tier {p_tier - 1}!", True, UITheme.TEXT_WHITE),
+                (opt1_rect.x + 12, opt1_rect.y + 32),
+            )
+            surface.blit(
+                self.font_badge.render("• Bigger prize money & lucrative sponsors", True, UITheme.TEXT_MUTED),
+                (opt1_rect.x + 12, opt1_rect.y + 54),
+            )
             status1 = "[ SELECTED ]" if is_sel1 else "[ CLICK TO SELECT ]"
-            surface.blit(self.font_badge.render(status1, True, (0, 240, 140) if is_sel1 else UITheme.TEXT_MUTED), (opt1_rect.x + 12, opt1_rect.y + 82))
+            surface.blit(
+                self.font_badge.render(status1, True, (0, 240, 140) if is_sel1 else UITheme.TEXT_MUTED),
+                (opt1_rect.x + 12, opt1_rect.y + 82),
+            )
 
             # Card 2: Decline Promotion
             opt2_rect = pygame.Rect(rect.x + card_w + 34, rect.y + 56, card_w, card_h)
             is_sel2 = not self.player_choice_promote
             pygame.draw.rect(surface, (38, 42, 28) if is_sel2 else (18, 24, 32), opt2_rect, border_radius=4)
-            pygame.draw.rect(surface, (255, 215, 0) if is_sel2 else (40, 52, 68), opt2_rect, width=2 if is_sel2 else 1, border_radius=4)
+            pygame.draw.rect(
+                surface,
+                (255, 215, 0) if is_sel2 else (40, 52, 68),
+                opt2_rect,
+                width=2 if is_sel2 else 1,
+                border_radius=4,
+            )
 
-            surface.blit(self.font_card_title.render("OPTION B: DECLINE & REMAIN HERE", True, (255, 215, 0) if is_sel2 else UITheme.TEXT_WHITE), (opt2_rect.x + 12, opt2_rect.y + 10))
-            p2_team = cands.get("t3_p2", {}).get("name", "2nd Place Team") if p_tier == 3 else cands.get("t2_p2", {}).get("name", "2nd Place Team")
-            surface.blit(self.font_body.render(f"Remain in Tier {p_tier}. 2nd team ({p2_team}) promotes instead.", True, UITheme.TEXT_WHITE), (opt2_rect.x + 12, opt2_rect.y + 32))
-            surface.blit(self.font_badge.render("• Keep dominating & stockpiling HQ facilities", True, UITheme.TEXT_MUTED), (opt2_rect.x + 12, opt2_rect.y + 54))
+            surface.blit(
+                self.font_card_title.render(
+                    "OPTION B: DECLINE & REMAIN HERE", True, (255, 215, 0) if is_sel2 else UITheme.TEXT_WHITE
+                ),
+                (opt2_rect.x + 12, opt2_rect.y + 10),
+            )
+            p2_team = (
+                cands.get("t3_p2", {}).get("name", "2nd Place Team")
+                if p_tier == 3
+                else cands.get("t2_p2", {}).get("name", "2nd Place Team")
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"Remain in Tier {p_tier}. 2nd team ({p2_team}) promotes instead.", True, UITheme.TEXT_WHITE
+                ),
+                (opt2_rect.x + 12, opt2_rect.y + 32),
+            )
+            surface.blit(
+                self.font_badge.render("• Keep dominating & stockpiling HQ facilities", True, UITheme.TEXT_MUTED),
+                (opt2_rect.x + 12, opt2_rect.y + 54),
+            )
             status2 = "[ SELECTED ]" if is_sel2 else "[ CLICK TO SELECT ]"
-            surface.blit(self.font_badge.render(status2, True, (255, 215, 0) if is_sel2 else UITheme.TEXT_MUTED), (opt2_rect.x + 12, opt2_rect.y + 82))
+            surface.blit(
+                self.font_badge.render(status2, True, (255, 215, 0) if is_sel2 else UITheme.TEXT_MUTED),
+                (opt2_rect.x + 12, opt2_rect.y + 82),
+            )
 
         elif is_p10_t3:
             life_rect = pygame.Rect(rect.x + 14, rect.y + 56, rect.width - 28, 70)
             pygame.draw.rect(surface, (38, 48, 30), life_rect, border_radius=4)
             pygame.draw.rect(surface, (0, 240, 140), life_rect, width=1, border_radius=4)
-            surface.blit(self.font_card_title.render("🛡️ TIER 3 RELEGATION PROTECTION LIFELINE", True, (0, 240, 140)), (life_rect.x + 12, life_rect.y + 12))
-            surface.blit(self.font_body.render("You finished 10th in Tier 3. Promotion from Tier 4 is canceled and you remain safely in Tier 3 to rebuild!", True, UITheme.TEXT_WHITE), (life_rect.x + 12, life_rect.y + 36))
+            surface.blit(
+                self.font_card_title.render("🛡️ TIER 3 RELEGATION PROTECTION LIFELINE", True, (0, 240, 140)),
+                (life_rect.x + 12, life_rect.y + 12),
+            )
+            surface.blit(
+                self.font_body.render(
+                    "You finished 10th in Tier 3. Promotion from Tier 4 is canceled and you remain safely in Tier 3 to rebuild!",
+                    True,
+                    UITheme.TEXT_WHITE,
+                ),
+                (life_rect.x + 12, life_rect.y + 36),
+            )
 
         else:
             std_rect = pygame.Rect(rect.x + 14, rect.y + 56, rect.width - 28, 70)
             pygame.draw.rect(surface, (20, 26, 36), std_rect, border_radius=4)
             p1_name = cands.get(f"t{p_tier}_p1", {}).get("name", "Champion Team")
-            surface.blit(self.font_card_title.render(f"TIER {p_tier} PROMOTION: {p1_name} Promoted", True, (0, 220, 255)), (std_rect.x + 12, std_rect.y + 12))
-            surface.blit(self.font_body.render(f"{p1_name} finished 1st and advances to Tier {max(1, p_tier - 1)}.", True, UITheme.TEXT_WHITE), (std_rect.x + 12, std_rect.y + 36))
+            surface.blit(
+                self.font_card_title.render(f"TIER {p_tier} PROMOTION: {p1_name} Promoted", True, (0, 220, 255)),
+                (std_rect.x + 12, std_rect.y + 12),
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"{p1_name} finished 1st and advances to Tier {max(1, p_tier - 1)}.", True, UITheme.TEXT_WHITE
+                ),
+                (std_rect.x + 12, std_rect.y + 36),
+            )
 
         # Relegation Section (Relegated Titan Warning)
         cur_y = rect.y + 186
@@ -540,32 +704,57 @@ class SeasonFinaleModal:
             from_t = p_tier - 1 if p_tier > 1 else 1
             to_t = p_tier
 
-            surface.blit(self.font_card_title.render(f"⚠️ RELEGATED TITAN: {rel_team.upper()} (Tier {from_t} ➔ Tier {to_t})", True, (240, 90, 90)), (rel_rect.x + 12, rel_rect.y + 12))
-            surface.blit(self.font_body.render(f"{rel_team} has dropped down from Tier {from_t} and will compete in your tier this upcoming season.", True, UITheme.TEXT_WHITE), (rel_rect.x + 12, rel_rect.y + 36))
+            surface.blit(
+                self.font_card_title.render(
+                    f"⚠️ RELEGATED TITAN: {rel_team.upper()} (Tier {from_t} ➔ Tier {to_t})", True, (240, 90, 90)
+                ),
+                (rel_rect.x + 12, rel_rect.y + 12),
+            )
+            surface.blit(
+                self.font_body.render(
+                    f"{rel_team} has dropped down from Tier {from_t} and will compete in your tier this upcoming season.",
+                    True,
+                    UITheme.TEXT_WHITE,
+                ),
+                (rel_rect.x + 12, rel_rect.y + 36),
+            )
 
             desc_lines = [
                 "• Starting Position: They did not plan to be relegated, so they adapt their car to this tier's baseline",
                 "  and start slightly behind on initial setup readiness.",
                 "• Season Development: They possess massive factory resources and will improve AGGRESSIVELY during",
-                "  the season! Expect a ferocious championship battle against this former titan."
+                "  the season! Expect a ferocious championship battle against this former titan.",
             ]
             for idx, dl in enumerate(desc_lines):
-                surface.blit(self.font_badge.render(dl, True, (255, 200, 200) if "AGGRESSIVELY" in dl else UITheme.TEXT_MUTED), (rel_rect.x + 12, rel_rect.y + 60 + idx * 17))
+                surface.blit(
+                    self.font_badge.render(dl, True, (255, 200, 200) if "AGGRESSIVELY" in dl else UITheme.TEXT_MUTED),
+                    (rel_rect.x + 12, rel_rect.y + 60 + idx * 17),
+                )
 
     # =========================================================================
     # STAGE 4: ENGINE SUPPLIER SELECTION
     # =========================================================================
     def _render_stage_engine(self, surface: pygame.Surface, rect: pygame.Rect):
         eff_tier = self._get_effective_tier()
-        surface.blit(self.font_card_title.render(f"POWER UNIT CONTRACT NEGOTIATIONS (Tier {eff_tier})", True, (255, 215, 0)), (rect.x + 14, rect.y + 12))
-        surface.blit(self.font_body.render("Pick your engine supplier for the upcoming championship season. Contracts last for all rounds.", True, UITheme.TEXT_MUTED), (rect.x + 14, rect.y + 30))
+        surface.blit(
+            self.font_card_title.render(f"POWER UNIT CONTRACT NEGOTIATIONS (Tier {eff_tier})", True, (255, 215, 0)),
+            (rect.x + 14, rect.y + 12),
+        )
+        surface.blit(
+            self.font_body.render(
+                "Pick your engine supplier for the upcoming championship season. Contracts last for all rounds.",
+                True,
+                UITheme.TEXT_MUTED,
+            ),
+            (rect.x + 14, rect.y + 30),
+        )
 
         start_y = rect.y + 54
         for idx, supp in enumerate(self.available_engines):
             sy = start_y + idx * 72
             card_rect = pygame.Rect(rect.x + 14, sy, rect.width - 28, 64)
 
-            is_sel = (self.selected_engine_name == supp["name"])
+            is_sel = self.selected_engine_name == supp["name"]
             is_works = supp.get("is_in_house", False)
 
             bg_col = (28, 48, 64) if is_sel else ((24, 32, 42) if is_works else (18, 22, 30))
@@ -575,23 +764,36 @@ class SeasonFinaleModal:
             pygame.draw.rect(surface, border_col, card_rect, width=2 if is_sel else 1, border_radius=4)
 
             # Name & Badge
-            surface.blit(self.font_card_title.render(supp["name"], True, (255, 215, 0) if is_sel else UITheme.TEXT_WHITE), (card_rect.x + 12, card_rect.y + 8))
+            surface.blit(
+                self.font_card_title.render(supp["name"], True, (255, 215, 0) if is_sel else UITheme.TEXT_WHITE),
+                (card_rect.x + 12, card_rect.y + 8),
+            )
             if is_works:
-                surface.blit(self.font_badge.render("[ BESPOKE IN-HOUSE WORKS UNIT ]", True, (0, 240, 140)), (card_rect.x + 240, card_rect.y + 8))
+                surface.blit(
+                    self.font_badge.render("[ BESPOKE IN-HOUSE WORKS UNIT ]", True, (0, 240, 140)),
+                    (card_rect.x + 240, card_rect.y + 8),
+                )
 
             # Philosophy
-            surface.blit(self.font_body.render(f"Philosophy: {supp['philosophy']}", True, UITheme.TEXT_MUTED), (card_rect.x + 12, card_rect.y + 26))
+            surface.blit(
+                self.font_body.render(f"Philosophy: {supp['philosophy']}", True, UITheme.TEXT_MUTED),
+                (card_rect.x + 12, card_rect.y + 26),
+            )
 
             # Stats
             cost_str = "$0/yr" if is_works else f"${supp['cost_season']:,.0f}/yr"
-            stat_str = f"Power: {supp['base_power']:.0f} HP | Reliability: {supp['reliability']:.0f}% | Cost: {cost_str}"
+            stat_str = (
+                f"Power: {supp['base_power']:.0f} HP | Reliability: {supp['reliability']:.0f}% | Cost: {cost_str}"
+            )
             surface.blit(self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 12, card_rect.y + 44))
 
             # Selection Pill
             pill_rect = pygame.Rect(card_rect.x + card_rect.width - 130, card_rect.y + 18, 118, 28)
             p_col = (0, 240, 140) if is_sel else (36, 48, 62)
             pygame.draw.rect(surface, p_col, pill_rect, border_radius=3)
-            p_lbl = self.font_btn.render("SELECTED ✓" if is_sel else "SELECT", True, (10, 25, 20) if is_sel else UITheme.TEXT_WHITE)
+            p_lbl = self.font_btn.render(
+                "SELECTED ✓" if is_sel else "SELECT", True, (10, 25, 20) if is_sel else UITheme.TEXT_WHITE
+            )
             surface.blit(p_lbl, (pill_rect.x + (pill_rect.width - p_lbl.get_width()) // 2, pill_rect.y + 6))
 
     # =========================================================================
@@ -601,10 +803,24 @@ class SeasonFinaleModal:
         season_num = self.finale_data.get("season_num", 1)
         next_season = season_num + 1
         eff_tier = self._get_effective_tier()
-        tier_names = {1: "Tier 1: World Super Formula (WSF)", 2: "Tier 2: Continental Championship (CC)", 3: "Tier 3: National Open Cup (NOC)"}
+        tier_names = {
+            1: "Tier 1: World Super Formula (WSF)",
+            2: "Tier 2: Continental Championship (CC)",
+            3: "Tier 3: National Open Cup (NOC)",
+        }
 
-        surface.blit(self.font_card_title.render(f"READY TO COMMENCE SEASON {next_season}!", True, (255, 215, 0)), (rect.x + 14, rect.y + 12))
-        surface.blit(self.font_body.render("Review your confirmed championship parameters below before taking the green flag:", True, UITheme.TEXT_MUTED), (rect.x + 14, rect.y + 32))
+        surface.blit(
+            self.font_card_title.render(f"READY TO COMMENCE SEASON {next_season}!", True, (255, 215, 0)),
+            (rect.x + 14, rect.y + 12),
+        )
+        surface.blit(
+            self.font_body.render(
+                "Review your confirmed championship parameters below before taking the green flag:",
+                True,
+                UITheme.TEXT_MUTED,
+            ),
+            (rect.x + 14, rect.y + 32),
+        )
 
         # Overview Grid Card
         grid_rect = pygame.Rect(rect.x + 14, rect.y + 56, rect.width - 28, 240)
@@ -618,16 +834,28 @@ class SeasonFinaleModal:
             ("Championship Points:", "All teams and drivers reset to 0 PTS"),
             ("Driver Development:", "Drivers age +1 year | Morale & skills updated"),
             ("Chassis & Components:", "Wear reset to 0% | Full durability restored"),
-            ("Opening Race Venue:", "Round 1 / Grand Prix (Emerald Ring)")
+            ("Opening Race Venue:", "Round 1 / Grand Prix (Emerald Ring)"),
         ]
 
         for idx, (label, val) in enumerate(rows):
             ry = grid_rect.y + 14 + idx * 30
             surface.blit(self.font_card_title.render(label, True, UITheme.TEXT_MUTED), (grid_rect.x + 16, ry))
-            surface.blit(self.font_card_title.render(val, True, (0, 220, 255) if idx == 0 else UITheme.TEXT_WHITE), (grid_rect.x + 240, ry))
+            surface.blit(
+                self.font_card_title.render(val, True, (0, 220, 255) if idx == 0 else UITheme.TEXT_WHITE),
+                (grid_rect.x + 240, ry),
+            )
 
         # Instruction Pill
         ins_rect = pygame.Rect(rect.x + 14, rect.y + 308, rect.width - 28, 38)
         pygame.draw.rect(surface, (24, 38, 28), ins_rect, border_radius=4)
         pygame.draw.rect(surface, (0, 240, 140), ins_rect, width=1, border_radius=4)
-        surface.blit(self.font_badge.render("Click 'START NEW SEASON >>' below to apply rewards, roll over regulations, and launch into Season " + str(next_season) + "!", True, (0, 240, 140)), (ins_rect.x + 14, ins_rect.y + 11))
+        surface.blit(
+            self.font_badge.render(
+                "Click 'START NEW SEASON >>' below to apply rewards, roll over regulations, and launch into Season "
+                + str(next_season)
+                + "!",
+                True,
+                (0, 240, 140),
+            ),
+            (ins_rect.x + 14, ins_rect.y + 11),
+        )

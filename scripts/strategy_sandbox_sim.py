@@ -13,13 +13,13 @@ Tracks 5,000 multi-season careers (50 careers per agent, up to 10 seasons each):
   - Comprehensive statistical rankings & actionable telemetry
 """
 
-import os
-import sys
 import json
-import time
+import os
 import random
 import statistics
-from typing import Dict, List, Any, Tuple
+import sys
+import time
+from typing import Any, Dict, List
 
 # Add project root to path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -27,7 +27,6 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.data.balance_config import BALANCE_REGISTRY
-
 
 # -----------------------------------------------------------------------------
 # 1. ARCHETYPE DEFINITIONS
@@ -87,6 +86,7 @@ FACILITY_NODES = {
 
 class AgentProfile:
     """Represents an agent with either a pure archetype or a blend of up to 3 archetypes."""
+
     def __init__(self, agent_id: int, name: str, weights: Dict[str, float]):
         self.agent_id = agent_id
         self.name = name
@@ -113,11 +113,7 @@ def generate_100_agents(seed: int = 42) -> List[AgentProfile]:
 
     # 1. 10 Pure Archetypes
     for idx, arch in enumerate(BASE_ARCHETYPES):
-        agents.append(AgentProfile(
-            agent_id=idx + 1,
-            name=f"Agent_{idx+1:03d} [PURE: {arch}]",
-            weights={arch: 1.0}
-        ))
+        agents.append(AgentProfile(agent_id=idx + 1, name=f"Agent_{idx + 1:03d} [PURE: {arch}]", weights={arch: 1.0}))
 
     # 2. 90 Multi-Agent Combinations
     for idx in range(10, 100):
@@ -137,12 +133,8 @@ def generate_100_agents(seed: int = 42) -> List[AgentProfile]:
             w3 = round(1.0 - w1 - w2, 2)
             weights = {chosen[0]: w1, chosen[1]: w2, chosen[2]: w3}
 
-        combo_str = "+".join([f"{int(round(w*100))}%{a.split('_')[0]}" for a, w in weights.items()])
-        agents.append(AgentProfile(
-            agent_id=agent_num,
-            name=f"Agent_{agent_num:03d} [{combo_str}]",
-            weights=weights
-        ))
+        combo_str = "+".join([f"{int(round(w * 100))}%{a.split('_')[0]}" for a, w in weights.items()])
+        agents.append(AgentProfile(agent_id=agent_num, name=f"Agent_{agent_num:03d} [{combo_str}]", weights=weights))
 
     return agents
 
@@ -183,7 +175,7 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
     """Runs a single multi-season career (up to max_seasons) for an agent profile."""
     cash = 5_000_000.0  # Starting Tier 3 budget
     tier = 3
-    car_perf = 68.0      # Tier 3 benchmark is 75.0 (genuine underdog start)
+    car_perf = 68.0  # Tier 3 benchmark is 75.0 (genuine underdog start)
     driver_skill = 50.0  # Tier 3 benchmark is 55.0
     driver_cons = 74.0
     facilities_owned = {"eng_workshop": 1}  # Starter
@@ -206,18 +198,21 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
         if season > 1 and season % 6 == 0:
             # Regulation reset hits car performance
             aero_protection = 0.0
-            if "eng_windtunnel" in facilities_owned: aero_protection += 0.10
-            if "eng_cfd" in facilities_owned: aero_protection += 0.08
-            if "eng_cad_office" in facilities_owned: aero_protection += 0.05
+            if "eng_windtunnel" in facilities_owned:
+                aero_protection += 0.10
+            if "eng_cfd" in facilities_owned:
+                aero_protection += 0.08
+            if "eng_cad_office" in facilities_owned:
+                aero_protection += 0.05
             loss_pct = max(0.12, 0.32 - aero_protection)
-            car_perf *= (1.0 - loss_pct)
+            car_perf *= 1.0 - loss_pct
 
         # 1. Annual Facility Upkeep (strictly based on owned facilities)
         annual_facility_upkeep = sum(FACILITY_NODES[f]["upkeep"] for f in facilities_owned if f in FACILITY_NODES)
 
         bench_car = BALANCE_REGISTRY.tier_dominance[tier].benchmark_car_perf
         bench_driver = BALANCE_REGISTRY.tier_dominance[tier].benchmark_driver_skill
-        
+
         # Synchronized prize pools from central balance registry
         prizes = BALANCE_REGISTRY.get_tier_prize_pool(tier)
 
@@ -247,7 +242,7 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
             # Academy scouting & youth training program annual cost
             # Scaled to represent funding 2 junior seats in feeder leagues (T4 & T5)
             academy_program_cost = {1: 4_500_000.0, 2: 2_200_000.0, 3: 850_000.0}[tier]
-            
+
             # Prodigy starts raw: lower early consistency, early incident risk
             if academy_driver_tenure <= 2:
                 driver_cons = 66.0
@@ -324,7 +319,15 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
                         try_buy_facility("eng_works_powertrain", 1.55)
 
         elif active_arch == "PURE_AERO_TECH_TITAN":
-            for n in ["eng_brakes", "eng_wings_front", "eng_wings_rear", "eng_floor", "eng_cad_office", "eng_cfd", "eng_windtunnel"]:
+            for n in [
+                "eng_brakes",
+                "eng_wings_front",
+                "eng_wings_rear",
+                "eng_floor",
+                "eng_cad_office",
+                "eng_cfd",
+                "eng_windtunnel",
+            ]:
                 try_buy_facility(n, 1.15)
 
         elif active_arch == "COMMERCIAL_MARKETEER":
@@ -332,7 +335,13 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
                 try_buy_facility(n, 1.20)
 
         elif active_arch == "ACADEMY_PRODIGY_SCOUT":
-            for n in ["driver_sim", "driver_gym_conditioning", "driver_academy", "driver_karting_scholarship", "driver_f4_bootcamp"]:
+            for n in [
+                "driver_sim",
+                "driver_gym_conditioning",
+                "driver_academy",
+                "driver_karting_scholarship",
+                "driver_f4_bootcamp",
+            ]:
                 try_buy_facility(n, 1.25)
 
         elif active_arch == "PIT_AND_TRACKSIDE_OPTIMIZER":
@@ -397,9 +406,12 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
 
         form_swing = random.gauss(0.0, 2.0 if driver_cons >= 75 else 4.8)
         track_bonus = 0.0
-        if "track_telemetry" in facilities_owned: track_bonus += 1.4
-        if "track_wheelguns" in facilities_owned: track_bonus += 1.6
-        if "track_fast_repair" in facilities_owned: track_bonus += 1.0
+        if "track_telemetry" in facilities_owned:
+            track_bonus += 1.4
+        if "track_wheelguns" in facilities_owned:
+            track_bonus += 1.6
+        if "track_fast_repair" in facilities_owned:
+            track_bonus += 1.0
 
         score_delta = (w_driver * driver_norm) + (w_car * car_norm) + track_bonus + form_swing
         if repair_bill > 0:
@@ -420,24 +432,33 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
 
         # 6. Marketing Appeal & Sponsor Revenue (Calculated with actual finish position)
         base_appeal = BALANCE_REGISTRY.sponsor.tier_appeal_points[tier]
-        if "mkt_press" in facilities_owned: base_appeal += 6.0
-        if "mkt_brand_design" in facilities_owned: base_appeal += 10.0
-        if "mkt_merch" in facilities_owned: base_appeal += 8.0
-        if "mkt_hospitality" in facilities_owned: base_appeal += 14.0
-        if pos <= 3: base_appeal += 10.0
-        elif pos <= 5: base_appeal += 5.0
-        elif pos >= 8: base_appeal -= 8.0
+        if "mkt_press" in facilities_owned:
+            base_appeal += 6.0
+        if "mkt_brand_design" in facilities_owned:
+            base_appeal += 10.0
+        if "mkt_merch" in facilities_owned:
+            base_appeal += 8.0
+        if "mkt_hospitality" in facilities_owned:
+            base_appeal += 14.0
+        if pos <= 3:
+            base_appeal += 10.0
+        elif pos <= 5:
+            base_appeal += 5.0
+        elif pos >= 8:
+            base_appeal -= 8.0
 
         sponsors = calculate_16_sponsor_revenue(tier, base_appeal, pos=pos, is_escalated=just_promoted)
         just_promoted = False
 
         # 7. Total Operational Accounting & Solvency Check
-        fixed_operating_costs = annual_facility_upkeep + staff_overhead + engine_lease + driver_salary + academy_program_cost
+        fixed_operating_costs = (
+            annual_facility_upkeep + staff_overhead + engine_lease + driver_salary + academy_program_cost
+        )
         variable_costs = rnd_spend + repair_bill
         total_costs = fixed_operating_costs + variable_costs
         total_revenue = sponsors + pay_driver_income + prize_money
 
-        cash += (total_revenue - total_costs)
+        cash += total_revenue - total_costs
 
         if cash < 0:
             is_bankrupt = True
@@ -455,15 +476,17 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
                 bankruptcy_reason = "OPERATIONAL_DEFICIT"
             break
 
-        history.append({
-            "season": season,
-            "tier": tier,
-            "pos": pos,
-            "cash_end": round(cash, 0),
-            "car_perf": round(car_perf, 1),
-            "driver_skill": round(driver_skill, 1),
-            "facilities_count": len(facilities_owned)
-        })
+        history.append(
+            {
+                "season": season,
+                "tier": tier,
+                "pos": pos,
+                "cash_end": round(cash, 0),
+                "car_perf": round(car_perf, 1),
+                "driver_skill": round(driver_skill, 1),
+                "facilities_count": len(facilities_owned),
+            }
+        )
 
         # 8. Promotion / Relegation Mechanics
         if tier == 3:
@@ -517,7 +540,7 @@ def simulate_single_career(agent: AgentProfile, max_seasons: int = 30) -> Dict[s
         "final_tier": tier,
         "total_seasons_survived": len(history),
         "facilities_owned": list(facilities_owned.keys()),
-        "history": history
+        "history": history,
     }
 
 
@@ -541,7 +564,7 @@ def analyze_sandbox_results(all_results: List[Dict[str, Any]], agents: List[Agen
             "bankruptcy_reasons": {},
             "seasons_to_t1_list": [],
             "final_cash_list": [],
-            "facilities_acquired": {}
+            "facilities_acquired": {},
         }
 
     total_runs = len(all_results)
@@ -580,40 +603,40 @@ def analyze_sandbox_results(all_results: List[Dict[str, Any]], agents: List[Agen
             "avg_seasons_to_t1": avg_s,
             "avg_final_cash": avg_c,
             "bankruptcy_reasons": s["bankruptcy_reasons"],
-            "facilities_acquired": s["facilities_acquired"]
+            "facilities_acquired": s["facilities_acquired"],
         }
         ranked_agents.append(entry)
 
     ranked_agents.sort(key=lambda x: (x["t1_rate"], -x["bk_rate"], -(x["avg_seasons_to_t1"] or 99)), reverse=True)
 
-    outliers = {
-        "early_dominance_overpowered": [],
-        "hyper_fragile_high_bankruptcy": [],
-        "mediocre_midfield_trapped": []
-    }
+    outliers = {"early_dominance_overpowered": [], "hyper_fragile_high_bankruptcy": [], "mediocre_midfield_trapped": []}
     for a in ranked_agents:
         if a["t1_rate"] >= 80.0 and (a["avg_seasons_to_t1"] is not None and a["avg_seasons_to_t1"] <= 3.2):
-            outliers["early_dominance_overpowered"].append({
-                "agent_id": a["agent_id"],
-                "name": a["name"],
-                "description": a["description"],
-                "t1_rate": f"{a['t1_rate']}%",
-                "avg_seasons": a["avg_seasons_to_t1"]
-            })
+            outliers["early_dominance_overpowered"].append(
+                {
+                    "agent_id": a["agent_id"],
+                    "name": a["name"],
+                    "description": a["description"],
+                    "t1_rate": f"{a['t1_rate']}%",
+                    "avg_seasons": a["avg_seasons_to_t1"],
+                }
+            )
         if a["bk_rate"] >= 40.0:
-            outliers["hyper_fragile_high_bankruptcy"].append({
-                "agent_id": a["agent_id"],
-                "name": a["name"],
-                "description": a["description"],
-                "bk_rate": f"{a['bk_rate']}%",
-                "primary_cause": max(a["bankruptcy_reasons"].items(), key=lambda x: x[1])[0] if a["bankruptcy_reasons"] else "None"
-            })
+            outliers["hyper_fragile_high_bankruptcy"].append(
+                {
+                    "agent_id": a["agent_id"],
+                    "name": a["name"],
+                    "description": a["description"],
+                    "bk_rate": f"{a['bk_rate']}%",
+                    "primary_cause": max(a["bankruptcy_reasons"].items(), key=lambda x: x[1])[0]
+                    if a["bankruptcy_reasons"]
+                    else "None",
+                }
+            )
         if a["t1_rate"] == 0.0 and a["bk_rate"] == 0.0:
-            outliers["mediocre_midfield_trapped"].append({
-                "agent_id": a["agent_id"],
-                "name": a["name"],
-                "description": a["description"]
-            })
+            outliers["mediocre_midfield_trapped"].append(
+                {"agent_id": a["agent_id"], "name": a["name"], "description": a["description"]}
+            )
 
     facility_totals = {f: 0 for f in FACILITY_NODES}
     facility_in_t1_runs = {f: 0 for f in FACILITY_NODES}
@@ -630,14 +653,16 @@ def analyze_sandbox_results(all_results: List[Dict[str, Any]], agents: List[Agen
     for f, count in facility_totals.items():
         overall_pct = round((count / total_runs) * 100.0, 1)
         t1_pct = round((facility_in_t1_runs[f] / max(1, t1_runs_total)) * 100.0, 1)
-        facility_adoption_rates.append({
-            "facility_node": f,
-            "category": FACILITY_NODES[f]["category"],
-            "base_cost": FACILITY_NODES[f]["cost"],
-            "overall_adoption_rate": f"{overall_pct}%",
-            "t1_champions_adoption_rate": f"{t1_pct}%",
-            "is_dead_facility": overall_pct == 0.0
-        })
+        facility_adoption_rates.append(
+            {
+                "facility_node": f,
+                "category": FACILITY_NODES[f]["category"],
+                "base_cost": FACILITY_NODES[f]["cost"],
+                "overall_adoption_rate": f"{overall_pct}%",
+                "t1_champions_adoption_rate": f"{t1_pct}%",
+                "is_dead_facility": overall_pct == 0.0,
+            }
+        )
 
     facility_adoption_rates.sort(key=lambda x: float(x["overall_adoption_rate"].strip("%")), reverse=True)
 
@@ -648,7 +673,7 @@ def analyze_sandbox_results(all_results: List[Dict[str, Any]], agents: List[Agen
         "bottom_10_strugglers": ranked_agents[-10:],
         "outlier_analysis": outliers,
         "facility_adoption_matrix": facility_adoption_rates,
-        "full_ranked_agents": ranked_agents
+        "full_ranked_agents": ranked_agents,
     }
 
 
@@ -667,15 +692,18 @@ def print_pbar(current: int, total: int, prefix: str = "", length: int = 24):
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Multi-Strategy 100-Agent Sandbox Simulation")
-    parser.add_argument("--careers-per-agent", type=int, default=50, help="Careers to simulate per agent (default 50 = 5,000 total)")
+    parser.add_argument(
+        "--careers-per-agent", type=int, default=50, help="Careers to simulate per agent (default 50 = 5,000 total)"
+    )
     parser.add_argument("--max-seasons", type=int, default=30, help="Max seasons per career (default 30)")
     parser.add_argument("--output-json", type=str, default="sandbox_analysis_report.json", help="Destination JSON path")
     args = parser.parse_args()
 
     print("=" * 78)
     print(" 100-AGENT MULTI-STRATEGY SANDBOX SIMULATION & OUTLIER AUDIT")
-    print(f" Agents: 100 (10 Base Archetypes + 90 Multi-Agent Blends of up to 3 Archetypes)")
+    print(" Agents: 100 (10 Base Archetypes + 90 Multi-Agent Blends of up to 3 Archetypes)")
     print(f" Careers per Agent: {args.careers_per_agent} | Max Seasons: {args.max_seasons}")
     total_careers = 100 * args.careers_per_agent
     print(f" Total Careers to Simulate: {total_careers:,} (up to {total_careers * args.max_seasons:,} seasons)")
@@ -693,16 +721,20 @@ def main():
             completed += 1
             if completed % 250 == 0 or completed == total_careers:
                 print_pbar(completed, total_careers, prefix=f"{ag.name[:30]}")
-        
+
         # Periodic check-in print every 10 agents
         if idx % 10 == 0 or idx == len(agents):
             agent_runs = [r for r in all_career_results if r["agent_id"] == ag.agent_id]
             t1_hits = sum(1 for r in agent_runs if r["reached_tier_1"])
             bks = sum(1 for r in agent_runs if r["is_bankrupt"])
-            print(f"\n  [Agent {idx:03d}/100] {ag.name[:35]:<35} | T1 Reach: {t1_hits*100//len(agent_runs)}% | Bankruptcies: {bks*100//len(agent_runs)}%")
+            print(
+                f"\n  [Agent {idx:03d}/100] {ag.name[:35]:<35} | T1 Reach: {t1_hits * 100 // len(agent_runs)}% | Bankruptcies: {bks * 100 // len(agent_runs)}%"
+            )
 
     elapsed_sim = time.time() - t_start
-    print(f"\n[+] Completed {total_careers:,} career simulations in {elapsed_sim:.2f}s ({total_careers / elapsed_sim:.0f} careers/sec)")
+    print(
+        f"\n[+] Completed {total_careers:,} career simulations in {elapsed_sim:.2f}s ({total_careers / elapsed_sim:.0f} careers/sec)"
+    )
 
     print("\nRunning statistical analysis & outlier detection...")
     meta_analysis = analyze_sandbox_results(all_career_results, agents)
@@ -720,28 +752,40 @@ def main():
     print(f"{'Rank':<4} | {'Agent Name':<32} | {'T1 Rate':<9} | {'Bankrupt':<9} | {'Avg Yrs':<8} | {'Avg Final Cash'}")
     print("-" * 78)
     for i, a in enumerate(meta_analysis["top_10_champions"], 1):
-        s_yrs = f"{a['avg_seasons_to_t1']} yrs" if a['avg_seasons_to_t1'] else "N/A"
-        print(f"#{i:<3} | {a['name'][:32]:<32} | {a['t1_rate']:>5.1f}%   | {a['bk_rate']:>5.1f}%   | {s_yrs:<8} | ${a['avg_final_cash']:,.0f}")
+        s_yrs = f"{a['avg_seasons_to_t1']} yrs" if a["avg_seasons_to_t1"] else "N/A"
+        print(
+            f"#{i:<3} | {a['name'][:32]:<32} | {a['t1_rate']:>5.1f}%   | {a['bk_rate']:>5.1f}%   | {s_yrs:<8} | ${a['avg_final_cash']:,.0f}"
+        )
 
     print("\n" + "=" * 78)
     print(" BOTTOM 10 STRUGGLING AGENTS (Stagnant or Bankrupt)")
     print("=" * 78)
-    print(f"{'Rank':<4} | {'Agent Name':<32} | {'T1 Rate':<9} | {'Bankrupt':<9} | {'Avg Yrs':<8} | {'Primary Breakdown'}")
+    print(
+        f"{'Rank':<4} | {'Agent Name':<32} | {'T1 Rate':<9} | {'Bankrupt':<9} | {'Avg Yrs':<8} | {'Primary Breakdown'}"
+    )
     print("-" * 78)
     for i, a in enumerate(meta_analysis["bottom_10_strugglers"], 91):
-        s_yrs = f"{a['avg_seasons_to_t1']} yrs" if a['avg_seasons_to_t1'] else "N/A"
-        top_cause = max(a['bankruptcy_reasons'].items(), key=lambda x: x[1])[0] if a['bankruptcy_reasons'] else "Midfield Trap"
-        print(f"#{i:<3} | {a['name'][:32]:<32} | {a['t1_rate']:>5.1f}%   | {a['bk_rate']:>5.1f}%   | {s_yrs:<8} | {top_cause}")
+        s_yrs = f"{a['avg_seasons_to_t1']} yrs" if a["avg_seasons_to_t1"] else "N/A"
+        top_cause = (
+            max(a["bankruptcy_reasons"].items(), key=lambda x: x[1])[0] if a["bankruptcy_reasons"] else "Midfield Trap"
+        )
+        print(
+            f"#{i:<3} | {a['name'][:32]:<32} | {a['t1_rate']:>5.1f}%   | {a['bk_rate']:>5.1f}%   | {s_yrs:<8} | {top_cause}"
+        )
 
     print("\n" + "=" * 78)
     print(" OUTLIER DETECTION & BALANCE CHECKS")
     print("=" * 78)
     outliers = meta_analysis["outlier_analysis"]
-    print(f"  - Hyper-Fragile High-Bankruptcy Agents (Permissible Failure): {len(outliers['hyper_fragile_high_bankruptcy'])} detected")
+    print(
+        f"  - Hyper-Fragile High-Bankruptcy Agents (Permissible Failure): {len(outliers['hyper_fragile_high_bankruptcy'])} detected"
+    )
     for o in outliers["hyper_fragile_high_bankruptcy"][:3]:
         print(f"    * {o['name']} -> {o['bk_rate']} bankruptcies ({o['primary_cause']})")
 
-    print(f"\n  - Overpowered Early Dominance (Cheat / Exploit Flags): {len(outliers['early_dominance_overpowered'])} detected")
+    print(
+        f"\n  - Overpowered Early Dominance (Cheat / Exploit Flags): {len(outliers['early_dominance_overpowered'])} detected"
+    )
     if not outliers["early_dominance_overpowered"]:
         print("    * None detected! Progression cannot be trivially bypassed in <= 3 seasons.")
     else:
@@ -760,12 +804,16 @@ def main():
     print("-" * 78)
     print("  [MOST ADOPTED FACILITIES]:")
     for f in facs[:5]:
-        print(f"  {f['facility_node']:<24} | {f['category']:<14} | {f['overall_adoption_rate']:<20} | {f['t1_champions_adoption_rate']}")
+        print(
+            f"  {f['facility_node']:<24} | {f['category']:<14} | {f['overall_adoption_rate']:<20} | {f['t1_champions_adoption_rate']}"
+        )
     print("  ...")
     print("  [LEAST ADOPTED / NICHE FACILITIES]:")
     for f in facs[-5:]:
         dead_flag = " [DEAD NODE]" if f["is_dead_facility"] else ""
-        print(f"  {f['facility_node']:<24} | {f['category']:<14} | {f['overall_adoption_rate']:<20} | {f['t1_champions_adoption_rate']}{dead_flag}")
+        print(
+            f"  {f['facility_node']:<24} | {f['category']:<14} | {f['overall_adoption_rate']:<20} | {f['t1_champions_adoption_rate']}{dead_flag}"
+        )
     print("=" * 78)
     print(f" Sandbox analysis finished in {time.time() - t_start:.2f}s total.\n")
 

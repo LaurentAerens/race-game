@@ -1,0 +1,38 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+exclude = [
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "build",
+    "dist",
+    "dist_installer",
+    "site",
+    "venv*",
+    ".venv*",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+]
+ignore = [
+    "E501", # Line too long (handled by ruff formatter)
+    "E402", # Module level import not at top of file (used for sys.path and deferred imports)
+    "E741", # Ambiguous variable name
+    "F841", # Local variable is assigned to but never used
+    "W291", # Trailing whitespace in multiline string blocks
+    "W293", # Blank line with whitespace in multiline string blocks
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+

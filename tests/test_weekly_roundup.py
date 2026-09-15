@@ -1,12 +1,15 @@
-import unittest
-import tempfile
-import os
 import gc
+import os
+import tempfile
+import unittest
+
 import pygame
+
 from src.database.career_db import CareerDatabase
 from src.management.game_manager import GameManager
-from src.ui.management_hub.weekly_roundup_modal import WeeklyRoundupModal
 from src.ui.management_hub.management_hub import ManagementHub
+from src.ui.management_hub.weekly_roundup_modal import WeeklyRoundupModal
+
 
 class TestWeeklyRoundup(unittest.TestCase):
     @classmethod
@@ -73,7 +76,9 @@ class TestWeeklyRoundup(unittest.TestCase):
         with self.db.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("SELECT COUNT(*) FROM series_race_results WHERE season_num = 1;")
-            self.assertEqual(cur.fetchone()[0], 0, "init_schema must purge orphaned race results for uncompleted season.")
+            self.assertEqual(
+                cur.fetchone()[0], 0, "init_schema must purge orphaned race results for uncompleted season."
+            )
 
     def test_modal_season_opener_state(self):
         """WeeklyRoundupModal handles is_season_start state cleanly without displaying fake tier results."""
@@ -83,7 +88,7 @@ class TestWeeklyRoundup(unittest.TestCase):
             "is_season_start": True,
             "tiers_simulated": [],
             "results_by_tier": {},
-            "academy_highlights": []
+            "academy_highlights": [],
         }
         modal.open(summary)
         self.assertTrue(modal.is_open)
@@ -116,6 +121,7 @@ class TestWeeklyRoundup(unittest.TestCase):
         # Clean up hub references
         del hub
         gc.collect()
+
 
 if __name__ == "__main__":
     unittest.main()

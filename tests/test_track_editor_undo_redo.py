@@ -1,6 +1,9 @@
 import unittest
+
 import pygame
+
 from src.editor.track_editor import TrackEditor
+
 
 class TestTrackEditorUndoRedo(unittest.TestCase):
     @classmethod
@@ -102,20 +105,14 @@ class TestTrackEditorUndoRedo(unittest.TestCase):
         # Verify that for any circuit, every single control point is drawn with its node number
         c = self.editor.circuit
         self.assertGreater(len(c.control_points), 0)
-        
+
         surf = pygame.Surface((1280, 720))
         # Rendering shouldn't crash and should process all nodes
         self.editor.render(surf)
 
     def test_drs_synchronization(self):
         c = self.editor.circuit
-        c.drs_zones = [{
-            "name": "DRS #1->#3",
-            "node_a": 0,
-            "node_b": 2,
-            "start_s": 0.0,
-            "end_s": 100.0
-        }]
+        c.drs_zones = [{"name": "DRS #1->#3", "node_a": 0, "node_b": 2, "start_s": 0.0, "end_s": 100.0}]
         c.build_circuit()
         self.assertEqual(c.drs_zones[0]["start_s"], c.node_s_distances[0])
         self.assertEqual(c.drs_zones[0]["end_s"], c.node_s_distances[2])
@@ -123,4 +120,3 @@ class TestTrackEditorUndoRedo(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

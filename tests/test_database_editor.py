@@ -1,13 +1,15 @@
-import unittest
+import gc
 import os
 import tempfile
-import gc
-import sqlite3
-from src.database.db_manager import DatabaseManager
-from src.database.career_db import CareerDatabase
-from src.editor.database_editor import DatabaseEditor
-from src.editor.admin_hub import AdminHub
+import unittest
+
 import pygame
+
+from src.database.career_db import CareerDatabase
+from src.database.db_manager import DatabaseManager
+from src.editor.admin_hub import AdminHub
+from src.editor.database_editor import DatabaseEditor
+
 
 class TestDatabaseEditorAndAdminHub(unittest.TestCase):
     @classmethod
@@ -32,11 +34,18 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
         teams = db.get_teams()
         self.assertGreater(len(teams), 0)
         t_id = teams[0]["id"]
-        
+
         # Test updating car attributes
         car_attrs = db.get_car_attributes(t_id)
         self.assertIsNotNone(car_attrs)
-        new_attrs = {"engine_power": 99.0, "aero_downforce": 95.0, "braking_efficiency": 92.0, "tire_preservation": 88.0, "fuel_efficiency": 85.0, "reliability": 94.0}
+        new_attrs = {
+            "engine_power": 99.0,
+            "aero_downforce": 95.0,
+            "braking_efficiency": 92.0,
+            "tire_preservation": 88.0,
+            "fuel_efficiency": 85.0,
+            "reliability": 94.0,
+        }
         self.assertTrue(db.update_car_attributes(t_id, new_attrs))
         updated_car = db.get_car_attributes(t_id)
         self.assertEqual(updated_car["engine_power"], 99.0)
@@ -45,7 +54,16 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
         drivers = db.get_drivers(t_id)
         self.assertGreater(len(drivers), 0)
         d_id = drivers[0]["id"]
-        new_stats = {"speed": 97.0, "braking": 96.0, "cornering": 95.0, "overtaking": 92.0, "defending": 90.0, "tire_management": 89.0, "consistency": 94.0, "wet_skill": 91.0}
+        new_stats = {
+            "speed": 97.0,
+            "braking": 96.0,
+            "cornering": 95.0,
+            "overtaking": 92.0,
+            "defending": 90.0,
+            "tire_management": 89.0,
+            "consistency": 94.0,
+            "wet_skill": 91.0,
+        }
         self.assertTrue(db.update_driver_attributes(d_id, drivers[0]["name"], "TST", 99, new_stats))
 
         # Test reset
@@ -88,7 +106,13 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
         self.assertEqual(updated_r["weather_profile"], "RAIN")
 
         # Restore original round
-        cdb.update_calendar_round(first_rnd["round"], first_rnd["track_name"], first_rnd["circuit_file"], first_rnd["total_laps"], first_rnd["weather_profile"])
+        cdb.update_calendar_round(
+            first_rnd["round"],
+            first_rnd["track_name"],
+            first_rnd["circuit_file"],
+            first_rnd["total_laps"],
+            first_rnd["weather_profile"],
+        )
 
         # Test setting facility tier
         facilities = cdb.get_team_facilities(1)
@@ -102,7 +126,7 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
     def test_custom_facility_node_crud(self):
         cdb = CareerDatabase(self.career_db_path)
         test_node_id = "test_custom_windtunnel_rig"
-        
+
         # 1. Create custom facility node
         created = cdb.create_facility_node(
             node_id=test_node_id,
@@ -113,7 +137,7 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
             tier=1,
             max_tier=3,
             base_cost=15000000.0,
-            base_upkeep=350000.0
+            base_upkeep=350000.0,
         )
         self.assertTrue(created)
 
@@ -137,7 +161,7 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
             description="Upgraded chamber",
             parent_id=None,
             base_cost=18000000.0,
-            base_upkeep=400000.0
+            base_upkeep=400000.0,
         )
         self.assertTrue(updated)
         match_upd = [n for n in cdb.get_all_facility_nodes() if n["id"] == test_node_id][0]
@@ -151,7 +175,14 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
         self.assertEqual(len(match_del), 0)
 
     def test_admin_hub_instantiation(self):
-        hub = AdminHub(1280, 720, lambda: None, lambda c: None, exhibition_db_path=self.exhibition_db_path, career_db_path=self.career_db_path)
+        hub = AdminHub(
+            1280,
+            720,
+            lambda: None,
+            lambda c: None,
+            exhibition_db_path=self.exhibition_db_path,
+            career_db_path=self.career_db_path,
+        )
         self.assertIn(hub.active_tab, ["TRACK", "DATABASE"])
         hub.active_tab = "DATABASE"
         self.assertEqual(hub.active_tab, "DATABASE")
@@ -162,7 +193,6 @@ class TestDatabaseEditorAndAdminHub(unittest.TestCase):
         surf = pygame.Surface((1280, 720))
         hub.render(surf)
 
+
 if __name__ == "__main__":
     unittest.main()
-
-

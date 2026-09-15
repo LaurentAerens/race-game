@@ -1,14 +1,14 @@
-import random
 import math
-from typing import List, Optional, Dict, Tuple, Any
-from .circuit import Circuit
-from .car import Car
-from .driver import Driver
-from .race_control import RaceControl, FlagStatus
-from .weather import WeatherSystem
-from .radio_system import RadioMessageSystem
-from .tires import TIRE_COMPOUNDS
+import random
+from typing import Any, Dict, List, Optional, Tuple
+
 from ..database.db_manager import CarAttributes
+from .car import Car
+from .circuit import Circuit
+from .driver import Driver
+from .race_control import FlagStatus, RaceControl
+from .radio_system import RadioMessageSystem
+from .weather import WeatherSystem
 
 
 class Simulation:
@@ -17,19 +17,25 @@ class Simulation:
     Manages grid starting positions, physics tick updates, dynamic overtaking,
     Safety Car deployment, tire degradation, dynamic weather, and commentary feeds.
     """
-    def __init__(self, circuit: Circuit, driver_car_pairs: List[Tuple[Driver, CarAttributes]], 
-                 total_laps: int = 15, session_type: str = "RACE",
-                 car_setups: Optional[Dict[int, Any]] = None,
-                 setup_confidences: Optional[Dict[int, float]] = None,
-                 practice_bonuses: Optional[Dict[int, Dict[str, float]]] = None,
-                 league_tier: int = 3,
-                 car_durabilities: Optional[Dict[int, Dict[str, float]]] = None,
-                 weather_profile: Optional[str] = None,
-                 rain_chance: Optional[float] = None,
-                 max_wetness_cap: Optional[float] = None):
+
+    def __init__(
+        self,
+        circuit: Circuit,
+        driver_car_pairs: List[Tuple[Driver, CarAttributes]],
+        total_laps: int = 15,
+        session_type: str = "RACE",
+        car_setups: Optional[Dict[int, Any]] = None,
+        setup_confidences: Optional[Dict[int, float]] = None,
+        practice_bonuses: Optional[Dict[int, Dict[str, float]]] = None,
+        league_tier: int = 3,
+        car_durabilities: Optional[Dict[int, Dict[str, float]]] = None,
+        weather_profile: Optional[str] = None,
+        rain_chance: Optional[float] = None,
+        max_wetness_cap: Optional[float] = None,
+    ):
         self.circuit = circuit
         self.total_laps = total_laps
-        self.session_type = session_type # "PRACTICE", "QUALIFYING", "SPRINT", "RACE"
+        self.session_type = session_type  # "PRACTICE", "QUALIFYING", "SPRINT", "RACE"
         self.car_setups = car_setups or {}
         self.setup_confidences = setup_confidences or {}
         self.practice_bonuses = practice_bonuses or {}
@@ -39,9 +45,9 @@ class Simulation:
         self.current_lap = 1
         self.race_time = 0.0
         self.is_paused = False
-        self.sim_speed = 1.0 # 1x, 2x, 4x, 8x
+        self.sim_speed = 1.0  # 1x, 2x, 4x, 8x
         self.race_finished = False
-        
+
         self.race_control = RaceControl()
         eff_weather = weather_profile or getattr(circuit, "weather_profile", "DYNAMIC")
         eff_rain_chance = rain_chance if rain_chance is not None else getattr(circuit, "base_rain_chance", 0.20)
@@ -52,24 +58,23 @@ class Simulation:
             rain_chance=eff_rain_chance,
             total_laps=total_laps,
             max_wetness_cap=max_wetness_cap,
-            is_big_track=is_big_track
+            is_big_track=is_big_track,
         )
         self.radio_system = RadioMessageSystem()
-        
+
         # Commentary / Event log
         self.event_log: List[Dict] = []
         self.fastest_lap_holder: Optional[Car] = None
-        self.fastest_lap_time: float = float('inf')
+        self.fastest_lap_time: float = float("inf")
 
         # Initialize cars on starting grid
         self.cars: List[Car] = []
         self._init_grid(driver_car_pairs)
 
-
     def _init_grid(self, driver_car_pairs: List[Tuple[Driver, CarAttributes]]):
         self.cars = []
-        dry_compounds = self.circuit.get_dry_compounds() # e.g. ["MEDIUM", "SOFT", "SUPERSOFT"]
-        
+        dry_compounds = self.circuit.get_dry_compounds()  # e.g. ["MEDIUM", "SOFT", "SUPERSOFT"]
+
         # Varied compound strategy splits on the starting grid
         grid_pattern = [dry_compounds[1], dry_compounds[2], dry_compounds[1], dry_compounds[0], dry_compounds[2]]
 
@@ -97,17 +102,16 @@ class Simulation:
                     c_dur = self.car_durabilities[slot]
 
             car = Car(
-                car_id=i + 1, 
-                driver=driver, 
-                car_attributes=car_attrs, 
+                car_id=i + 1,
+                driver=driver,
+                car_attributes=car_attrs,
                 initial_compound=compound,
                 setup=c_setup,
                 setup_confidence=c_conf,
                 practice_bonuses=c_bonuses,
                 league_tier=self.league_tier,
-                initial_part_durabilities=c_dur
+                initial_part_durabilities=c_dur,
             )
-
 
             # Grid stagger (left / right alternating)
             grid_dist = (self.circuit.length - (15.0 + i * 9.0)) % self.circuit.length
@@ -117,10 +121,10 @@ class Simulation:
             car.speed = 0.0
             car.position = i + 1
             car.lap = 1
-            
+
             car.world_x, car.world_y = self.circuit.get_position(car.s, car.lateral_offset)
             car.heading = self.circuit.get_heading(car.s)
-            
+
             self.cars.append(car)
 
         self.log_event("LIGHTS OUT AND AWAY WE GO!", "START")
@@ -139,11 +143,13 @@ class Simulation:
 
     def _tick(self, dt: float):
         self.race_time += dt
-        
+
         # Update weather, race control, and pit wall radio
         self.weather.update(dt, self.current_lap)
         leader_car = self.cars[0] if self.cars else None
-        self.race_control.update(dt, self.current_lap, self.weather.track_wetness, circuit=self.circuit, leader_car=leader_car)
+        self.race_control.update(
+            dt, self.current_lap, self.weather.track_wetness, circuit=self.circuit, leader_car=leader_car
+        )
         player_cars = [c for c in self.cars if c.driver.is_player]
         self.radio_system.update(dt, self.current_lap, self.weather, player_cars)
 
@@ -160,13 +166,21 @@ class Simulation:
                 # Yellow Flag: cars only switch to conservative mode while physically traversing the yellow sector
                 # Cars not in the yellow sector maintain normal racing pace and settings
                 pass
-            elif current_flag == FlagStatus.GREEN and prev_flag in (FlagStatus.SAFETY_CAR, FlagStatus.VSC, FlagStatus.YELLOW):
+            elif current_flag == FlagStatus.GREEN and prev_flag in (
+                FlagStatus.SAFETY_CAR,
+                FlagStatus.VSC,
+                FlagStatus.YELLOW,
+            ):
                 # Track clear: unlock mode adjustments and restore settings from before flag
                 for c in self.cars:
                     if not c.is_broken and not c.is_dnf and c.is_mode_locked:
                         c.exit_flag_neutralization()
 
-            if current_flag == FlagStatus.GREEN and prev_flag in (FlagStatus.SAFETY_CAR, FlagStatus.VSC, FlagStatus.YELLOW):
+            if current_flag == FlagStatus.GREEN and prev_flag in (
+                FlagStatus.SAFETY_CAR,
+                FlagStatus.VSC,
+                FlagStatus.YELLOW,
+            ):
                 self.log_event("GREEN FLAG - TRACK CLEAR! RACING RESUMES!", "FLAG")
             elif current_flag == FlagStatus.YELLOW and self.race_control.yellow_sector:
                 self.log_event(f"YELLOW FLAG IN SECTOR {self.race_control.yellow_sector} - REDUCE PACE", "FLAG")
@@ -174,10 +188,10 @@ class Simulation:
 
         # Sort cars: active cars by progress, DNF cars at the bottom
         self.cars.sort(key=lambda c: (0 if c.is_dnf else 1, c.lap * self.circuit.length + c.s), reverse=True)
-        
+
         leader = self.cars[0]
         self.current_lap = max(1, leader.lap)
-        
+
         if leader.lap > self.total_laps:
             if not self.race_finished:
                 self.race_finished = True
@@ -195,17 +209,17 @@ class Simulation:
                 car.gap_to_leader = 0.0
                 car.interval_to_ahead = 0.0
             else:
-                leader_dist = (leader.lap * self.circuit.length + leader.s)
-                car_dist = (car.lap * self.circuit.length + car.s)
+                leader_dist = leader.lap * self.circuit.length + leader.s
+                car_dist = car.lap * self.circuit.length + car.s
                 dist_gap = max(0.0, leader_dist - car_dist)
                 car.gap_to_leader = dist_gap / max(20.0, car.speed)
-                
-                ahead_dist = (car_ahead.lap * self.circuit.length + car_ahead.s)
+
+                ahead_dist = car_ahead.lap * self.circuit.length + car_ahead.s
                 interval_dist = max(0.0, ahead_dist - car_dist)
                 car.interval_to_ahead = interval_dist / max(20.0, car.speed)
 
             # DRS availability: within 1.0s behind car ahead
-            car.drs_available = (car.interval_to_ahead <= 1.05 and car.interval_to_ahead > 0.0)
+            car.drs_available = car.interval_to_ahead <= 1.05 and car.interval_to_ahead > 0.0
 
             # AI strategic tactics (Pushing / ERS / Pit stops for non-player cars)
             if not car.driver.is_player and not car.in_pit_lane:
@@ -217,7 +231,9 @@ class Simulation:
             # Update physics with local sector wetness
             car_sec = self.circuit.get_sector(car.s)
             local_wetness = self.weather.get_sector_wetness(car_sec)
-            car.update_physics(dt, self.circuit, self.race_control, local_wetness, car_ahead, car_behind, all_cars=self.cars)
+            car.update_physics(
+                dt, self.circuit, self.race_control, local_wetness, car_ahead, car_behind, all_cars=self.cars
+            )
 
             # Check for driver mistake commentary (crash, off track, rejoin, lockup, snap oversteer, running wide)
             if car.mistake_event:
@@ -225,20 +241,38 @@ class Simulation:
                 car.mistake_event = None
                 if m_type in ("CRASH", "AQUAPLANE_CRASH"):
                     if m_type == "AQUAPLANE_CRASH":
-                        self.log_event(f"AQUAPLANE CRASH! {car.driver.name} lost all grip on {car.tires.compound.name} in standing water and crashed heavily in Sector {car.current_sector}!", "CRASH")
+                        self.log_event(
+                            f"AQUAPLANE CRASH! {car.driver.name} lost all grip on {car.tires.compound.name} in standing water and crashed heavily in Sector {car.current_sector}!",
+                            "CRASH",
+                        )
                     else:
-                        self.log_event(f"CRASH! {car.driver.name} has heavily crashed out in Sector {car.current_sector}!", "CRASH")
+                        self.log_event(
+                            f"CRASH! {car.driver.name} has heavily crashed out in Sector {car.current_sector}!", "CRASH"
+                        )
                     if random.random() < 0.70:
-                        self.race_control.deploy_safety_car(cleanup_duration=22.0, message="SAFETY CAR DEPLOYED", circuit=self.circuit, leader_s=self.cars[0].s)
+                        self.race_control.deploy_safety_car(
+                            cleanup_duration=22.0,
+                            message="SAFETY CAR DEPLOYED",
+                            circuit=self.circuit,
+                            leader_s=self.cars[0].s,
+                        )
                         self.log_event("SAFETY CAR DEPLOYED - Field bunching up slowly", "FLAG")
                     else:
                         self.race_control.deploy_vsc(duration_seconds=16.0, message="VIRTUAL SAFETY CAR")
                         self.log_event("VIRTUAL SAFETY CAR DEPLOYED - Strict speed delta", "FLAG")
                 elif m_type == "MECHANICAL_FAILURE":
                     part_name = (car.blunder_part_damaged or "COMPONENT").replace("_", " ")
-                    self.log_event(f"TERMINAL BREAKDOWN: {car.driver.name} has stopped on track with catastrophic {part_name} failure!", "CRASH")
+                    self.log_event(
+                        f"TERMINAL BREAKDOWN: {car.driver.name} has stopped on track with catastrophic {part_name} failure!",
+                        "CRASH",
+                    )
                     if car.driver.is_player:
-                        self.radio_system.broadcast(car.driver.name, f"Engine/Telemetry warning! The {part_name.lower()} is completely dead! I have to pull over and retire!", is_engineer=False, priority=10)
+                        self.radio_system.broadcast(
+                            car.driver.name,
+                            f"Engine/Telemetry warning! The {part_name.lower()} is completely dead! I have to pull over and retire!",
+                            is_engineer=False,
+                            priority=10,
+                        )
                     if random.random() < 0.65:
                         self.race_control.deploy_vsc(duration_seconds=18.0, message="VIRTUAL SAFETY CAR - CAR STOPPED")
                         self.log_event("VIRTUAL SAFETY CAR DEPLOYED - Stricken car on track", "FLAG")
@@ -247,21 +281,31 @@ class Simulation:
                 elif m_type == "BIG_BLUNDER":
                     part_name = (car.blunder_part_damaged or "part").replace("_", " ")
                     drop_pct = car.blunder_drop_pct
-                    self.log_event(f"BIG BLUNDER: {car.driver.name} butchers the corner, clobbering the curbs (-{drop_pct:.1f}% {part_name} durability)!", "INCIDENT")
+                    self.log_event(
+                        f"BIG BLUNDER: {car.driver.name} butchers the corner, clobbering the curbs (-{drop_pct:.1f}% {part_name} durability)!",
+                        "INCIDENT",
+                    )
                     if car.driver.is_player:
                         radio_blunders = [
                             f"I really butchered that corner! Clattered over the high kerbs, felt the {part_name.lower()} take a beating!",
                             f"Whoa, massive curb strike! I've definitely taken life out of the {part_name.lower()}!",
-                            f"Sorry team, lost the rear and bounced hard over the sausage curb! Check the {part_name.lower()} telemetry!"
+                            f"Sorry team, lost the rear and bounced hard over the sausage curb! Check the {part_name.lower()} telemetry!",
                         ]
-                        self.radio_system.broadcast(car.driver.name, random.choice(radio_blunders), is_engineer=False, priority=9)
+                        self.radio_system.broadcast(
+                            car.driver.name, random.choice(radio_blunders), is_engineer=False, priority=9
+                        )
                 elif m_type == "OFF_TRACK":
-                    self.log_event(f"INCIDENT: {car.driver.name} slides off into the runoff in Sector {car.current_sector}!", "INCIDENT")
+                    self.log_event(
+                        f"INCIDENT: {car.driver.name} slides off into the runoff in Sector {car.current_sector}!",
+                        "INCIDENT",
+                    )
                     self.race_control.deploy_local_yellow(car.current_sector, duration=8.0)
                 elif m_type == "REJOIN":
                     self.log_event(f"{car.driver.name} safely rejoins the track after dropping back.", "INFO")
                 elif m_type == "RAN_WIDE":
-                    opp_txt = f" under pressure from {car_behind.driver.name}" if car_behind and car.is_defending else ""
+                    opp_txt = (
+                        f" under pressure from {car_behind.driver.name}" if car_behind and car.is_defending else ""
+                    )
                     self.log_event(f"{car.driver.name} runs wide at the apex{opp_txt}!", "INCIDENT")
                 elif m_type == "LOCKUP":
                     self.log_event(f"{car.driver.name} locks up heavily with tire smoke puffing!", "INCIDENT")
@@ -269,7 +313,11 @@ class Simulation:
                     self.log_event(f"{car.driver.name} suffers a snap of oversteer on corner exit!", "INCIDENT")
 
             # Check if marshals cleared broken wreckage once track returns to green
-            if self.race_control.flag == FlagStatus.GREEN and car.is_broken and not getattr(car, "wreckage_cleared", False):
+            if (
+                self.race_control.flag == FlagStatus.GREEN
+                and car.is_broken
+                and not getattr(car, "wreckage_cleared", False)
+            ):
                 car.wreckage_cleared = True
                 self.log_event(f"Marshals have recovered and cleared {car.driver.name}'s car from the verge.", "INFO")
 
@@ -293,7 +341,7 @@ class Simulation:
                     txt = f"{opp_name} yields under blue flags to let {car.driver.name} pass cleanly."
                 else:
                     txt = f"{car.driver.name} moves up to P{car.position}!"
-                
+
                 self.log_event(txt, "OVERTAKE" if move_type != "BLUE_FLAG" else "INFO")
 
         # Resolve physical vehicle collisions / non-penetration hitboxes
@@ -306,18 +354,17 @@ class Simulation:
         Hitbox is slightly smaller than the visual circle radius to keep wheel-to-wheel racing thrilling.
         """
         active_cars = [
-            c for c in self.cars 
-            if not c.is_broken and not c.is_dnf and not c.in_pit_lane and not c.off_track
+            c for c in self.cars if not c.is_broken and not c.is_dnf and not c.in_pit_lane and not c.off_track
         ]
         if len(active_cars) < 2:
             return
 
         circuit = self.circuit
         circuit_len = circuit.length
-        min_dist = 3.3          # Minimum Euclidean center-to-center distance (meters)
-        min_long_gap = 3.5      # Minimum longitudinal gap when in same lane
-        min_lat_gap = 1.95      # Minimum lateral gap when side-by-side
-        
+        min_dist = 3.3  # Minimum Euclidean center-to-center distance (meters)
+        min_long_gap = 3.5  # Minimum longitudinal gap when in same lane
+        min_lat_gap = 1.95  # Minimum lateral gap when side-by-side
+
         # Multiple relaxation iterations for packed situations (e.g. race start, safety car restarts)
         for _ in range(2):
             for i in range(len(active_cars)):
@@ -362,14 +409,16 @@ class Simulation:
                         chaser.s = (chaser.s - overlap * 0.7) % circuit_len
                         # Nudge chaser slightly laterally to seek clear air/overtaking lane
                         steer_dir = 1.0 if chaser.lateral_offset >= leader.lateral_offset else -1.0
-                        chaser.lateral_offset = max(-half_w_bound, min(half_w_bound, chaser.lateral_offset + steer_dir * 0.15))
+                        chaser.lateral_offset = max(
+                            -half_w_bound, min(half_w_bound, chaser.lateral_offset + steer_dir * 0.15)
+                        )
                         chaser.world_x, chaser.world_y = circuit.get_position(chaser.s, chaser.lateral_offset)
 
                     # Case B: Lateral Side-by-Side Overlap / Squeeze (wheel-to-wheel non-penetration)
                     elif lat_gap < min_lat_gap:
                         overlap = min_lat_gap - lat_gap
                         nudge = max(0.08, overlap * 0.55)
-                        
+
                         # Identify who is to the left vs right on track
                         if c1.lateral_offset <= c2.lateral_offset:
                             left_car, right_car = c1, c2
@@ -380,7 +429,9 @@ class Simulation:
                         right_car.lateral_offset = min(half_w_bound, right_car.lateral_offset + nudge)
 
                         left_car.world_x, left_car.world_y = circuit.get_position(left_car.s, left_car.lateral_offset)
-                        right_car.world_x, right_car.world_y = circuit.get_position(right_car.s, right_car.lateral_offset)
+                        right_car.world_x, right_car.world_y = circuit.get_position(
+                            right_car.s, right_car.lateral_offset
+                        )
 
                     # Case C: General 2D Contact Separation
                     elif dist < min_dist and dist > 0.001:
@@ -402,7 +453,7 @@ class Simulation:
         if self.league_tier >= 3:
             car.engine_mode = "STANDARD"
             car.ers_mode = "AUTO"
-            if (car.drs_available or car.interval_to_ahead < 0.85 or car.slipstream_active or car.is_defending):
+            if car.drs_available or car.interval_to_ahead < 0.85 or car.slipstream_active or car.is_defending:
                 car.pace_mode = "PUSH"
             else:
                 car.pace_mode = "NORMAL"
@@ -411,11 +462,17 @@ class Simulation:
         # 1. Attacking mode (closing in on car ahead)
         if (car.drs_available or car.interval_to_ahead < 0.90 or car.slipstream_active) and car_ahead:
             # Check if car has braking advantage or downforce advantage
-            has_brake_adv = (car.norm_brakes * car.driver.braking) > (car_ahead.norm_brakes * car_ahead.driver.braking * 1.04)
+            has_brake_adv = (car.norm_brakes * car.driver.braking) > (
+                car_ahead.norm_brakes * car_ahead.driver.braking * 1.04
+            )
             has_power_adv = car.norm_engine > car_ahead.norm_engine
-            
+
             # Late Brakers and Aggressive Hunters commit aggressively to ATTACK mode
-            if has_brake_adv or car.driver.aggression > 0.65 or car.driver.driving_style in ["LATE_BRAKER", "AGGRESSIVE_HUNTER"]:
+            if (
+                has_brake_adv
+                or car.driver.aggression > 0.65
+                or car.driver.driving_style in ["LATE_BRAKER", "AGGRESSIVE_HUNTER"]
+            ):
                 car.pace_mode = "ATTACK"
             else:
                 car.pace_mode = "PUSH"
@@ -448,7 +505,7 @@ class Simulation:
     def _ai_pit_strategy(self, car: Car):
         """Simulates AI driver pit decisions for tire degradation or rain."""
         dry_compounds = self.circuit.get_dry_compounds()
-        
+
         # 1. Weather change reaction
         avg_wet = self.weather.track_wetness
         max_sec_wet = max(self.weather.sector_wetness.values()) if hasattr(self.weather, "sector_wetness") else avg_wet
@@ -467,7 +524,7 @@ class Simulation:
                 car.order_pit_stop("WET")
                 return
             elif max_sec_wet < 0.08:
-                car.order_pit_stop(dry_compounds[1]) # Return to slicks
+                car.order_pit_stop(dry_compounds[1])  # Return to slicks
                 return
         elif car.tires.compound_name == "WET":
             # Currently on Full Wet (operating window 70% - 100%)
@@ -475,34 +532,28 @@ class Simulation:
                 car.order_pit_stop("INTER")
                 return
             elif max_sec_wet < 0.08:
-                car.order_pit_stop(dry_compounds[1]) # Return to slicks
+                car.order_pit_stop(dry_compounds[1])  # Return to slicks
                 return
 
         # 2. Tire wear cliff reaction
         if car.tires.wear_pct > car.tires.compound.cliff_wear_pct and (self.total_laps - car.lap) >= 3:
             laps_left = self.total_laps - car.lap
             if laps_left < 6:
-                next_comp = dry_compounds[2] # Softest dry compound
+                next_comp = dry_compounds[2]  # Softest dry compound
             elif laps_left < 13:
-                next_comp = dry_compounds[1] # Middle dry compound
+                next_comp = dry_compounds[1]  # Middle dry compound
             else:
-                next_comp = dry_compounds[0] # Hardest dry compound
+                next_comp = dry_compounds[0]  # Hardest dry compound
             car.order_pit_stop(next_comp)
 
-
     def log_event(self, text: str, event_type: str = "INFO"):
-        self.event_log.insert(0, {
-            "time": self.race_time,
-            "lap": self.current_lap,
-            "text": text,
-            "type": event_type
-        })
+        self.event_log.insert(0, {"time": self.race_time, "lap": self.current_lap, "text": text, "type": event_type})
         if len(self.event_log) > 40:
             self.event_log.pop()
 
     @staticmethod
     def format_time(seconds: float) -> str:
-        if seconds == float('inf') or seconds <= 0:
+        if seconds == float("inf") or seconds <= 0:
             return "--:--.---"
         mins = int(seconds // 60)
         secs = seconds % 60

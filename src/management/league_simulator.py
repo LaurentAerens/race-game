@@ -1,36 +1,68 @@
 import random
 import sqlite3
-from typing import Dict, List, Any, Optional, Tuple
-from ..database.career_db import CareerDatabase
+from typing import Any, Dict, List, Optional
+
 from ..data.balance_config import BALANCE_REGISTRY
+from ..database.career_db import CareerDatabase
 
 POINTS_TABLE = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 
 TEAM_SPECIALTIES = {
     # Tier 1: World Super Formula
-    "Storm Racing": "SPEED", "Scuderia Veloce": "BRAKES", "Apex Dynamics": "AERO",
-    "Solaris GP": "SPEED", "AeroStar GP": "AERO", "Vanguard Motorsport": "BALANCED",
-    "Titan GP": "SPEED", "Nexus Racing": "BALANCED", "Kestrel F1": "BRAKES", "Neon Velocity": "BALANCED",
-
+    "Storm Racing": "SPEED",
+    "Scuderia Veloce": "BRAKES",
+    "Apex Dynamics": "AERO",
+    "Solaris GP": "SPEED",
+    "AeroStar GP": "AERO",
+    "Vanguard Motorsport": "BALANCED",
+    "Titan GP": "SPEED",
+    "Nexus Racing": "BALANCED",
+    "Kestrel F1": "BRAKES",
+    "Neon Velocity": "BALANCED",
     # Tier 2: Continental Championship
-    "Nordic Velocity": "SPEED", "Bavaria Sport": "AERO", "Riviera Corse": "BRAKES",
-    "Silverstone Engineering": "AERO", "Iberia Grand Prix": "BALANCED", "Alps Dynamics": "BRAKES",
-    "Danube GP": "BALANCED", "Baltic Motorsport": "SPEED", "Apennine Racing": "BRAKES", "Caledonia Speed": "BALANCED",
-
+    "Nordic Velocity": "SPEED",
+    "Bavaria Sport": "AERO",
+    "Riviera Corse": "BRAKES",
+    "Silverstone Engineering": "AERO",
+    "Iberia Grand Prix": "BALANCED",
+    "Alps Dynamics": "BRAKES",
+    "Danube GP": "BALANCED",
+    "Baltic Motorsport": "SPEED",
+    "Apennine Racing": "BRAKES",
+    "Caledonia Speed": "BALANCED",
     # Tier 3: National Open Cup
-    "Horizon Racing": "BALANCED", "Vortex Sprint": "SPEED", "Apex Club Sport": "BRAKES",
-    "Phoenix GP": "SPEED", "Falcon Dynamics": "AERO", "Mirage Motorsport": "BALANCED",
-    "Pulse Racing Team": "BRAKES", "Zephyr Cup": "AERO", "Stratos Autosport": "BALANCED", "Obsidian GP": "SPEED",
-
+    "Horizon Racing": "BALANCED",
+    "Vortex Sprint": "SPEED",
+    "Apex Club Sport": "BRAKES",
+    "Phoenix GP": "SPEED",
+    "Falcon Dynamics": "AERO",
+    "Mirage Motorsport": "BALANCED",
+    "Pulse Racing Team": "BRAKES",
+    "Zephyr Cup": "AERO",
+    "Stratos Autosport": "BALANCED",
+    "Obsidian GP": "SPEED",
     # Tier 4: Junior Talent Series
-    "JTS Academy Blue": "SPEED", "JTS Academy Red": "BALANCED", "Future Stars GP": "BRAKES",
-    "Nova Talent Cup": "AERO", "Pioneer Junior GP": "BALANCED", "Ascent Autosport": "SPEED",
-    "Velocity Youth": "BALANCED", "Vector Pro-Junior": "BRAKES", "Rookie Vanguard": "AERO", "Zenith Junior": "BALANCED",
-
+    "JTS Academy Blue": "SPEED",
+    "JTS Academy Red": "BALANCED",
+    "Future Stars GP": "BRAKES",
+    "Nova Talent Cup": "AERO",
+    "Pioneer Junior GP": "BALANCED",
+    "Ascent Autosport": "SPEED",
+    "Velocity Youth": "BALANCED",
+    "Vector Pro-Junior": "BRAKES",
+    "Rookie Vanguard": "AERO",
+    "Zenith Junior": "BALANCED",
     # Tier 5: Karting Masters
-    "KMA Elite Alpha": "BALANCED", "KMA Elite Beta": "SPEED", "EuroKart Masters": "BRAKES",
-    "Nordic Karting": "AERO", "Monza Kart Club": "SPEED", "Silverstone Kart Cadets": "BALANCED",
-    "Spa Young Drivers": "AERO", "Suzuka Karting School": "BRAKES", "Interlagos Juniors": "SPEED", "Apex Karting Academy": "BALANCED"
+    "KMA Elite Alpha": "BALANCED",
+    "KMA Elite Beta": "SPEED",
+    "EuroKart Masters": "BRAKES",
+    "Nordic Karting": "AERO",
+    "Monza Kart Club": "SPEED",
+    "Silverstone Kart Cadets": "BALANCED",
+    "Spa Young Drivers": "AERO",
+    "Suzuka Karting School": "BRAKES",
+    "Interlagos Juniors": "SPEED",
+    "Apex Karting Academy": "BALANCED",
 }
 
 TRACK_RAIN_CHANCES = {
@@ -50,6 +82,7 @@ TRACK_RAIN_CHANCES = {
     "snetterton": 0.30,
 }
 
+
 class LeagueSimulator:
     """
     Simulates weekly championship rounds across all 5 tiers.
@@ -59,6 +92,7 @@ class LeagueSimulator:
     - Player's young drivers are the real variable: their attributes (pace, braking,
       rain mastery, consistency, morale) create direct performance deltas against the car's baseline!
     """
+
     def __init__(self, db: CareerDatabase):
         self.db = db
 
@@ -77,18 +111,15 @@ class LeagueSimulator:
             last_res = self.simulate_weekly_series(w, player_race_results=player_race_results)
         return last_res
 
-    def simulate_weekly_series(self, week: int, player_race_results: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def simulate_weekly_series(
+        self, week: int, player_race_results: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """
         Simulates all series racing in the specified calendar week.
         Records full driver classifications in series_race_results, awards points to
         drivers and constructors, and updates academy driver development & morale.
         """
-        summary: Dict[str, Any] = {
-            "week": week,
-            "tiers_simulated": [],
-            "results_by_tier": {},
-            "academy_highlights": []
-        }
+        summary: Dict[str, Any] = {"week": week, "tiers_simulated": [], "results_by_tier": {}, "academy_highlights": []}
 
         with self.db.get_connection() as conn:
             cur = conn.cursor()
@@ -121,14 +152,20 @@ class LeagueSimulator:
                 self._process_ai_in_season_development(cur, tier, round_num)
 
                 # Fetch all teams in this tier
-                cur.execute("SELECT id, name, is_player, reputation, is_relegated_titan FROM teams WHERE tier = ? ORDER BY reputation DESC;", (tier,))
+                cur.execute(
+                    "SELECT id, name, is_player, reputation, is_relegated_titan FROM teams WHERE tier = ? ORDER BY reputation DESC;",
+                    (tier,),
+                )
                 teams = [dict(r) for r in cur.fetchall()]
 
                 # Fetch any player academy drivers racing in this tier
-                cur.execute("""
+                cur.execute(
+                    """
                 SELECT * FROM drivers 
                 WHERE is_academy_driver = 1 AND academy_tier_placement = ?;
-                """, (tier,))
+                """,
+                    (tier,),
+                )
                 academy_drivers = [dict(r) for r in cur.fetchall()]
                 academy_by_team = {d["academy_team_name"]: d for d in academy_drivers if d.get("academy_team_name")}
 
@@ -144,11 +181,14 @@ class LeagueSimulator:
                     tw = BALANCE_REGISTRY.tier_dominance.get(tier, BALANCE_REGISTRY.tier_dominance[3])
 
                     # Calculate car performance from mounted components or reputation baseline
-                    cur.execute("""
+                    cur.execute(
+                        """
                     SELECT AVG(performance), AVG(current_durability) 
                     FROM car_components 
                     WHERE team_id = ? AND car_slot > 0;
-                    """, (t["id"],))
+                    """,
+                        (t["id"],),
+                    )
                     comp_row = cur.fetchone()
                     avg_dur = 100.0
                     if comp_row and comp_row[0] is not None:
@@ -166,7 +206,7 @@ class LeagueSimulator:
                     titan_bonus = 0.0
                     if bool(t.get("is_relegated_titan", 0)):
                         season_progress = min(1.0, float(week) / 16.0)
-                        titan_bonus = (-3.5 + season_progress * 10.0)
+                        titan_bonus = -3.5 + season_progress * 10.0
 
                     # Fetch drivers for this team
                     cur.execute("SELECT * FROM drivers WHERE team_id = ? AND is_academy_driver = 0;", (t["id"],))
@@ -181,8 +221,24 @@ class LeagueSimulator:
                     # If team has no drivers generated, create stand-ins
                     if not team_drivers:
                         team_drivers = [
-                            {"id": None, "name": f"{t_name} Driver A", "pace": tw.benchmark_driver_skill, "consistency": 50, "morale": 75.0, "is_academy_driver": 0, "is_player_driver": 0},
-                            {"id": None, "name": f"{t_name} Driver B", "pace": tw.benchmark_driver_skill - 2, "consistency": 50, "morale": 75.0, "is_academy_driver": 0, "is_player_driver": 0}
+                            {
+                                "id": None,
+                                "name": f"{t_name} Driver A",
+                                "pace": tw.benchmark_driver_skill,
+                                "consistency": 50,
+                                "morale": 75.0,
+                                "is_academy_driver": 0,
+                                "is_player_driver": 0,
+                            },
+                            {
+                                "id": None,
+                                "name": f"{t_name} Driver B",
+                                "pace": tw.benchmark_driver_skill - 2,
+                                "consistency": 50,
+                                "morale": 75.0,
+                                "is_academy_driver": 0,
+                                "is_player_driver": 0,
+                            },
                         ]
 
                     for d_idx, d in enumerate(team_drivers):
@@ -218,7 +274,12 @@ class LeagueSimulator:
                                 track_skill_bonus = (d_defending - tw.benchmark_driver_skill) * 0.20
 
                             wet_bonus = (d_wet - tw.benchmark_driver_skill) * 0.45 if is_rain else 0.0
-                            avg_skill = (d_pace * 0.45 + d_braking * 0.25 + d_defending * 0.15 + (d_wet if is_rain else d_pace) * 0.15)
+                            avg_skill = (
+                                d_pace * 0.45
+                                + d_braking * 0.25
+                                + d_defending * 0.15
+                                + (d_wet if is_rain else d_pace) * 0.15
+                            )
                             driver_delta = (avg_skill - tw.benchmark_driver_skill) + track_skill_bonus + wet_bonus
 
                             # Track affinity specialty bonus
@@ -244,19 +305,30 @@ class LeagueSimulator:
                             # Tier 1 (WSF):     w_driver ~ 0.22, w_car ~ 0.78 -> Car Engineering dominates
                             # Tier 3 (NOC):     w_driver ~ 0.50, w_car ~ 0.50 -> Balanced parity
                             perf_contribution = (w_driver * driver_norm) + (w_car * car_norm)
-                            driver_score = 80.0 + perf_contribution + affinity_bonus + titan_bonus + morale_mod + form_var + incident_penalty + seat_offset
+                            driver_score = (
+                                80.0
+                                + perf_contribution
+                                + affinity_bonus
+                                + titan_bonus
+                                + morale_mod
+                                + form_var
+                                + incident_penalty
+                                + seat_offset
+                            )
 
-                        driver_entries.append({
-                            "driver_id": d.get("id"),
-                            "driver_name": d.get("name", f"Driver {d_idx+1}"),
-                            "team_id": t["id"],
-                            "team_name": t_name,
-                            "is_academy_driver": is_academy,
-                            "is_player": is_player_team or is_player_driver,
-                            "score": driver_score,
-                            "driver_obj": d,
-                            "expected_pos": rank_idx + 1
-                        })
+                        driver_entries.append(
+                            {
+                                "driver_id": d.get("id"),
+                                "driver_name": d.get("name", f"Driver {d_idx + 1}"),
+                                "team_id": t["id"],
+                                "team_name": t_name,
+                                "is_academy_driver": is_academy,
+                                "is_player": is_player_team or is_player_driver,
+                                "score": driver_score,
+                                "driver_obj": d,
+                                "expected_pos": rank_idx + 1,
+                            }
+                        )
 
                 # Sort drivers to determine final race classification
                 driver_entries.sort(key=lambda x: x["score"], reverse=True)
@@ -264,21 +336,31 @@ class LeagueSimulator:
                 tier_results = []
                 for pos, de in enumerate(driver_entries, 1):
                     pts = POINTS_TABLE[pos - 1] if pos <= len(POINTS_TABLE) else 0
-                    
+
                     # Record race result
-                    cur.execute("""
+                    cur.execute(
+                        """
                     INSERT INTO series_race_results (
                         tier, round_num, week, track_name, position, driver_name,
                         team_name, team_id, driver_id, is_academy_driver, is_player, points, season_num
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                    """, (
-                        tier, round_num, week, track_name, pos, de["driver_name"],
-                        de["team_name"], de["team_id"], de["driver_id"],
-                        1 if de["is_academy_driver"] else 0,
-                        1 if de["is_player"] else 0,
-                        pts,
-                        season_num
-                    ))
+                    """,
+                        (
+                            tier,
+                            round_num,
+                            week,
+                            track_name,
+                            pos,
+                            de["driver_name"],
+                            de["team_name"],
+                            de["team_id"],
+                            de["driver_id"],
+                            1 if de["is_academy_driver"] else 0,
+                            1 if de["is_player"] else 0,
+                            pts,
+                            season_num,
+                        ),
+                    )
 
                     # Award points to driver
                     if de["driver_id"]:
@@ -316,18 +398,20 @@ class LeagueSimulator:
                             "position": pos,
                             "points": pts,
                             "morale": new_morale,
-                            "message": f"Tier {tier} Round {round_num} ({track_name}): {de['driver_name']} finished P{pos} ({pts} PTS). {status_desc}"
+                            "message": f"Tier {tier} Round {round_num} ({track_name}): {de['driver_name']} finished P{pos} ({pts} PTS). {status_desc}",
                         }
                         summary["academy_highlights"].append(highlight)
 
-                    tier_results.append({
-                        "position": pos,
-                        "driver_name": de["driver_name"],
-                        "team_name": de["team_name"],
-                        "is_academy_driver": de["is_academy_driver"],
-                        "is_player": de["is_player"],
-                        "points": pts
-                    })
+                    tier_results.append(
+                        {
+                            "position": pos,
+                            "driver_name": de["driver_name"],
+                            "team_name": de["team_name"],
+                            "is_academy_driver": de["is_academy_driver"],
+                            "is_player": de["is_player"],
+                            "points": pts,
+                        }
+                    )
 
                 summary["results_by_tier"][tier] = tier_results
 
@@ -369,7 +453,10 @@ class LeagueSimulator:
 
             # 2. Build Constructor Standings & Prize Pools
             for tier in [1, 2, 3]:
-                cur.execute("SELECT id, name, color_hex, is_player, points, reputation FROM teams WHERE tier = ? ORDER BY points DESC, reputation DESC;", (tier,))
+                cur.execute(
+                    "SELECT id, name, color_hex, is_player, points, reputation FROM teams WHERE tier = ? ORDER BY points DESC, reputation DESC;",
+                    (tier,),
+                )
                 teams = [dict(r) for r in cur.fetchall()]
                 prizes = self.TIER_PRIZE_POOLS.get(tier, [1000000] * 10)
 
@@ -391,15 +478,21 @@ class LeagueSimulator:
 
                 if drivers:
                     champ = dict(drivers[0])
-                    is_player_driver = bool(champ.get("is_player_driver", 0)) or (champ.get("team_id") == player_team_id)
+                    is_player_driver = bool(champ.get("is_player_driver", 0)) or (
+                        champ.get("team_id") == player_team_id
+                    )
                     champ["is_player_champion"] = is_player_driver
                     if tier in [1, 2, 3]:
-                        champ["bonus_summary"] = "+100 Morale (Champion Mood), +2 Pace, +2 Consistency, +2 Defending, +12 Marketability, High Pressure Immunity"
+                        champ["bonus_summary"] = (
+                            "+100 Morale (Champion Mood), +2 Pace, +2 Consistency, +2 Defending, +12 Marketability, High Pressure Immunity"
+                        )
                         if is_player_driver:
                             champ["royalty_bonus"] = 2500000.0
                     else:
                         # Feeder Series (Tier 4 & Tier 5)
-                        champ["bonus_summary"] = "+5 Pace, +4 Braking, +4 Consistency, +4 Defending, +15 Marketability, +100 Morale"
+                        champ["bonus_summary"] = (
+                            "+5 Pace, +4 Braking, +4 Consistency, +4 Defending, +15 Marketability, +100 Morale"
+                        )
                         if is_player_driver:
                             # Pure driver prize bonus (Tier 5: $10k, Tier 4: $25k) & team marketing/reputation boost
                             champ["prize_money"] = 25000.0 if tier == 4 else 10000.0
@@ -468,8 +561,8 @@ class LeagueSimulator:
                 "t2_p2": t2_p2,
                 "t2_p10": t2_p10,
                 "t1_p1": t1_p1,
-                "t1_p10": t1_p10
-            }
+                "t1_p10": t1_p10,
+            },
         }
 
     def commit_season_finale(
@@ -477,7 +570,7 @@ class LeagueSimulator:
         player_team_id: int,
         player_choice_promote: bool = True,
         selected_engine: Optional[str] = None,
-        prize_cash_multiplier: float = 1.0
+        prize_cash_multiplier: float = 1.0,
     ) -> Dict[str, Any]:
         """
         Applies end-of-season rewards, awards Driver Champion bonuses, executes promotion/relegation
@@ -495,7 +588,7 @@ class LeagueSimulator:
             "academy_champions_awarded": [],
             "engine_signed": None,
             "new_season": season_num + 1,
-            "new_player_tier": player_tier
+            "new_player_tier": player_tier,
         }
 
         with self.db.get_connection() as conn:
@@ -507,23 +600,26 @@ class LeagueSimulator:
                     payout = t["prize_money"]
                     pos = t["position"]
                     cur.execute("UPDATE teams SET cash = cash + ? WHERE id = ?;", (payout, t["id"]))
-                    cur.execute("""
+                    cur.execute(
+                        """
                     INSERT INTO ledger (team_id, week, category, description, amount)
                     VALUES (?, 18, 'PRIZE_MONEY', ?, ?);
-                    """, (t["id"], f"Season {season_num} Constructors P{pos} Prize Money", payout))
+                    """,
+                        (t["id"], f"Season {season_num} Constructors P{pos} Prize Money", payout),
+                    )
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                     INSERT INTO season_history (team_id, season_num, championship_position, points_total, tier)
                     VALUES (?, ?, ?, ?, ?);
-                    """, (t["id"], season_num, pos, t["points"], tier))
+                    """,
+                        (t["id"], season_num, pos, t["points"], tier),
+                    )
 
                     if t["id"] == player_team_id:
-                        results["season_payouts"].append({
-                            "team": t["name"],
-                            "position": pos,
-                            "payout": payout,
-                            "tier": tier
-                        })
+                        results["season_payouts"].append(
+                            {"team": t["name"], "position": pos, "payout": payout, "tier": tier}
+                        )
 
             # Record Driver Season History across all 5 tiers
             for tier, drivers_list in data.get("driver_standings", {}).items():
@@ -536,25 +632,45 @@ class LeagueSimulator:
                     is_ply = bool(d.get("is_player_driver", 0))
                     is_acad = bool(d.get("is_academy_driver", 0))
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                     SELECT COUNT(*),
                            SUM(CASE WHEN position = 1 THEN 1 ELSE 0 END),
                            SUM(CASE WHEN position <= 3 THEN 1 ELSE 0 END)
                     FROM series_race_results
                     WHERE (driver_id = ? OR driver_name = ?) AND season_num = ? AND tier = ?;
-                    """, (d_id, d_name, season_num, tier))
+                    """,
+                        (d_id, d_name, season_num, tier),
+                    )
                     stat_row = cur.fetchone()
                     starts = stat_row[0] if stat_row and stat_row[0] else 0
                     wins = stat_row[1] if stat_row and stat_row[1] else 0
                     pods = stat_row[2] if stat_row and stat_row[2] else 0
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                     INSERT INTO driver_season_history (
                         driver_id, driver_name, team_id, team_name, tier, season_num,
                         championship_position, points, race_starts, wins, podiums,
                         is_player_driver, is_academy_driver
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                    """, (d_id, d_name, t_id, t_name, tier, season_num, pos_idx, pts, starts, wins, pods, is_ply, is_acad))
+                    """,
+                        (
+                            d_id,
+                            d_name,
+                            t_id,
+                            t_name,
+                            tier,
+                            season_num,
+                            pos_idx,
+                            pts,
+                            starts,
+                            wins,
+                            pods,
+                            is_ply,
+                            is_acad,
+                        ),
+                    )
 
             # 2. Award Drivers' Championship Ratings & Champion Mood for player's tier (and other tiers)
             for tier, champ in data["driver_champions"].items():
@@ -569,7 +685,8 @@ class LeagueSimulator:
                         new_mkt = min(99, int(champ.get("marketability", 75)) + 12)
                         titles = int(champ.get("champion_titles", 0)) + 1
 
-                        cur.execute("""
+                        cur.execute(
+                            """
                         UPDATE drivers 
                         SET morale = 100.0,
                             is_champion = 1,
@@ -580,15 +697,27 @@ class LeagueSimulator:
                             defending = ?,
                             marketability = ?
                         WHERE id = ?;
-                        """, (titles, new_pace, new_cons, new_def, new_mkt, d_id))
+                        """,
+                            (titles, new_pace, new_cons, new_def, new_mkt, d_id),
+                        )
 
                         if is_ply:
                             royalty_awarded = 2500000.0
-                            cur.execute("UPDATE teams SET cash = cash + ?, reputation = MIN(100, reputation + 8) WHERE id = ?;", (royalty_awarded, player_team_id))
-                            cur.execute("""
+                            cur.execute(
+                                "UPDATE teams SET cash = cash + ?, reputation = MIN(100, reputation + 8) WHERE id = ?;",
+                                (royalty_awarded, player_team_id),
+                            )
+                            cur.execute(
+                                """
                             INSERT INTO ledger (team_id, week, category, description, amount)
                             VALUES (?, 18, 'SPONSOR', ?, ?);
-                            """, (player_team_id, f"Driver Championship Merchandising Royalty ({champ['name']})", royalty_awarded))
+                            """,
+                                (
+                                    player_team_id,
+                                    f"Driver Championship Merchandising Royalty ({champ['name']})",
+                                    royalty_awarded,
+                                ),
+                            )
 
                         if tier == player_tier:
                             results["driver_champion_awarded"] = champ
@@ -602,7 +731,8 @@ class LeagueSimulator:
                         new_mkt = min(99, int(champ.get("marketability", 60)) + 15)
                         titles = int(champ.get("champion_titles", 0)) + 1
 
-                        cur.execute("""
+                        cur.execute(
+                            """
                         UPDATE drivers 
                         SET morale = 100.0,
                             is_champion = 1,
@@ -614,17 +744,29 @@ class LeagueSimulator:
                             defending = ?,
                             marketability = ?
                         WHERE id = ?;
-                        """, (titles, new_pace, new_braking, new_cons, new_def, new_mkt, d_id))
+                        """,
+                            (titles, new_pace, new_braking, new_cons, new_def, new_mkt, d_id),
+                        )
 
                         if is_ply or champ.get("is_academy_driver"):
                             # Pure driver prize bonus (Tier 5: $10k, Tier 4: $25k) and marketing reputation for the team
                             pz = champ.get("prize_money", 25000.0 if tier == 4 else 10000.0)
                             rep_gain = champ.get("reputation_boost", 5 if tier == 4 else 3)
-                            cur.execute("UPDATE teams SET cash = cash + ?, reputation = MIN(100, reputation + ?) WHERE id = ?;", (pz, rep_gain, player_team_id))
-                            cur.execute("""
+                            cur.execute(
+                                "UPDATE teams SET cash = cash + ?, reputation = MIN(100, reputation + ?) WHERE id = ?;",
+                                (pz, rep_gain, player_team_id),
+                            )
+                            cur.execute(
+                                """
                             INSERT INTO ledger (team_id, week, category, description, amount)
                             VALUES (?, 18, 'PRIZE_MONEY', ?, ?);
-                            """, (player_team_id, f"Academy Feeder Series T{tier} Champion Driver Bonus ({champ['name']})", pz))
+                            """,
+                                (
+                                    player_team_id,
+                                    f"Academy Feeder Series T{tier} Champion Driver Bonus ({champ['name']})",
+                                    pz,
+                                ),
+                            )
 
                             # Forced graduation if old enough
                             driver_age = int(champ.get("age", 15))
@@ -638,24 +780,29 @@ class LeagueSimulator:
                                 target_tier = 3
 
                             if graduated:
-                                cur.execute("""
+                                cur.execute(
+                                    """
                                 UPDATE drivers
                                 SET academy_tier_placement = ?,
                                     academy_team_name = 'Graduated Ready',
                                     academy_seat_rating = 4,
                                     academy_seat_expected_pos = 'P1 - P3'
                                 WHERE id = ?;
-                                """, (target_tier, d_id))
+                                """,
+                                    (target_tier, d_id),
+                                )
 
-                            results["academy_champions_awarded"].append({
-                                "driver_id": d_id,
-                                "name": champ["name"],
-                                "tier": tier,
-                                "prize_money": pz,
-                                "reputation_boost": rep_gain,
-                                "graduated": graduated,
-                                "target_tier": target_tier
-                            })
+                            results["academy_champions_awarded"].append(
+                                {
+                                    "driver_id": d_id,
+                                    "name": champ["name"],
+                                    "tier": tier,
+                                    "prize_money": pz,
+                                    "reputation_boost": rep_gain,
+                                    "graduated": graduated,
+                                    "target_tier": target_tier,
+                                }
+                            )
 
             # 3. Promotion & Relegation Execution
             # Determine Tier 2 <-> Tier 3
@@ -671,11 +818,31 @@ class LeagueSimulator:
                     promoted_t3 = t3_p1
 
             if promoted_t3 and t2_last:
-                cur.execute("UPDATE teams SET tier = 2, is_relegated_titan = 0, relegated_rnd_boost = 1.0 WHERE id = ?;", (promoted_t3["id"],))
+                cur.execute(
+                    "UPDATE teams SET tier = 2, is_relegated_titan = 0, relegated_rnd_boost = 1.0 WHERE id = ?;",
+                    (promoted_t3["id"],),
+                )
                 # Relegated titan starts with adapted parts and aggressive development drive
-                cur.execute("UPDATE teams SET tier = 3, is_relegated_titan = 1, relegated_rnd_boost = 1.4 WHERE id = ?;", (t2_last["id"],))
-                results["promotions"].append({"team": promoted_t3["name"], "from_tier": 3, "to_tier": 2, "is_player": (promoted_t3["id"] == player_team_id)})
-                results["relegations"].append({"team": t2_last["name"], "from_tier": 2, "to_tier": 3, "is_player": (t2_last["id"] == player_team_id)})
+                cur.execute(
+                    "UPDATE teams SET tier = 3, is_relegated_titan = 1, relegated_rnd_boost = 1.4 WHERE id = ?;",
+                    (t2_last["id"],),
+                )
+                results["promotions"].append(
+                    {
+                        "team": promoted_t3["name"],
+                        "from_tier": 3,
+                        "to_tier": 2,
+                        "is_player": (promoted_t3["id"] == player_team_id),
+                    }
+                )
+                results["relegations"].append(
+                    {
+                        "team": t2_last["name"],
+                        "from_tier": 2,
+                        "to_tier": 3,
+                        "is_player": (t2_last["id"] == player_team_id),
+                    }
+                )
 
                 if promoted_t3["id"] == player_team_id:
                     results["new_player_tier"] = 2
@@ -684,32 +851,42 @@ class LeagueSimulator:
 
                 # Reset promoted team components to Tier 2 baseline specs (Regulation Change)
                 from .engineering_manager import FACTORY_PART_SPECS
+
                 t2_specs = FACTORY_PART_SPECS[2]
                 for cat, spec in t2_specs.items():
-                    cur.execute("""
+                    cur.execute(
+                        """
                     UPDATE car_components 
                     SET generation = 1, performance = ?, max_durability = ?, current_durability = ?, wear_pct = 0.0,
                         knowledge_min = 0.0, knowledge_max = 0.0, rel_knowledge_min = 0.0, rel_knowledge_max = 0.0, races_on_concept = 0
                     WHERE team_id = ? AND category = ?;
-                    """, (spec["perf"], spec["durability"], spec["durability"], promoted_t3["id"], cat))
+                    """,
+                        (spec["perf"], spec["durability"], spec["durability"], promoted_t3["id"], cat),
+                    )
 
                 # Adapt relegated team's components: starts slightly behind on setup (~72.0 vs 75.0 baseline) but with aggressive R&D!
-                cur.execute("""
+                cur.execute(
+                    """
                 UPDATE car_components 
                 SET generation = 1, performance = 72.0, max_durability = 65.0, current_durability = 65.0, wear_pct = 0.0,
                     knowledge_min = 0.0, knowledge_max = 0.0, rel_knowledge_min = 0.0, rel_knowledge_max = 0.0, races_on_concept = 0
                 WHERE team_id = ? AND car_slot IN (1, 2);
-                """, (t2_last["id"],))
+                """,
+                    (t2_last["id"],),
+                )
 
                 # Sponsor Escalator Adjustment: Active contracts promote with the team
                 # T3 (1.0x) -> T2 (2.2x): Gap is 2.2x. Existing sponsors escalate by 2.2 * 0.85 = ~1.87x (discount vs fresh T2 contracts)
                 escalator_mult = (2.2 / 1.0) * 0.85
-                cur.execute("""
+                cur.execute(
+                    """
                 UPDATE active_sponsors 
                 SET per_race_payment = round(per_race_payment * ?, -3),
                     target_bonus = round(target_bonus * ?, -3)
                 WHERE team_id = ?;
-                """, (escalator_mult, escalator_mult, promoted_t3["id"]))
+                """,
+                    (escalator_mult, escalator_mult, promoted_t3["id"]),
+                )
 
             # Determine Tier 1 <-> Tier 2
             t2_p1 = data["candidates"]["t2_p1"]
@@ -724,10 +901,30 @@ class LeagueSimulator:
                     promoted_t2 = t2_p1
 
             if promoted_t2 and t1_last:
-                cur.execute("UPDATE teams SET tier = 1, is_relegated_titan = 0, relegated_rnd_boost = 1.0 WHERE id = ?;", (promoted_t2["id"],))
-                cur.execute("UPDATE teams SET tier = 2, is_relegated_titan = 1, relegated_rnd_boost = 1.4 WHERE id = ?;", (t1_last["id"],))
-                results["promotions"].append({"team": promoted_t2["name"], "from_tier": 2, "to_tier": 1, "is_player": (promoted_t2["id"] == player_team_id)})
-                results["relegations"].append({"team": t1_last["name"], "from_tier": 1, "to_tier": 2, "is_player": (t1_last["id"] == player_team_id)})
+                cur.execute(
+                    "UPDATE teams SET tier = 1, is_relegated_titan = 0, relegated_rnd_boost = 1.0 WHERE id = ?;",
+                    (promoted_t2["id"],),
+                )
+                cur.execute(
+                    "UPDATE teams SET tier = 2, is_relegated_titan = 1, relegated_rnd_boost = 1.4 WHERE id = ?;",
+                    (t1_last["id"],),
+                )
+                results["promotions"].append(
+                    {
+                        "team": promoted_t2["name"],
+                        "from_tier": 2,
+                        "to_tier": 1,
+                        "is_player": (promoted_t2["id"] == player_team_id),
+                    }
+                )
+                results["relegations"].append(
+                    {
+                        "team": t1_last["name"],
+                        "from_tier": 1,
+                        "to_tier": 2,
+                        "is_player": (t1_last["id"] == player_team_id),
+                    }
+                )
 
                 if promoted_t2["id"] == player_team_id:
                     results["new_player_tier"] = 1
@@ -736,31 +933,41 @@ class LeagueSimulator:
 
                 # Reset promoted team components to Tier 1 baseline specs (Regulation Change)
                 from .engineering_manager import FACTORY_PART_SPECS
+
                 t1_specs = FACTORY_PART_SPECS[1]
                 for cat, spec in t1_specs.items():
-                    cur.execute("""
+                    cur.execute(
+                        """
                     UPDATE car_components 
                     SET generation = 1, performance = ?, max_durability = ?, current_durability = ?, wear_pct = 0.0,
                         knowledge_min = 0.0, knowledge_max = 0.0, rel_knowledge_min = 0.0, rel_knowledge_max = 0.0, races_on_concept = 0
                     WHERE team_id = ? AND category = ?;
-                    """, (spec["perf"], spec["durability"], spec["durability"], promoted_t2["id"], cat))
+                    """,
+                        (spec["perf"], spec["durability"], spec["durability"], promoted_t2["id"], cat),
+                    )
 
                 # Adapt relegated T1 team components to Tier 2 adapted baseline
-                cur.execute("""
+                cur.execute(
+                    """
                 UPDATE car_components 
                 SET generation = 1, performance = 92.0, max_durability = 72.0, current_durability = 72.0, wear_pct = 0.0,
                     knowledge_min = 0.0, knowledge_max = 0.0, rel_knowledge_min = 0.0, rel_knowledge_max = 0.0, races_on_concept = 0
                 WHERE team_id = ? AND car_slot IN (1, 2);
-                """, (t1_last["id"],))
+                """,
+                    (t1_last["id"],),
+                )
 
                 # Sponsor Escalator Adjustment: T2 (2.2x) -> T1 (5.0x): Gap is 2.27x. Existing sponsors escalate by 2.27 * 0.85 = ~1.93x
                 escalator_mult_t1 = (5.0 / 2.2) * 0.85
-                cur.execute("""
+                cur.execute(
+                    """
                 UPDATE active_sponsors 
                 SET per_race_payment = round(per_race_payment * ?, -3),
                     target_bonus = round(target_bonus * ?, -3)
                 WHERE team_id = ?;
-                """, (escalator_mult_t1, escalator_mult_t1, promoted_t2["id"]))
+                """,
+                    (escalator_mult_t1, escalator_mult_t1, promoted_t2["id"]),
+                )
 
             # Reset points and calendar for next season
             cur.execute("UPDATE teams SET points = 0;")
@@ -777,6 +984,7 @@ class LeagueSimulator:
 
         # 4. Sign Next Season Engine Supplier for Player Team
         from .engineering_manager import EngineeringManager
+
         em = EngineeringManager(self.db)
         if selected_engine:
             success, msg = em.set_engine_supplier(player_team_id, selected_engine, force_new_season=True)
@@ -794,7 +1002,9 @@ class LeagueSimulator:
         """Backward-compatible wrapper for automated execution."""
         player = self.db.get_player_team()
         p_id = player.get("id", 21)
-        return self.commit_season_finale(player_team_id=p_id, player_choice_promote=True, prize_cash_multiplier=prize_cash_multiplier)
+        return self.commit_season_finale(
+            player_team_id=p_id, player_choice_promote=True, prize_cash_multiplier=prize_cash_multiplier
+        )
 
     def _process_ai_in_season_development(self, cur: sqlite3.Cursor, tier: int, round_num: int) -> None:
         """
@@ -821,21 +1031,25 @@ class LeagueSimulator:
         allowed_cats = {
             3: ["BRAKES", "FRONT_WING"],
             2: ["BRAKES", "FRONT_WING", "REAR_WING", "SUSPENSION", "ENGINE"],
-            1: ["BRAKES", "FRONT_WING", "REAR_WING", "SUSPENSION", "ENGINE", "FLOOR", "ERS"]
+            1: ["BRAKES", "FRONT_WING", "REAR_WING", "SUSPENSION", "ENGINE", "FLOOR", "ERS"],
         }.get(tier, [])
 
         if not allowed_cats:
             return
 
-        cur.execute("""
+        cur.execute(
+            """
         SELECT id, name, difficulty, cash, is_relegated_titan 
         FROM teams 
         WHERE tier = ? AND is_player = 0;
-        """, (tier,))
+        """,
+            (tier,),
+        )
         ai_teams = [dict(r) for r in cur.fetchall()]
 
         from ..data.balance_config import BALANCE_REGISTRY
         from .engineering_manager import FACTORY_PART_SPECS
+
         tier_specs = FACTORY_PART_SPECS.get(tier, FACTORY_PART_SPECS[3])
 
         for t in ai_teams:
@@ -856,11 +1070,14 @@ class LeagueSimulator:
                 if cash < part_cost:
                     continue
 
-                cur.execute("""
+                cur.execute(
+                    """
                 SELECT id, performance, reliability 
                 FROM car_components 
                 WHERE team_id = ? AND category = ? AND car_slot IN (1, 2);
-                """, (t_id, cat))
+                """,
+                    (t_id, cat),
+                )
                 comp_rows = cur.fetchall()
                 if not comp_rows:
                     continue
@@ -884,15 +1101,15 @@ class LeagueSimulator:
                 for c in comp_rows:
                     new_perf = min(max_perf, round(float(c["performance"]) + gain, 1))
                     new_rel = max(45.0, min(99.0, round(float(c["reliability"]) + rel_delta, 1)))
-                    cur.execute("""
+                    cur.execute(
+                        """
                     UPDATE car_components 
                     SET performance = ?, reliability = ? 
                     WHERE id = ?;
-                    """, (new_perf, new_rel, c["id"]))
+                    """,
+                        (new_perf, new_rel, c["id"]),
+                    )
 
                 # Deduct cost from team cash
                 cash -= part_cost
                 cur.execute("UPDATE teams SET cash = ? WHERE id = ?;", (cash, t_id))
-
-
-

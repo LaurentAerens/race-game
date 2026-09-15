@@ -1,27 +1,28 @@
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Tuple
+
 
 @dataclass
 class Driver:
     id: int
     name: str
-    code: str                  # E.g. "VER", "HAM", "LEC"
+    code: str  # E.g. "VER", "HAM", "LEC"
     number: int
     team_name: str
     color_rgb: Tuple[int, int, int]
     is_player: bool = False
-    
+
     # Skills [0.0 - 1.0]
     speed: float = 0.85
-    braking: float = 0.85      # Late-braking & divebomb skill
-    cornering: float = 0.85    # Apex precision & minimum rolling apex speed
-    overtaking: float = 0.80   # Aggressive opportunistic passes & dummy moves
-    defending: float = 0.80    # Inside corridor protection & dirty air management
-    tire_management: float = 0.80 # Thermal preservation & gentle sliding
-    wet_skill: float = 0.80    # Wet line precision away from rubbered line
+    braking: float = 0.85  # Late-braking & divebomb skill
+    cornering: float = 0.85  # Apex precision & minimum rolling apex speed
+    overtaking: float = 0.80  # Aggressive opportunistic passes & dummy moves
+    defending: float = 0.80  # Inside corridor protection & dirty air management
+    tire_management: float = 0.80  # Thermal preservation & gentle sliding
+    wet_skill: float = 0.80  # Wet line precision away from rubbered line
     consistency: float = 0.85  # Lap-to-lap rhythm & mistake avoidance under pressure
-    aggression: float = 0.70   # Willingness to force moves and defend aggressively
-    driving_style: str = "BALANCED" # LATE_BRAKER, SMOOTH_ROLLER, AGGRESSIVE_HUNTER, TIRE_WHISPERER, BALANCED
+    aggression: float = 0.70  # Willingness to force moves and defend aggressively
+    driving_style: str = "BALANCED"  # LATE_BRAKER, SMOOTH_ROLLER, AGGRESSIVE_HUNTER, TIRE_WHISPERER, BALANCED
     is_champion: bool = False  # Reigning Champion mood & composure
 
     def __post_init__(self):
@@ -39,20 +40,20 @@ class Driver:
             return "TIRE_WHISPERER"
         if self.overtaking >= 0.86 and (self.aggression >= 0.72 or self.overtaking > self.consistency):
             return "AGGRESSIVE_HUNTER"
-        
+
         # Fallback comparison if not in elite bracket
         skills = {
             "LATE_BRAKER": self.braking * 1.05 + self.aggression * 0.2,
             "SMOOTH_ROLLER": self.cornering * 1.10,
             "TIRE_WHISPERER": self.tire_management * 1.12,
-            "AGGRESSIVE_HUNTER": self.overtaking * 1.02 + self.aggression * 0.25
+            "AGGRESSIVE_HUNTER": self.overtaking * 1.02 + self.aggression * 0.25,
         }
         best_style, val = max(skills.items(), key=lambda x: x[1])
         return best_style if val >= 0.84 else "BALANCED"
 
     def get_skill_factor(self, track_wetness: float = 0.0) -> float:
         """Returns aggregate skill multiplier for lap performance."""
-        dry_skill = (self.speed * 0.40 + self.cornering * 0.30 + self.braking * 0.15 + self.consistency * 0.15)
+        dry_skill = self.speed * 0.40 + self.cornering * 0.30 + self.braking * 0.15 + self.consistency * 0.15
         if self.is_champion:
             dry_skill = min(0.99, dry_skill + 0.015)
         if track_wetness > 0.1:
@@ -96,4 +97,3 @@ class Driver:
                 pressure_susceptibility *= 0.65  # Champion poise reduces error susceptibility under pressure
             base_risk *= pressure_susceptibility
         return max(0.0002, base_risk)
-

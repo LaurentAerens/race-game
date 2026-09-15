@@ -1,22 +1,32 @@
 import random
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
+
 
 @dataclass
 class WeatherForecastNode:
     lap: int
-    rain_intensity: float # 0.0 to 1.0
+    rain_intensity: float  # 0.0 to 1.0
     description: str
+
 
 class WeatherSystem:
     """
     Manages dynamic race weather, per-sector track wetness accumulation, local showers,
     drying lines, circuit-dependent rain probabilities, and forecast radar.
     """
-    def __init__(self, initial_rain: float = 0.0, track_temp: float = 28.0,
-                 weather_profile: str = "DYNAMIC", rain_chance: float = 0.25,
-                 total_laps: int = 50, max_wetness_cap: Optional[float] = None,
-                 is_big_track: bool = False, local_shower_sectors: Optional[List[int]] = None):
+
+    def __init__(
+        self,
+        initial_rain: float = 0.0,
+        track_temp: float = 28.0,
+        weather_profile: str = "DYNAMIC",
+        rain_chance: float = 0.25,
+        total_laps: int = 50,
+        max_wetness_cap: Optional[float] = None,
+        is_big_track: bool = False,
+        local_shower_sectors: Optional[List[int]] = None,
+    ):
         self.weather_profile = str(weather_profile).upper()
         self.rain_chance = max(0.0, min(1.0, float(rain_chance)))
         self.total_laps = total_laps
@@ -44,8 +54,7 @@ class WeatherSystem:
 
         # Per-sector wetness tracking (Sectors 1, 2, 3)
         self.sector_wetness: Dict[int, float] = {
-            s: (init_wet if s in self.active_rain_sectors else 0.0)
-            for s in (1, 2, 3)
+            s: (init_wet if s in self.active_rain_sectors else 0.0) for s in (1, 2, 3)
         }
         self._track_wetness = init_wet
 
@@ -107,7 +116,7 @@ class WeatherSystem:
 
     def _generate_initial_forecast(self, total_laps: int):
         self.forecast = []
-        
+
         # If dry race or wetness cap is zero, guarantee completely dry forecast
         if self.max_race_wetness <= 0.01:
             for lap in range(1, total_laps + 1):
@@ -188,7 +197,9 @@ class WeatherSystem:
                 evap_rate = (0.015 + (self.track_temp / 50.0) * 0.02) * dt
                 self.sector_wetness[sec] = max(sec_target, cur_sec_wet - evap_rate)
 
-    def get_forecast_slice(self, current_lap: int, window: int = 8, radar_tier: int = 0, radar_eq_lvl: int = 0) -> List[WeatherForecastNode]:
+    def get_forecast_slice(
+        self, current_lap: int, window: int = 8, radar_tier: int = 0, radar_eq_lvl: int = 0
+    ) -> List[WeatherForecastNode]:
         """
         Returns forecast nodes for the next N laps.
         If radar_tier or radar equipment is upgraded, the lookahead window expands

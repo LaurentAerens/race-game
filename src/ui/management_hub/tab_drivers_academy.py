@@ -1,8 +1,11 @@
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import pygame
-from typing import Dict, List, Any, Callable, Tuple, Optional
-from ..theme import UITheme
+
+from ...management.driver_manager import TRAINING_FOCUS_OPTIONS, DriverManager
 from ...management.game_manager import GameManager
-from ...management.driver_manager import DriverManager, TRAINING_FOCUS_OPTIONS
+from ..theme import UITheme
+
 
 class DriversAcademyTab:
     """
@@ -14,37 +17,42 @@ class DriversAcademyTab:
     - Driver Market: Standard Pro Drivers, Pay-Drivers (Free Title Sponsor 2x-3x payout), and Sponsored Loan Talents.
     - Interactive Contract Negotiation Modal: Patience threshold (2-5), Salary, Bonus, Role Hierarchy, and dynamic counter-offers.
     """
-    def __init__(self, screen_width: int, screen_height: int, on_view_driver_dossier: Optional[Callable[[int], None]] = None):
+
+    def __init__(
+        self, screen_width: int, screen_height: int, on_view_driver_dossier: Optional[Callable[[int], None]] = None
+    ):
         self.width = screen_width
         self.height = screen_height
         self.on_view_driver_dossier = on_view_driver_dossier
-        
+
         self._init_fonts()
-        
+
         # Sub-tabs: 'ACADEMY', 'SCOUTS', 'MARKET'
         self.active_subtab: str = "ACADEMY"
-        self.selected_feeder_seats: Dict[int, int] = {} # prospect_id -> seat_id
-        self.selected_tier_filter: str = "ALL" # 'ALL', '4', '5', '3', '2'
-        self.market_filter: str = "ALL" # 'ALL', 'STANDARD', 'PAY_DRIVER', 'SPONSORED_DRIVER'
+        self.selected_feeder_seats: Dict[int, int] = {}  # prospect_id -> seat_id
+        self.selected_tier_filter: str = "ALL"  # 'ALL', '4', '5', '3', '2'
+        self.market_filter: str = "ALL"  # 'ALL', 'STANDARD', 'PAY_DRIVER', 'SPONSORED_DRIVER'
         self.academy_page: int = 0
         self.market_page: int = 0
-        
+
         # Negotiation Modal State
         self.show_negotiation_modal: bool = False
         self.negotiating_driver: Optional[Dict[str, Any]] = None
         self.negotiation_is_homegrown: bool = False
         self.negotiation_main_seasons: int = 0
-        self.negotiation_car_slot: int = 1 # 1 or 2
+        self.negotiation_car_slot: int = 1  # 1 or 2
         self.offer_seasons: int = 2
         self.offer_salary: float = 25000.0
         self.offer_bonus: float = 80000.0
-        self.offer_role: str = "EQUAL" # "#1", "EQUAL", "#2"
+        self.offer_role: str = "EQUAL"  # "#1", "EQUAL", "#2"
         self.negotiation_feedback: str = ""
         self.negotiation_patience: int = 3
         self.negotiation_accepted: bool = False
         self.negotiation_walked_away: bool = False
-        
-        self.status_message: str = "Manage primary race drivers, recruit talent from the Driver Market, or fund academy feeder seats."
+
+        self.status_message: str = (
+            "Manage primary race drivers, recruit talent from the Driver Market, or fund academy feeder seats."
+        )
 
     def _init_fonts(self):
         self.font_title = UITheme.get_font(13, bold=True)
@@ -62,7 +70,7 @@ class DriversAcademyTab:
     def _get_layout(self) -> Tuple[pygame.Rect, pygame.Rect]:
         left_w = min(460, int(self.width * 0.35))
         left_rect = pygame.Rect(24, 70, left_w, self.height - 150)
-        
+
         right_x = left_rect.x + left_rect.width + 16
         right_w = self.width - right_x - 24
         right_rect = pygame.Rect(right_x, 70, right_w, self.height - 150)
@@ -77,9 +85,12 @@ class DriversAcademyTab:
             mid = [s for s in t_seats if s["rating"] == 3]
             low = [s for s in t_seats if s["rating"] <= 2]
             res = []
-            if top: res.extend(top[:2])
-            if mid: res.extend(mid[:2])
-            if low: res.extend(low[:1])
+            if top:
+                res.extend(top[:2])
+            if mid:
+                res.extend(mid[:2])
+            if low:
+                res.extend(low[:1])
             for s in t_seats:
                 if s not in res and len(res) < 5:
                     res.append(s)
@@ -96,16 +107,19 @@ class DriversAcademyTab:
             top = [s for s in t_seats if s["rating"] >= 4]
             mid = [s for s in t_seats if s["rating"] == 3]
             low = [s for s in t_seats if s["rating"] <= 2]
-            
+
             t_pick = []
-            if top: t_pick.append(top[0])
-            if mid and len(t_pick) < seats_per_tier: t_pick.append(mid[0])
-            if low and len(t_pick) < seats_per_tier: t_pick.append(low[0])
+            if top:
+                t_pick.append(top[0])
+            if mid and len(t_pick) < seats_per_tier:
+                t_pick.append(mid[0])
+            if low and len(t_pick) < seats_per_tier:
+                t_pick.append(low[0])
             for s in t_seats:
                 if s not in t_pick and len(t_pick) < seats_per_tier:
                     t_pick.append(s)
             balanced.extend(t_pick)
-        
+
         if len(balanced) < 5:
             for s in available_seats:
                 if s not in balanced and len(balanced) < 5:
@@ -113,14 +127,15 @@ class DriversAcademyTab:
 
         return balanced[:5]
 
-
-    def open_negotiation_modal(self, driver: Dict[str, Any], is_homegrown: bool = False, main_team_seasons: int = 0, default_car_slot: int = 1):
+    def open_negotiation_modal(
+        self, driver: Dict[str, Any], is_homegrown: bool = False, main_team_seasons: int = 0, default_car_slot: int = 1
+    ):
         """Opens interactive contract negotiation modal for a market driver, academy graduate, or existing driver renewal."""
         self.negotiating_driver = driver
         self.negotiation_is_homegrown = is_homegrown
         self.negotiation_main_seasons = main_team_seasons
         self.negotiation_car_slot = default_car_slot
-        
+
         # Init base offers
         d_type = driver.get("driver_type", "STANDARD")
         if d_type == "SPONSORED_DRIVER":
@@ -241,12 +256,15 @@ class DriversAcademyTab:
                         "seasons": self.offer_seasons,
                         "salary_per_race": self.offer_salary,
                         "signing_bonus": self.offer_bonus,
-                        "role_status": self.offer_role
+                        "role_status": self.offer_role,
                     }
                     eval_res = dm.evaluate_contract_offer(
-                        d, offer_pkg, team_tier, car_rank,
+                        d,
+                        offer_pkg,
+                        team_tier,
+                        car_rank,
                         is_homegrown=self.negotiation_is_homegrown,
-                        main_team_seasons=self.negotiation_main_seasons
+                        main_team_seasons=self.negotiation_main_seasons,
                     )
                     self.negotiation_accepted = eval_res["accepted"]
                     self.negotiation_walked_away = eval_res["walked_away"]
@@ -259,12 +277,15 @@ class DriversAcademyTab:
                         "seasons": self.offer_seasons,
                         "salary_per_race": self.offer_salary,
                         "signing_bonus": self.offer_bonus,
-                        "role_status": self.offer_role
+                        "role_status": self.offer_role,
                     }
                     success, msg = dm.finalize_driver_contract(
-                        gm.team_id, self.negotiation_car_slot, d, agreed,
+                        gm.team_id,
+                        self.negotiation_car_slot,
+                        d,
+                        agreed,
                         is_homegrown=self.negotiation_is_homegrown,
-                        main_team_seasons=self.negotiation_main_seasons
+                        main_team_seasons=self.negotiation_main_seasons,
                     )
                     self.status_message = msg
                     if success:
@@ -276,14 +297,13 @@ class DriversAcademyTab:
 
             return True
 
-
         # =====================================================================
         # 2. Left Column: Primary Race Drivers Training Focus, Renew & Release
         # =====================================================================
         primary_drivers = dm.get_primary_drivers(gm.team_id)
         for idx, d in enumerate(primary_drivers[:2]):
             cy = 108 + idx * 175
-            
+
             # Dossier button click or header click
             dossier_btn = pygame.Rect(p_rect.x + p_rect.width - 92, cy + 6, 84, 20)
             header_rect = pygame.Rect(p_rect.x + 10, cy + 4, p_rect.width - 110, 36)
@@ -313,7 +333,9 @@ class DriversAcademyTab:
                 if renew_btn.collidepoint(mx, my):
                     is_hg = bool(d.get("is_homegrown", 0))
                     m_seasons = int(d.get("main_team_seasons", 0))
-                    self.open_negotiation_modal(d, is_homegrown=is_hg, main_team_seasons=m_seasons, default_car_slot=idx+1)
+                    self.open_negotiation_modal(
+                        d, is_homegrown=is_hg, main_team_seasons=m_seasons, default_car_slot=idx + 1
+                    )
                     return True
 
             # Release Driver Button (Charges buyout severance if contracted, $0 if default)
@@ -322,7 +344,6 @@ class DriversAcademyTab:
                 success, msg = dm.release_primary_driver(gm.team_id, d["id"])
                 self.status_message = msg
                 return True
-
 
         # =====================================================================
         # 3. Sub-Tab Switcher (ACADEMY, SCOUTS, MARKET)
@@ -348,7 +369,7 @@ class DriversAcademyTab:
         if self.active_subtab == "ACADEMY":
             drivers_per_page = 4
             max_pages = max(1, (len(academy_drivers) + drivers_per_page - 1) // drivers_per_page)
-            
+
             if len(academy_drivers) > drivers_per_page:
                 prev_btn = pygame.Rect(r_rect.x + r_rect.width - 150, 70, 65, 24)
                 next_btn = pygame.Rect(r_rect.x + r_rect.width - 80, 70, 65, 24)
@@ -362,7 +383,9 @@ class DriversAcademyTab:
             start_y = 108
             card_w = r_rect.width - 20
             card_h = 120
-            page_drivers = academy_drivers[self.academy_page * drivers_per_page : (self.academy_page + 1) * drivers_per_page]
+            page_drivers = academy_drivers[
+                self.academy_page * drivers_per_page : (self.academy_page + 1) * drivers_per_page
+            ]
 
             for idx, d in enumerate(page_drivers):
                 cy = start_y + idx * (card_h + 10)
@@ -500,7 +523,9 @@ class DriversAcademyTab:
             start_y = 108
             card_w = r_rect.width - 20
             card_h = 92
-            page_drivers = market_drivers[self.market_page * drivers_per_page : (self.market_page + 1) * drivers_per_page]
+            page_drivers = market_drivers[
+                self.market_page * drivers_per_page : (self.market_page + 1) * drivers_per_page
+            ]
 
             for idx, d in enumerate(page_drivers):
                 cy = start_y + idx * (card_h + 8)
@@ -520,8 +545,6 @@ class DriversAcademyTab:
 
         return False
 
-
-
     def render(self, surface: pygame.Surface, gm: GameManager, dm: DriverManager):
         primary_drivers = dm.get_primary_drivers(gm.team_id)
         academy_drivers = dm.get_academy_drivers(gm.team_id)
@@ -534,12 +557,14 @@ class DriversAcademyTab:
         # 1. Left Column: Primary Race Drivers (Car #1 and Car #2)
         # =====================================================================
         UITheme.draw_panel(surface, p_rect)
-        surface.blit(self.font_title.render("PRIMARY RACE DRIVERS", True, UITheme.TEXT_WHITE), (p_rect.x + 14, p_rect.y + 10))
+        surface.blit(
+            self.font_title.render("PRIMARY RACE DRIVERS", True, UITheme.TEXT_WHITE), (p_rect.x + 14, p_rect.y + 10)
+        )
 
         for idx, d in enumerate(primary_drivers[:2]):
             cy = 108 + idx * 175
             d_rect = pygame.Rect(p_rect.x + 10, cy, p_rect.width - 20, 165)
-            
+
             d_type = d.get("driver_type", "STANDARD")
             car_col = (255, 215, 0) if idx == 0 else (0, 220, 255)
             border_col = car_col
@@ -550,12 +575,12 @@ class DriversAcademyTab:
                 tag_col = (150, 160, 170)
             elif d_type == "PAY_DRIVER":
                 border_col = (0, 240, 140)
-                spon = d.get('pay_driver_sponsor_name', '')
+                spon = d.get("pay_driver_sponsor_name", "")
                 type_tag = f"PAY-DRIVER: {spon}" if spon else "PAY-DRIVER"
                 tag_col = (0, 240, 140)
             elif d_type == "SPONSORED_DRIVER":
                 border_col = (255, 140, 0)
-                p_team = d.get('parent_team_name', '')
+                p_team = d.get("parent_team_name", "")
                 type_tag = f"LOAN: {p_team}" if p_team else "LOAN TALENT"
                 tag_col = (255, 140, 0)
             else:
@@ -566,19 +591,21 @@ class DriversAcademyTab:
             pygame.draw.rect(surface, border_col, d_rect, width=1, border_radius=4)
 
             # Line 1: [CAR #X] Driver Name on the left, DOSSIER button on the right
-            car_lbl = f"[CAR #{idx+1}]"
+            car_lbl = f"[CAR #{idx + 1}]"
             car_surf = self.font_badge.render(car_lbl, True, car_col)
             surface.blit(car_surf, (d_rect.x + 10, d_rect.y + 7))
 
-            name_col = (255, 215, 0) if d_type != 'DEFAULT_DRIVER' else (180, 190, 200)
-            name_surf = self.font_card_title.render(d['name'], True, name_col)
+            name_col = (255, 215, 0) if d_type != "DEFAULT_DRIVER" else (180, 190, 200)
+            name_surf = self.font_card_title.render(d["name"], True, name_col)
             surface.blit(name_surf, (d_rect.x + 10 + car_surf.get_width() + 6, d_rect.y + 6))
 
             # Dossier button (Right aligned)
             dossier_btn = pygame.Rect(d_rect.x + d_rect.width - 92, d_rect.y + 6, 84, 20)
             pygame.draw.rect(surface, (30, 48, 66), dossier_btn, border_radius=2)
             pygame.draw.rect(surface, UITheme.ACCENT_CYAN, dossier_btn, width=1, border_radius=2)
-            surface.blit(self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE), (dossier_btn.x + 8, dossier_btn.y + 3))
+            surface.blit(
+                self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE), (dossier_btn.x + 8, dossier_btn.y + 3)
+            )
 
             # Line 2: Driver Demographics & Contract Type Badge (dedicated row)
             demo_str = f"{d['age']}yo | #{d['number']}"
@@ -633,7 +660,9 @@ class DriversAcademyTab:
                 sign_pro_btn = pygame.Rect(d_rect.x + d_rect.width - 165, cy + 116, 95, 24)
                 pygame.draw.rect(surface, (0, 180, 120), sign_pro_btn, border_radius=3)
                 s_txt = self.font_btn.render("+ SIGN PRO", True, (10, 25, 20))
-                surface.blit(s_txt, (sign_pro_btn.x + (sign_pro_btn.width - s_txt.get_width()) // 2, sign_pro_btn.y + 4))
+                surface.blit(
+                    s_txt, (sign_pro_btn.x + (sign_pro_btn.width - s_txt.get_width()) // 2, sign_pro_btn.y + 4)
+                )
             else:
                 renew_btn = pygame.Rect(d_rect.x + d_rect.width - 165, cy + 116, 95, 24)
                 pygame.draw.rect(surface, (30, 65, 95), renew_btn, border_radius=3)
@@ -646,11 +675,15 @@ class DriversAcademyTab:
             rel_txt = self.font_btn.render("FIRE", True, (255, 220, 220))
             surface.blit(rel_txt, (rel_btn.x + (rel_btn.width - rel_txt.get_width()) // 2, rel_btn.y + 4))
 
-
         # Bottom Left Info Note
         l_note = pygame.Rect(p_rect.x + 10, p_rect.y + p_rect.height - 42, p_rect.width - 20, 32)
         pygame.draw.rect(surface, (16, 22, 30), l_note, border_radius=3)
-        surface.blit(self.font_badge.render("Negotiate contracts or recruit Pay/Sponsored talents from Market.", True, (255, 215, 0)), (l_note.x + 8, l_note.y + 8))
+        surface.blit(
+            self.font_badge.render(
+                "Negotiate contracts or recruit Pay/Sponsored talents from Market.", True, (255, 215, 0)
+            ),
+            (l_note.x + 8, l_note.y + 8),
+        )
 
         # =====================================================================
         # 2. Right Column Sub-Tabs (ACADEMY, SCOUTS, MARKET)
@@ -661,23 +694,31 @@ class DriversAcademyTab:
         tab_scout_rect = pygame.Rect(r_rect.x + 150, 68, 160, 28)
         tab_market_rect = pygame.Rect(r_rect.x + 315, 68, 135, 28)
 
-        is_acad = (self.active_subtab == "ACADEMY")
+        is_acad = self.active_subtab == "ACADEMY"
         pygame.draw.rect(surface, (35, 55, 75) if is_acad else (20, 26, 34), tab_acad_rect, border_top_left_radius=4)
         pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_acad else UITheme.PANEL_BORDER, tab_acad_rect, width=1)
-        lbl_a = self.font_btn.render(f"JUNIOR ACADEMY ({len(academy_drivers)})", True, UITheme.TEXT_WHITE if is_acad else UITheme.TEXT_MUTED)
+        lbl_a = self.font_btn.render(
+            f"JUNIOR ACADEMY ({len(academy_drivers)})", True, UITheme.TEXT_WHITE if is_acad else UITheme.TEXT_MUTED
+        )
         surface.blit(lbl_a, (tab_acad_rect.x + (tab_acad_rect.width - lbl_a.get_width()) // 2, tab_acad_rect.y + 6))
 
-        is_scout = (self.active_subtab == "SCOUTS")
+        is_scout = self.active_subtab == "SCOUTS"
         pygame.draw.rect(surface, (35, 55, 75) if is_scout else (20, 26, 34), tab_scout_rect)
         pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_scout else UITheme.PANEL_BORDER, tab_scout_rect, width=1)
-        lbl_s = self.font_btn.render(f"SCOUT CANDIDATES ({len(scout_prospects)})", True, UITheme.TEXT_WHITE if is_scout else UITheme.TEXT_MUTED)
+        lbl_s = self.font_btn.render(
+            f"SCOUT CANDIDATES ({len(scout_prospects)})", True, UITheme.TEXT_WHITE if is_scout else UITheme.TEXT_MUTED
+        )
         surface.blit(lbl_s, (tab_scout_rect.x + (tab_scout_rect.width - lbl_s.get_width()) // 2, tab_scout_rect.y + 6))
 
-        is_market = (self.active_subtab == "MARKET")
-        pygame.draw.rect(surface, (35, 55, 75) if is_market else (20, 26, 34), tab_market_rect, border_top_right_radius=4)
+        is_market = self.active_subtab == "MARKET"
+        pygame.draw.rect(
+            surface, (35, 55, 75) if is_market else (20, 26, 34), tab_market_rect, border_top_right_radius=4
+        )
         pygame.draw.rect(surface, UITheme.ACCENT_CYAN if is_market else UITheme.PANEL_BORDER, tab_market_rect, width=1)
         lbl_m = self.font_btn.render("DRIVER MARKET", True, UITheme.TEXT_WHITE if is_market else UITheme.TEXT_MUTED)
-        surface.blit(lbl_m, (tab_market_rect.x + (tab_market_rect.width - lbl_m.get_width()) // 2, tab_market_rect.y + 6))
+        surface.blit(
+            lbl_m, (tab_market_rect.x + (tab_market_rect.width - lbl_m.get_width()) // 2, tab_market_rect.y + 6)
+        )
 
         # =====================================================================
         # View 1: JUNIOR ACADEMY
@@ -690,25 +731,66 @@ class DriversAcademyTab:
                 prev_btn = pygame.Rect(r_rect.x + r_rect.width - 150, 70, 65, 24)
                 next_btn = pygame.Rect(r_rect.x + r_rect.width - 80, 70, 65, 24)
                 pygame.draw.rect(surface, (30, 45, 60), prev_btn, border_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255) if self.academy_page > 0 else (40, 50, 60), prev_btn, width=1, border_radius=3)
-                surface.blit(self.font_btn.render("< PREV", True, UITheme.TEXT_WHITE if self.academy_page > 0 else UITheme.TEXT_MUTED), (prev_btn.x + 8, prev_btn.y + 4))
+                pygame.draw.rect(
+                    surface,
+                    (0, 220, 255) if self.academy_page > 0 else (40, 50, 60),
+                    prev_btn,
+                    width=1,
+                    border_radius=3,
+                )
+                surface.blit(
+                    self.font_btn.render(
+                        "< PREV", True, UITheme.TEXT_WHITE if self.academy_page > 0 else UITheme.TEXT_MUTED
+                    ),
+                    (prev_btn.x + 8, prev_btn.y + 4),
+                )
 
                 pygame.draw.rect(surface, (30, 45, 60), next_btn, border_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255) if self.academy_page < max_pages - 1 else (40, 50, 60), next_btn, width=1, border_radius=3)
-                surface.blit(self.font_btn.render("NEXT >", True, UITheme.TEXT_WHITE if self.academy_page < max_pages - 1 else UITheme.TEXT_MUTED), (next_btn.x + 8, next_btn.y + 4))
+                pygame.draw.rect(
+                    surface,
+                    (0, 220, 255) if self.academy_page < max_pages - 1 else (40, 50, 60),
+                    next_btn,
+                    width=1,
+                    border_radius=3,
+                )
+                surface.blit(
+                    self.font_btn.render(
+                        "NEXT >", True, UITheme.TEXT_WHITE if self.academy_page < max_pages - 1 else UITheme.TEXT_MUTED
+                    ),
+                    (next_btn.x + 8, next_btn.y + 4),
+                )
 
             if not academy_drivers:
                 empty_rect = pygame.Rect(r_rect.x + 16, 120, r_rect.width - 32, 160)
                 pygame.draw.rect(surface, (16, 22, 30), empty_rect, border_radius=4)
                 pygame.draw.rect(surface, (45, 60, 80), empty_rect, width=1, border_radius=4)
-                surface.blit(self.font_card_title.render("NO YOUNG DRIVERS CURRENTLY IN ACADEMY", True, (255, 215, 0)), (empty_rect.x + 20, empty_rect.y + 20))
-                surface.blit(self.font_body.render("Click [SCOUT CANDIDATES] above to discover young talents or [DRIVER MARKET] to hire pros.", True, UITheme.TEXT_WHITE), (empty_rect.x + 20, empty_rect.y + 48))
-                surface.blit(self.font_badge.render("• Homegrown Stars: Graduating academy drivers ask for 80% lower salary in Year 1!", True, (0, 240, 140)), (empty_rect.x + 20, empty_rect.y + 80))
+                surface.blit(
+                    self.font_card_title.render("NO YOUNG DRIVERS CURRENTLY IN ACADEMY", True, (255, 215, 0)),
+                    (empty_rect.x + 20, empty_rect.y + 20),
+                )
+                surface.blit(
+                    self.font_body.render(
+                        "Click [SCOUT CANDIDATES] above to discover young talents or [DRIVER MARKET] to hire pros.",
+                        True,
+                        UITheme.TEXT_WHITE,
+                    ),
+                    (empty_rect.x + 20, empty_rect.y + 48),
+                )
+                surface.blit(
+                    self.font_badge.render(
+                        "• Homegrown Stars: Graduating academy drivers ask for 80% lower salary in Year 1!",
+                        True,
+                        (0, 240, 140),
+                    ),
+                    (empty_rect.x + 20, empty_rect.y + 80),
+                )
             else:
                 start_y = 108
                 card_w = r_rect.width - 20
                 card_h = 120
-                page_drivers = academy_drivers[self.academy_page * drivers_per_page : (self.academy_page + 1) * drivers_per_page]
+                page_drivers = academy_drivers[
+                    self.academy_page * drivers_per_page : (self.academy_page + 1) * drivers_per_page
+                ]
 
                 for idx, d in enumerate(page_drivers):
                     cy = start_y + idx * (card_h + 10)
@@ -721,19 +803,38 @@ class DriversAcademyTab:
 
                     t_name = d.get("academy_team_name") or "Feeder Seat"
                     t_cost = d.get("academy_seat_cost", 0.0) or 0.0
-                    cost_fmt = f"${t_cost/1000000:.1f}M" if t_cost >= 1000000 else f"${t_cost/1000:.0f}k"
+                    cost_fmt = f"${t_cost / 1000000:.1f}M" if t_cost >= 1000000 else f"${t_cost / 1000:.0f}k"
                     exp_rank = d.get("academy_seat_expected_pos") or "P1 / 10"
-                    
-                    surface.blit(self.font_card_title.render(f"#{d['number']} {d['name']} ({d['age']}yo | Pot: {d['potential']})", True, (255, 215, 0)), (card_rect.x + 10, card_rect.y + 8))
-                    surface.blit(self.font_badge.render(f"RACING AT: {t_name} (Tier {d['academy_tier_placement']} Feeder | Expected Rank: {exp_rank} | {cost_fmt}/yr)", True, (0, 220, 255)), (card_rect.x + 10, card_rect.y + 28))
 
-                    mor = d['morale']
-                    mental_status = "Peak Mental Form" if mor >= 90 else ("Solid Confidence" if mor >= 75 else "Mental Fatigue")
+                    surface.blit(
+                        self.font_card_title.render(
+                            f"#{d['number']} {d['name']} ({d['age']}yo | Pot: {d['potential']})", True, (255, 215, 0)
+                        ),
+                        (card_rect.x + 10, card_rect.y + 8),
+                    )
+                    surface.blit(
+                        self.font_badge.render(
+                            f"RACING AT: {t_name} (Tier {d['academy_tier_placement']} Feeder | Expected Rank: {exp_rank} | {cost_fmt}/yr)",
+                            True,
+                            (0, 220, 255),
+                        ),
+                        (card_rect.x + 10, card_rect.y + 28),
+                    )
+
+                    mor = d["morale"]
+                    mental_status = (
+                        "Peak Mental Form" if mor >= 90 else ("Solid Confidence" if mor >= 75 else "Mental Fatigue")
+                    )
                     mor_col = (0, 240, 140) if mor >= 85 else ((255, 200, 0) if mor >= 70 else (255, 90, 90))
-                    surface.blit(self.font_badge.render(f"Mental Morale: {mor:.0f}% — {mental_status}", True, mor_col), (card_rect.x + 10, card_rect.y + 48))
+                    surface.blit(
+                        self.font_badge.render(f"Mental Morale: {mor:.0f}% — {mental_status}", True, mor_col),
+                        (card_rect.x + 10, card_rect.y + 48),
+                    )
 
                     stat_str = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Tires: {d['tire_management']}"
-                    surface.blit(self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 68))
+                    surface.blit(
+                        self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 68)
+                    )
 
                     # Promote Buttons (Opens Negotiation Modal with 80% Homegrown loyalty discount)
                     btn_p1 = pygame.Rect(card_rect.x + card_w - 230, cy + 10, 105, 24)
@@ -750,7 +851,9 @@ class DriversAcademyTab:
                     btn_trans = pygame.Rect(card_rect.x + card_w - 230, cy + 42, 220, 24)
                     pygame.draw.rect(surface, (35, 75, 110), btn_trans, border_radius=3)
                     trans_lbl = self.font_btn.render("SWITCH FEEDER SEAT", True, (255, 255, 255))
-                    surface.blit(trans_lbl, (btn_trans.x + (btn_trans.width - trans_lbl.get_width()) // 2, btn_trans.y + 4))
+                    surface.blit(
+                        trans_lbl, (btn_trans.x + (btn_trans.width - trans_lbl.get_width()) // 2, btn_trans.y + 4)
+                    )
 
                     # Dossier Button
                     btn_dos = pygame.Rect(card_rect.x + card_w - 230, cy + 76, 130, 22)
@@ -773,18 +876,20 @@ class DriversAcademyTab:
             btn_scout = pygame.Rect(r_rect.x + r_rect.width - 190, 70, 180, 24)
             pygame.draw.rect(surface, (0, 180, 120), btn_scout, border_radius=3)
             btn_scout_lbl = self.font_btn.render("SCOUT SEARCH ($15k)", True, (10, 30, 20))
-            surface.blit(btn_scout_lbl, (btn_scout.x + (btn_scout.width - btn_scout_lbl.get_width()) // 2, btn_scout.y + 4))
+            surface.blit(
+                btn_scout_lbl, (btn_scout.x + (btn_scout.width - btn_scout_lbl.get_width()) // 2, btn_scout.y + 4)
+            )
 
             eligible_tiers = sorted([t for t in [2, 3, 4, 5] if t > team_tier])
             tier_tabs = ["ALL"] + [str(t) for t in eligible_tiers]
             curr_tab_x = r_rect.x + 460
-            
+
             for t_idx, t_val in enumerate(tier_tabs):
                 pill_w = 75 if t_val == "ALL" else 60
                 t_lbl_str = f"TIER {t_val}" if t_val != "ALL" else "ALL TIERS"
                 t_rect = pygame.Rect(curr_tab_x, 70, pill_w, 24)
                 curr_tab_x += pill_w + 6
-                is_sel = (self.selected_tier_filter == t_val)
+                is_sel = self.selected_tier_filter == t_val
                 pygame.draw.rect(surface, (40, 60, 85) if is_sel else (20, 26, 34), t_rect, border_radius=3)
                 pygame.draw.rect(surface, (0, 220, 255) if is_sel else (45, 55, 65), t_rect, width=1, border_radius=3)
                 t_text = self.font_badge.render(t_lbl_str, True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED)
@@ -803,7 +908,14 @@ class DriversAcademyTab:
                 pygame.draw.rect(surface, (45, 60, 80), card_rect, width=1, border_radius=3)
 
                 star_str = "⭐" * p["scout_rating"]
-                surface.blit(self.font_card_title.render(f"{p['name']} ({p['age']}yo | {p['nationality']}) — Pot: {p['potential']} {star_str}", True, (255, 215, 0)), (card_rect.x + 10, card_rect.y + 8))
+                surface.blit(
+                    self.font_card_title.render(
+                        f"{p['name']} ({p['age']}yo | {p['nationality']}) — Pot: {p['potential']} {star_str}",
+                        True,
+                        (255, 215, 0),
+                    ),
+                    (card_rect.x + 10, card_rect.y + 8),
+                )
 
                 # Dossier Button
                 btn_dos = pygame.Rect(card_rect.x + card_w - 100, cy + 6, 90, 20)
@@ -812,15 +924,23 @@ class DriversAcademyTab:
                 dos_lbl = self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE)
                 surface.blit(dos_lbl, (btn_dos.x + (btn_dos.width - dos_lbl.get_width()) // 2, btn_dos.y + 3))
 
-                surface.blit(self.font_body.render(f"Scout Report: \"{p['scouting_notes']}\"", True, (170, 185, 200)), (card_rect.x + 10, card_rect.y + 26))
+                surface.blit(
+                    self.font_body.render(f'Scout Report: "{p["scouting_notes"]}"', True, (170, 185, 200)),
+                    (card_rect.x + 10, card_rect.y + 26),
+                )
 
                 stat_str = f"Pace: {p['pace']} | Starts: {p['race_starts']} | Braking: {p['braking']} | Tires: {p['tire_management']} | Wet: {p['wet_weather']}"
-                surface.blit(self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 10, card_rect.y + 44))
+                surface.blit(
+                    self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 10, card_rect.y + 44)
+                )
 
                 sel_seat_id = self.selected_feeder_seats.get(p["id"])
                 sel_seat_obj = next((s for s in available_seats if s["id"] == sel_seat_id), None)
                 if not sel_seat_obj:
-                    eligible_first = next((s for s in displayed_seats if dm.can_driver_sign_seat(p, s)[0]), displayed_seats[0] if displayed_seats else None)
+                    eligible_first = next(
+                        (s for s in displayed_seats if dm.can_driver_sign_seat(p, s)[0]),
+                        displayed_seats[0] if displayed_seats else None,
+                    )
                     sel_seat_obj = eligible_first
                     if sel_seat_obj:
                         self.selected_feeder_seats[p["id"]] = sel_seat_obj["id"]
@@ -828,12 +948,20 @@ class DriversAcademyTab:
                 if sel_seat_obj:
                     sel_tier = sel_seat_obj["tier"]
                     sel_fee = sel_seat_obj["cost"]
-                    sel_fee_fmt = f"${sel_fee/1000000:.2f}M/yr" if sel_fee >= 1000000 else f"${sel_fee/1000:.0f}k/yr"
+                    sel_fee_fmt = (
+                        f"${sel_fee / 1000000:.2f}M/yr" if sel_fee >= 1000000 else f"${sel_fee / 1000:.0f}k/yr"
+                    )
                     p_note = sel_seat_obj.get("pricing_note", "")
                     exp_rank = sel_seat_obj.get("expected_pos", "P1 / 10")
-                    scarcity_note = f"(Scarcity: +{sel_seat_obj['scarcity_pct']}%)" if sel_seat_obj.get("scarcity_pct", 0) > 0 else ""
+                    scarcity_note = (
+                        f"(Scarcity: +{sel_seat_obj['scarcity_pct']}%)"
+                        if sel_seat_obj.get("scarcity_pct", 0) > 0
+                        else ""
+                    )
                     t_info_str = f"Selected: [TIER {sel_tier}] {sel_seat_obj['team_name']} (Expected Rank: {exp_rank}) — {sel_fee_fmt} {scarcity_note} | {p_note}"
-                    surface.blit(self.font_badge.render(t_info_str, True, (0, 240, 140)), (card_rect.x + 10, card_rect.y + 60))
+                    surface.blit(
+                        self.font_badge.render(t_info_str, True, (0, 240, 140)), (card_rect.x + 10, card_rect.y + 60)
+                    )
 
                 max_chips = min(5, len(displayed_seats))
                 chip_w = min(128, max(100, (card_w - 180) // max(1, max_chips) - 6))
@@ -841,28 +969,54 @@ class DriversAcademyTab:
 
                 for s_idx, seat in enumerate(displayed_seats[:5]):
                     t_btn = pygame.Rect(card_rect.x + 10 + s_idx * (chip_w + 6), cy + 78, chip_w, 48)
-                    is_t_sel = (sel_seat_obj and sel_seat_obj["id"] == seat["id"])
+                    is_t_sel = sel_seat_obj and sel_seat_obj["id"] == seat["id"]
                     is_ok, reason = dm.can_driver_sign_seat(p, seat)
                     t_badge_col = tier_colors.get(seat["tier"], (0, 220, 255))
-                    
+
                     if not is_ok:
                         pygame.draw.rect(surface, (16, 18, 22), t_btn, border_radius=3)
                         pygame.draw.rect(surface, (45, 45, 50), t_btn, width=1, border_radius=3)
-                        surface.blit(self.font_badge.render(f"[T{seat['tier']}] {seat['team_name'][:11]}", True, (120, 120, 130)), (t_btn.x + 5, t_btn.y + 4))
-                        surface.blit(self.font_badge.render("INELIGIBLE", True, (255, 90, 90)), (t_btn.x + 5, t_btn.y + 18))
+                        surface.blit(
+                            self.font_badge.render(
+                                f"[T{seat['tier']}] {seat['team_name'][:11]}", True, (120, 120, 130)
+                            ),
+                            (t_btn.x + 5, t_btn.y + 4),
+                        )
+                        surface.blit(
+                            self.font_badge.render("INELIGIBLE", True, (255, 90, 90)), (t_btn.x + 5, t_btn.y + 18)
+                        )
                     else:
                         pygame.draw.rect(surface, (30, 50, 70) if is_t_sel else (16, 20, 26), t_btn, border_radius=3)
-                        pygame.draw.rect(surface, (0, 240, 140) if is_t_sel else (45, 55, 65), t_btn, width=2 if is_t_sel else 1, border_radius=3)
+                        pygame.draw.rect(
+                            surface,
+                            (0, 240, 140) if is_t_sel else (45, 55, 65),
+                            t_btn,
+                            width=2 if is_t_sel else 1,
+                            border_radius=3,
+                        )
                         exp_pos = seat.get("expected_pos", "P1 / 10")
                         c_val = seat["cost"]
-                        cost_txt = f"${c_val/1000000:.1f}M" if c_val >= 1000000 else f"${c_val/1000:.0f}k"
-                        surface.blit(self.font_badge.render(f"[T{seat['tier']}] {seat['team_name'][:13]}", True, t_badge_col if not is_t_sel else (255, 255, 255)), (t_btn.x + 5, t_btn.y + 4))
-                        surface.blit(self.font_badge.render(f"Exp: {exp_pos} ({cost_txt})", True, (255, 215, 0)), (t_btn.x + 5, t_btn.y + 18))
-                        surface.blit(self.font_badge.render(f"{seat.get('status', 'Open Seat')[:14]}", True, (0, 220, 255)), (t_btn.x + 5, t_btn.y + 32))
+                        cost_txt = f"${c_val / 1000000:.1f}M" if c_val >= 1000000 else f"${c_val / 1000:.0f}k"
+                        surface.blit(
+                            self.font_badge.render(
+                                f"[T{seat['tier']}] {seat['team_name'][:13]}",
+                                True,
+                                t_badge_col if not is_t_sel else (255, 255, 255),
+                            ),
+                            (t_btn.x + 5, t_btn.y + 4),
+                        )
+                        surface.blit(
+                            self.font_badge.render(f"Exp: {exp_pos} ({cost_txt})", True, (255, 215, 0)),
+                            (t_btn.x + 5, t_btn.y + 18),
+                        )
+                        surface.blit(
+                            self.font_badge.render(f"{seat.get('status', 'Open Seat')[:14]}", True, (0, 220, 255)),
+                            (t_btn.x + 5, t_btn.y + 32),
+                        )
 
                 if sel_seat_obj:
                     fee = sel_seat_obj["cost"]
-                    fee_btn_txt = f"${fee/1000000:.2f}M" if fee >= 1000000 else f"${fee/1000:.0f}k"
+                    fee_btn_txt = f"${fee / 1000000:.2f}M" if fee >= 1000000 else f"${fee / 1000:.0f}k"
                     btn_sign = pygame.Rect(card_rect.x + card_w - 155, cy + 78, 145, 48)
                     pygame.draw.rect(surface, (0, 180, 100), btn_sign, border_radius=3)
                     sign_txt = self.font_btn.render(f"BUY SEAT ({fee_btn_txt})", True, (10, 25, 20))
@@ -873,17 +1027,21 @@ class DriversAcademyTab:
         # =====================================================================
         elif is_market:
             m_filters = [("ALL", 45), ("STANDARD", 75), ("PAY_DRIVER", 95), ("SPONSORED_DRIVER", 75)]
-            m_labels = [("ALL", "ALL"), ("STANDARD", "STANDARD"), ("PAY_DRIVER", "PAY-DRIVERS"), ("SPONSORED_DRIVER", "LOANS")]
+            m_labels = [
+                ("ALL", "ALL"),
+                ("STANDARD", "STANDARD"),
+                ("PAY_DRIVER", "PAY-DRIVERS"),
+                ("SPONSORED_DRIVER", "LOANS"),
+            ]
             curr_m_x = r_rect.x + 460
             for (m_val, m_w), (_, m_lbl) in zip(m_filters, m_labels):
                 m_rect = pygame.Rect(curr_m_x, 70, m_w, 24)
                 curr_m_x += m_w + 6
-                is_sel = (self.market_filter == m_val)
+                is_sel = self.market_filter == m_val
                 pygame.draw.rect(surface, (40, 60, 85) if is_sel else (20, 26, 34), m_rect, border_radius=3)
                 pygame.draw.rect(surface, (0, 220, 255) if is_sel else (45, 55, 65), m_rect, width=1, border_radius=3)
                 m_txt = self.font_badge.render(m_lbl, True, (255, 255, 255) if is_sel else UITheme.TEXT_MUTED)
                 surface.blit(m_txt, (m_rect.x + (m_rect.width - m_txt.get_width()) // 2, m_rect.y + 5))
-
 
             car_rank = dm.get_car_performance_rank(gm.team_id)
             market_drivers = dm.get_market_drivers(team_tier, car_rank=car_rank)
@@ -897,25 +1055,48 @@ class DriversAcademyTab:
                 prev_btn = pygame.Rect(r_rect.x + r_rect.width - 150, 70, 65, 24)
                 next_btn = pygame.Rect(r_rect.x + r_rect.width - 80, 70, 65, 24)
                 pygame.draw.rect(surface, (30, 45, 60), prev_btn, border_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255) if self.market_page > 0 else (40, 50, 60), prev_btn, width=1, border_radius=3)
-                surface.blit(self.font_btn.render("< PREV", True, UITheme.TEXT_WHITE if self.market_page > 0 else UITheme.TEXT_MUTED), (prev_btn.x + 8, prev_btn.y + 4))
+                pygame.draw.rect(
+                    surface, (0, 220, 255) if self.market_page > 0 else (40, 50, 60), prev_btn, width=1, border_radius=3
+                )
+                surface.blit(
+                    self.font_btn.render(
+                        "< PREV", True, UITheme.TEXT_WHITE if self.market_page > 0 else UITheme.TEXT_MUTED
+                    ),
+                    (prev_btn.x + 8, prev_btn.y + 4),
+                )
 
                 pygame.draw.rect(surface, (30, 45, 60), next_btn, border_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255) if self.market_page < max_pages - 1 else (40, 50, 60), next_btn, width=1, border_radius=3)
-                surface.blit(self.font_btn.render("NEXT >", True, UITheme.TEXT_WHITE if self.market_page < max_pages - 1 else UITheme.TEXT_MUTED), (next_btn.x + 8, next_btn.y + 4))
+                pygame.draw.rect(
+                    surface,
+                    (0, 220, 255) if self.market_page < max_pages - 1 else (40, 50, 60),
+                    next_btn,
+                    width=1,
+                    border_radius=3,
+                )
+                surface.blit(
+                    self.font_btn.render(
+                        "NEXT >", True, UITheme.TEXT_WHITE if self.market_page < max_pages - 1 else UITheme.TEXT_MUTED
+                    ),
+                    (next_btn.x + 8, next_btn.y + 4),
+                )
 
             start_y = 108
             card_w = r_rect.width - 20
             card_h = 92
-            page_drivers = market_drivers[self.market_page * drivers_per_page : (self.market_page + 1) * drivers_per_page]
+            page_drivers = market_drivers[
+                self.market_page * drivers_per_page : (self.market_page + 1) * drivers_per_page
+            ]
 
             for idx, d in enumerate(page_drivers):
                 cy = start_y + idx * (card_h + 8)
                 card_rect = pygame.Rect(r_rect.x + 10, cy, card_w, card_h)
 
                 d_type = d.get("driver_type", "STANDARD")
-                border_col = (0, 240, 140) if d_type == "PAY_DRIVER" else ((255, 140, 0) if d_type == "SPONSORED_DRIVER" else (45, 65, 85))
-
+                border_col = (
+                    (0, 240, 140)
+                    if d_type == "PAY_DRIVER"
+                    else ((255, 140, 0) if d_type == "SPONSORED_DRIVER" else (45, 65, 85))
+                )
 
                 pygame.draw.rect(surface, (18, 24, 32), card_rect, border_radius=3)
                 pygame.draw.rect(surface, border_col, card_rect, width=1, border_radius=3)
@@ -926,7 +1107,9 @@ class DriversAcademyTab:
                     arch_col = (0, 240, 140)
                     finance_txt = f"Sponsor Payout: +${d.get('sponsor_income_per_race', 0.0):,.0f}/race (Free 2x-3x Title Deal) | Salary: $0"
                 elif d_type == "SPONSORED_DRIVER":
-                    arch_tag = f"[SPONSORED LOAN: {d.get('parent_team_name', '')} ({d.get('parent_team_expected_pos', '')})]"
+                    arch_tag = (
+                        f"[SPONSORED LOAN: {d.get('parent_team_name', '')} ({d.get('parent_team_expected_pos', '')})]"
+                    )
                     arch_col = (255, 140, 0)
                     finance_txt = f"Loan Stipend: +${d.get('sponsor_income_per_race', 0.0):,.0f}/race (Parent Constructor Pays) | 1-Year Fast Growth"
                 else:
@@ -934,12 +1117,21 @@ class DriversAcademyTab:
                     arch_col = (0, 220, 255)
                     finance_txt = f"Expected Salary: ${d.get('expected_salary_race', 25000.0):,.0f}/race | Bonus: ${d.get('expected_signing_bonus', 80000.0):,.0f} | Role: {d.get('expected_role', 'EQUAL')}"
 
-                surface.blit(self.font_card_title.render(f"{d['name']} ({d['age']}yo | {d['nationality']}) — Pot: {d['potential']}", True, (255, 215, 0)), (card_rect.x + 10, card_rect.y + 8))
+                surface.blit(
+                    self.font_card_title.render(
+                        f"{d['name']} ({d['age']}yo | {d['nationality']}) — Pot: {d['potential']}", True, (255, 215, 0)
+                    ),
+                    (card_rect.x + 10, card_rect.y + 8),
+                )
                 surface.blit(self.font_badge.render(arch_tag, True, arch_col), (card_rect.x + 280, card_rect.y + 8))
 
                 stat_str = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Tires: {d['tire_management']} | Defending: {d['defending']}"
-                surface.blit(self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 32))
-                surface.blit(self.font_badge.render(finance_txt, True, (200, 220, 240)), (card_rect.x + 10, card_rect.y + 54))
+                surface.blit(
+                    self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 32)
+                )
+                surface.blit(
+                    self.font_badge.render(finance_txt, True, (200, 220, 240)), (card_rect.x + 10, card_rect.y + 54)
+                )
 
                 # Dossier Button
                 btn_dos = pygame.Rect(card_rect.x + card_w - 110, cy + 3, 100, 18)
@@ -980,11 +1172,13 @@ class DriversAcademyTab:
         # Header Bar
         hdr_rect = pygame.Rect(modal_rect.x, modal_rect.y, modal_rect.width, 42)
         pygame.draw.rect(surface, (22, 32, 48), hdr_rect, border_top_left_radius=6, border_top_right_radius=6)
-        
+
         d = self.negotiating_driver
         d_type = d.get("driver_type", "STANDARD")
         title_txt = f"CONTRACT NEGOTIATIONS: {d['name']} ({d['age']}yo | Pot: {d['potential']})"
-        surface.blit(self.font_modal_title.render(title_txt, True, (255, 215, 0)), (modal_rect.x + 16, modal_rect.y + 10))
+        surface.blit(
+            self.font_modal_title.render(title_txt, True, (255, 215, 0)), (modal_rect.x + 16, modal_rect.y + 10)
+        )
 
         # Close X Button
         btn_close = pygame.Rect(modal_rect.x + modal_rect.width - 36, modal_rect.y + 10, 26, 26)
@@ -995,7 +1189,12 @@ class DriversAcademyTab:
         p_hearts = "❤️ " * self.negotiation_patience
         if self.negotiation_patience == 0:
             p_hearts = "💔 (EXHAUSTED)"
-        surface.blit(self.font_btn.render(f"Driver Patience: {p_hearts} ({self.negotiation_patience} offers left)", True, (255, 90, 90)), (modal_rect.x + 20, modal_rect.y + 52))
+        surface.blit(
+            self.font_btn.render(
+                f"Driver Patience: {p_hearts} ({self.negotiation_patience} offers left)", True, (255, 90, 90)
+            ),
+            (modal_rect.x + 20, modal_rect.y + 52),
+        )
 
         # Special Badges (Homegrown loyalty, Pay-driver sponsor, Sponsored loan)
         if self.negotiation_is_homegrown:
@@ -1010,10 +1209,12 @@ class DriversAcademyTab:
             surface.blit(self.font_badge.render(sp_txt, True, (255, 140, 0)), (modal_rect.x + 20, modal_rect.y + 74))
 
         # Row 1: Target Car Slot (Car #1 vs Car #2)
-        surface.blit(self.font_btn.render("Assign Seat:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 118))
+        surface.blit(
+            self.font_btn.render("Assign Seat:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 118)
+        )
         for c_idx in [1, 2]:
             c_btn = pygame.Rect(modal_rect.x + 140 + (c_idx - 1) * 90, modal_rect.y + 115, 80, 24)
-            is_c_sel = (self.negotiation_car_slot == c_idx)
+            is_c_sel = self.negotiation_car_slot == c_idx
             pygame.draw.rect(surface, (0, 180, 120) if is_c_sel else (25, 35, 45), c_btn, border_radius=3)
             c_lbl = self.font_btn.render(f"Car #{c_idx}", True, (10, 25, 20) if is_c_sel else UITheme.TEXT_WHITE)
             surface.blit(c_lbl, (c_btn.x + (c_btn.width - c_lbl.get_width()) // 2, c_btn.y + 4))
@@ -1032,9 +1233,14 @@ class DriversAcademyTab:
         surface.blit(self.font_badge.render(disp_txt, True, disp_col), (modal_rect.x + 330, modal_rect.y + 118))
 
         # Row 2: Contract Seasons (1 to 5)
-        surface.blit(self.font_btn.render("Contract Length:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 158))
+        surface.blit(
+            self.font_btn.render("Contract Length:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 158)
+        )
         if d_type == "SPONSORED_DRIVER":
-            surface.blit(self.font_btn.render("1 Season (Fixed Loan)", True, (255, 140, 0)), (modal_rect.x + 140, modal_rect.y + 158))
+            surface.blit(
+                self.font_btn.render("1 Season (Fixed Loan)", True, (255, 140, 0)),
+                (modal_rect.x + 140, modal_rect.y + 158),
+            )
         else:
             btn_s_dec = pygame.Rect(modal_rect.x + 140, modal_rect.y + 155, 30, 24)
             btn_s_inc = pygame.Rect(modal_rect.x + 230, modal_rect.y + 155, 30, 24)
@@ -1042,12 +1248,20 @@ class DriversAcademyTab:
             pygame.draw.rect(surface, (35, 50, 70), btn_s_inc, border_radius=3)
             surface.blit(self.font_btn.render("-", True, UITheme.TEXT_WHITE), (btn_s_dec.x + 10, btn_s_dec.y + 3))
             surface.blit(self.font_btn.render("+", True, UITheme.TEXT_WHITE), (btn_s_inc.x + 10, btn_s_inc.y + 3))
-            surface.blit(self.font_btn.render(f"{self.offer_seasons} Season(s)", True, (255, 215, 0)), (modal_rect.x + 175, modal_rect.y + 158))
+            surface.blit(
+                self.font_btn.render(f"{self.offer_seasons} Season(s)", True, (255, 215, 0)),
+                (modal_rect.x + 175, modal_rect.y + 158),
+            )
 
         # Row 3: Salary Per Race
-        surface.blit(self.font_btn.render("Salary Per Race:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 198))
+        surface.blit(
+            self.font_btn.render("Salary Per Race:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 198)
+        )
         if d_type in ["PAY_DRIVER", "SPONSORED_DRIVER"]:
-            surface.blit(self.font_btn.render("$0 / race (Covered by Sponsor/Parent)", True, (0, 240, 140)), (modal_rect.x + 140, modal_rect.y + 198))
+            surface.blit(
+                self.font_btn.render("$0 / race (Covered by Sponsor/Parent)", True, (0, 240, 140)),
+                (modal_rect.x + 140, modal_rect.y + 198),
+            )
         else:
             btn_sal_dec = pygame.Rect(modal_rect.x + 140, modal_rect.y + 195, 30, 24)
             btn_sal_inc = pygame.Rect(modal_rect.x + 270, modal_rect.y + 195, 30, 24)
@@ -1055,12 +1269,19 @@ class DriversAcademyTab:
             pygame.draw.rect(surface, (35, 50, 70), btn_sal_inc, border_radius=3)
             surface.blit(self.font_btn.render("-", True, UITheme.TEXT_WHITE), (btn_sal_dec.x + 10, btn_sal_dec.y + 3))
             surface.blit(self.font_btn.render("+", True, UITheme.TEXT_WHITE), (btn_sal_inc.x + 10, btn_sal_inc.y + 3))
-            surface.blit(self.font_btn.render(f"${self.offer_salary:,.0f} / race", True, (255, 215, 0)), (modal_rect.x + 175, modal_rect.y + 198))
+            surface.blit(
+                self.font_btn.render(f"${self.offer_salary:,.0f} / race", True, (255, 215, 0)),
+                (modal_rect.x + 175, modal_rect.y + 198),
+            )
 
         # Row 4: Signing Bonus
-        surface.blit(self.font_btn.render("Signing Bonus:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 238))
+        surface.blit(
+            self.font_btn.render("Signing Bonus:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 238)
+        )
         if d_type in ["PAY_DRIVER", "SPONSORED_DRIVER"]:
-            surface.blit(self.font_btn.render("$0 Upfront", True, (0, 240, 140)), (modal_rect.x + 140, modal_rect.y + 238))
+            surface.blit(
+                self.font_btn.render("$0 Upfront", True, (0, 240, 140)), (modal_rect.x + 140, modal_rect.y + 238)
+            )
         else:
             btn_bon_dec = pygame.Rect(modal_rect.x + 140, modal_rect.y + 235, 30, 24)
             btn_bon_inc = pygame.Rect(modal_rect.x + 270, modal_rect.y + 235, 30, 24)
@@ -1068,34 +1289,56 @@ class DriversAcademyTab:
             pygame.draw.rect(surface, (35, 50, 70), btn_bon_inc, border_radius=3)
             surface.blit(self.font_btn.render("-", True, UITheme.TEXT_WHITE), (btn_bon_dec.x + 10, btn_bon_dec.y + 3))
             surface.blit(self.font_btn.render("+", True, UITheme.TEXT_WHITE), (btn_bon_inc.x + 10, btn_bon_inc.y + 3))
-            surface.blit(self.font_btn.render(f"${self.offer_bonus:,.0f}", True, (255, 215, 0)), (modal_rect.x + 175, modal_rect.y + 238))
+            surface.blit(
+                self.font_btn.render(f"${self.offer_bonus:,.0f}", True, (255, 215, 0)),
+                (modal_rect.x + 175, modal_rect.y + 238),
+            )
 
         # Row 5: Role Hierarchy (#1, EQUAL, #2)
-        surface.blit(self.font_btn.render("Driver Role:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 278))
+        surface.blit(
+            self.font_btn.render("Driver Role:", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, modal_rect.y + 278)
+        )
         roles = [("#1", "#1 Driver"), ("EQUAL", "Equal Status"), ("#2", "#2 Driver")]
         for r_idx, (r_val, r_lbl) in enumerate(roles):
             r_btn = pygame.Rect(modal_rect.x + 140 + r_idx * 85, modal_rect.y + 275, 80, 24)
-            is_r_sel = (self.offer_role == r_val)
+            is_r_sel = self.offer_role == r_val
             pygame.draw.rect(surface, (0, 180, 120) if is_r_sel else (25, 35, 45), r_btn, border_radius=3)
             lbl = self.font_btn.render(r_lbl, True, (10, 25, 20) if is_r_sel else UITheme.TEXT_WHITE)
             surface.blit(lbl, (r_btn.x + (r_btn.width - lbl.get_width()) // 2, r_btn.y + 4))
 
         # Driver Reaction & Feedback Box
         fb_rect = pygame.Rect(modal_rect.x + 20, modal_rect.y + 320, modal_rect.width - 40, 95)
-        fb_bg = (20, 35, 25) if self.negotiation_accepted else ((35, 20, 20) if self.negotiation_walked_away else (18, 24, 32))
-        fb_border = (0, 240, 140) if self.negotiation_accepted else ((255, 90, 90) if self.negotiation_walked_away else (45, 60, 80))
+        fb_bg = (
+            (20, 35, 25)
+            if self.negotiation_accepted
+            else ((35, 20, 20) if self.negotiation_walked_away else (18, 24, 32))
+        )
+        fb_border = (
+            (0, 240, 140)
+            if self.negotiation_accepted
+            else ((255, 90, 90) if self.negotiation_walked_away else (45, 60, 80))
+        )
         pygame.draw.rect(surface, fb_bg, fb_rect, border_radius=4)
         pygame.draw.rect(surface, fb_border, fb_rect, width=1, border_radius=4)
 
-        surface.blit(self.font_badge.render("DRIVER REACTION & TELEMETRY RESPONSE:", True, (255, 215, 0)), (fb_rect.x + 10, fb_rect.y + 8))
-        surface.blit(self.font_body.render(f"\"{self.negotiation_feedback}\"", True, (240, 245, 250)), (fb_rect.x + 10, fb_rect.y + 28))
+        surface.blit(
+            self.font_badge.render("DRIVER REACTION & TELEMETRY RESPONSE:", True, (255, 215, 0)),
+            (fb_rect.x + 10, fb_rect.y + 8),
+        )
+        surface.blit(
+            self.font_body.render(f'"{self.negotiation_feedback}"', True, (240, 245, 250)),
+            (fb_rect.x + 10, fb_rect.y + 28),
+        )
 
         # Bottom Action Button
         btn_act = pygame.Rect(modal_rect.x + 20, modal_rect.y + 435, modal_rect.width - 40, 42)
         total_upfront = self.offer_bonus + buyout_fee
         if self.negotiation_walked_away:
             pygame.draw.rect(surface, (80, 30, 30), btn_act, border_radius=4)
-            surface.blit(self.font_btn.render("NEGOTIATIONS FAILED (DRIVER WALKED AWAY) — CLICK TO EXIT", True, (255, 200, 200)), (btn_act.x + 80, btn_act.y + 14))
+            surface.blit(
+                self.font_btn.render("NEGOTIATIONS FAILED (DRIVER WALKED AWAY) — CLICK TO EXIT", True, (255, 200, 200)),
+                (btn_act.x + 80, btn_act.y + 14),
+            )
         elif self.negotiation_accepted:
             pygame.draw.rect(surface, (0, 180, 100), btn_act, border_radius=4)
             upfront_str = f" (${total_upfront:,.0f} Total Upfront)" if total_upfront > 0 else ""
@@ -1103,5 +1346,7 @@ class DriversAcademyTab:
             surface.blit(self.font_btn.render(act_txt, True, (10, 25, 20)), (btn_act.x + 60, btn_act.y + 14))
         else:
             pygame.draw.rect(surface, (35, 75, 120), btn_act, border_radius=4)
-            surface.blit(self.font_btn.render("PROPOSE OFFER TO DRIVER >>", True, (255, 255, 255)), (btn_act.x + 210, btn_act.y + 14))
-
+            surface.blit(
+                self.font_btn.render("PROPOSE OFFER TO DRIVER >>", True, (255, 255, 255)),
+                (btn_act.x + 210, btn_act.y + 14),
+            )

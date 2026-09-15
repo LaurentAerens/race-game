@@ -1,14 +1,13 @@
-import unittest
-import os
-import json
-import tempfile
 import gc
-from src.data.balance_config import BALANCE_REGISTRY, TIER_DOMINANCE, TIRE_CONFIGS, ECONOMY_CONFIG
+import os
+import tempfile
+import unittest
+
+from src.data.balance_config import BALANCE_REGISTRY, TIER_DOMINANCE, TIRE_CONFIGS
 from src.database.career_db import CareerDatabase
-from src.management.league_simulator import LeagueSimulator
+
 
 class TestBalanceConfigAndDominance(unittest.TestCase):
-
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_path = os.path.join(self.temp_dir.name, "test_balance.db")
@@ -83,7 +82,7 @@ class TestBalanceConfigAndDominance(unittest.TestCase):
             cur = conn.cursor()
             cur.execute("SELECT id, base_cost, base_upkeep FROM facility_nodes;")
             nodes = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
-            
+
             # Tier 3 starter node
             t3_cost, t3_upk = nodes["eng_workshop"]
             self.assertLessEqual(t3_cost, 3_000_000.0)
@@ -117,6 +116,6 @@ class TestBalanceConfigAndDominance(unittest.TestCase):
         combined_cost = (t5_max + t4_max) / 2.0
         self.assertLess(combined_cost, t3_budget * 0.10)
 
+
 if __name__ == "__main__":
     unittest.main()
-

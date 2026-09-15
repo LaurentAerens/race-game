@@ -3,8 +3,8 @@ Guided Tutorial Manager coordinating state machine, interactive objectives,
 rewards, database persistence, and cross-screen synchronization.
 """
 
-from typing import Dict, List, Optional, Any, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any, Callable, List, Optional
 
 
 @dataclass
@@ -21,7 +21,9 @@ class TutorialStep:
     action_label: str = "Next >>"
     reward_note: str = ""
     bonus_amount: float = 0.0
-    interactive_action: Optional[str] = None  # 'BUY_BRAKES_EQUIPMENT', 'HIRE_STAFF', 'BUILD_FRONT_WING', 'ENROLL_DRIVER', 'SIGN_SPONSOR'
+    interactive_action: Optional[str] = (
+        None  # 'BUY_BRAKES_EQUIPMENT', 'HIRE_STAFF', 'BUILD_FRONT_WING', 'ENROLL_DRIVER', 'SIGN_SPONSOR'
+    )
 
 
 TUTORIAL_STEPS: List[TutorialStep] = [
@@ -43,9 +45,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Let's take a hands-on tour of your factory and prepare our cars for Round 1!"
         ),
         target_element_key="tab_dashboard_gp",
-        action_label="Tour Factory >>"
+        action_label="Tour Factory >>",
     ),
-
     # -------------------------------------------------------------------------
     # 2. Factory Facilities & Equipment (Brakes Facility)
     # -------------------------------------------------------------------------
@@ -67,9 +68,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         action_label="Next: Personnel >>",
         reward_note="🎁 Reward: +$800,000 Board Grant (Equipment Subsidy)",
         bonus_amount=800000.0,
-        interactive_action="BUY_BRAKES_EQUIPMENT"
+        interactive_action="BUY_BRAKES_EQUIPMENT",
     ),
-
     # -------------------------------------------------------------------------
     # 3. Personnel & Inbound Recruitment
     # -------------------------------------------------------------------------
@@ -91,9 +91,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         action_label="Next: Car R&D >>",
         reward_note="🎁 Reward: +$15,000 Board Grant (Recruitment Allowance)",
         bonus_amount=15000.0,
-        interactive_action="HIRE_STAFF"
+        interactive_action="HIRE_STAFF",
     ),
-
     # -------------------------------------------------------------------------
     # 4. Car Engineering & Front Wing Mk II Build
     # -------------------------------------------------------------------------
@@ -115,9 +114,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         action_label="Next: Drivers >>",
         reward_note="🎁 Reward: +$125,000 Board Grant (Aero Prototype Subsidy)",
         bonus_amount=125000.0,
-        interactive_action="BUILD_FRONT_WING"
+        interactive_action="BUILD_FRONT_WING",
     ),
-
     # -------------------------------------------------------------------------
     # 5. Drivers & Junior Academy Feeder Seat
     # -------------------------------------------------------------------------
@@ -139,9 +137,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         action_label="Next: Sponsors >>",
         reward_note="🎁 Reward: +$30,000 Board Grant (Youth Scholarship)",
         bonus_amount=30000.0,
-        interactive_action="ENROLL_DRIVER"
+        interactive_action="ENROLL_DRIVER",
     ),
-
     # -------------------------------------------------------------------------
     # 6. Commercial Sponsors & Retainers
     # -------------------------------------------------------------------------
@@ -163,9 +160,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         action_label="Next: Race Weekend >>",
         reward_note="🎁 Reward: +$25,000 Board Grant (Commercial Signing Bonus)",
         bonus_amount=25000.0,
-        interactive_action="SIGN_SPONSOR"
+        interactive_action="SIGN_SPONSOR",
     ),
-
     # -------------------------------------------------------------------------
     # 7. Launch Race Weekend Round 1
     # -------------------------------------------------------------------------
@@ -183,9 +179,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "We'll see you on the pit wall!"
         ),
         target_element_key="btn_start_race",
-        action_label="Go Trackside >>"
+        action_label="Go Trackside >>",
     ),
-
     # -------------------------------------------------------------------------
     # 8. Race Weekend: Free Practice & Setup Tuning
     # -------------------------------------------------------------------------
@@ -204,9 +199,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "to complete 5 laps. Driver feedback builds Setup Confidence, boosting pace across the weekend!"
         ),
         target_element_key="weekend_practice_sliders",
-        action_label="Next: Qualifying >>"
+        action_label="Next: Qualifying >>",
     ),
-
     # -------------------------------------------------------------------------
     # 9. Race Weekend: Qualifying Shootout
     # -------------------------------------------------------------------------
@@ -224,9 +218,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Click 'SIMULATE QUALIFYING' to run the shootout and see where our cars start on the grid!"
         ),
         target_element_key="weekend_qualifying_btn",
-        action_label="Next: Sprint Strategy >>"
+        action_label="Next: Sprint Strategy >>",
     ),
-
     # -------------------------------------------------------------------------
     # 10. Live Sprint Race & Pit Wall Strategy
     # -------------------------------------------------------------------------
@@ -248,9 +241,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Click 'Start Racing! >>' to unleash the cars and guide them to the chequered flag!"
         ),
         target_element_key="race_driver_panel",
-        action_label="Start Racing! >>"
+        action_label="Start Racing! >>",
     ),
-
     # -------------------------------------------------------------------------
     # 11. Race Debrief & Tutorial Finale
     # -------------------------------------------------------------------------
@@ -272,8 +264,8 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         target_element_key="hub_header_tutorial_btn",
         action_label="Complete Tutorial & Continue Career",
         reward_note="🎁 Reward: +$100,000 Board Grant (Maiden GP Completion Award)",
-        bonus_amount=100000.0
-    )
+        bonus_amount=100000.0,
+    ),
 ]
 
 
@@ -326,13 +318,7 @@ class TutorialManager:
         step = self.get_current_step()
         step_id = step.step_id if step else "WELCOME_DASHBOARD"
         try:
-            self.db.save_tutorial_progress(
-                self.team_id,
-                step_id,
-                self.is_active,
-                self.is_completed,
-                self.is_skipped
-            )
+            self.db.save_tutorial_progress(self.team_id, step_id, self.is_active, self.is_completed, self.is_skipped)
         except Exception:
             pass
 
@@ -423,7 +409,7 @@ class TutorialManager:
                     self.team_id,
                     step.bonus_amount,
                     category="BOARD_GRANT",
-                    description=f"Tutorial Incentive: {step.title}"
+                    description=f"Tutorial Incentive: {step.title}",
                 )
             except Exception:
                 pass

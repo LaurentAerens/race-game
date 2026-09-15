@@ -1,20 +1,24 @@
-import pygame
 import math
 from typing import Optional
-from ..core.radio_system import RadioMessageSystem, RadioMessage
+
+import pygame
+
+from ..core.radio_system import RadioMessage, RadioMessageSystem
 from .theme import UITheme
+
 
 class RadioBannerWidget:
     """
     Renders top-center broadcast Pit Wall Radio popups with pulsating radio icons,
     speaker labels, and high-priority alert highlights.
     """
+
     def __init__(self, screen_width: int):
         self.width = 540
         self.height = 46
         self.x = (screen_width - self.width) // 2
-        self.y = 56 # Just below the top broadcast header
-        
+        self.y = 56  # Just below the top broadcast header
+
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self._init_fonts()
         self.pulse_timer: float = 0.0
@@ -28,7 +32,6 @@ class RadioBannerWidget:
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self._init_fonts()
 
-
     def update(self, dt: float, screen_width: int):
         self.x = (screen_width - self.width) // 2
         self.rect.x = self.x
@@ -41,10 +44,10 @@ class RadioBannerWidget:
 
         # Category colors
         border_col = {
-            "WEATHER": (0, 210, 255),   # Cyan for rain/weather
-            "TIRES": (255, 205, 30),     # Yellow for tire alerts
-            "INCIDENT": (245, 45, 45),   # Red for safety car/crashes
-            "STRATEGY": (0, 240, 140)    # Green for pit strategy
+            "WEATHER": (0, 210, 255),  # Cyan for rain/weather
+            "TIRES": (255, 205, 30),  # Yellow for tire alerts
+            "INCIDENT": (245, 45, 45),  # Red for safety car/crashes
+            "STRATEGY": (0, 240, 140),  # Green for pit strategy
         }.get(msg.category, UITheme.ACCENT_CYAN)
 
         # Background card with slight shadow
