@@ -1590,6 +1590,10 @@ class CareerDatabase:
             except Exception:
                 # Connection may already be closed or in an invalid state during cleanup
                 pass
+            except sqlite3.Error as e:
+                print(f"[CareerDatabase] Warning closing SQLite connection: {e}")
+            except Exception as e:
+                print(f"[CareerDatabase] Unexpected error closing SQLite connection: {e}")
         self._open_connections.clear()
 
     def init_schema(self):
