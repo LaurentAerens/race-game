@@ -218,15 +218,51 @@ class CarEngineeringTab:
                 (c_rect.x + 25, c_rect.y + 6),
             )
 
-            # Current Performance & Durability
+            # Current Performance & Durability with Icons
             cur_dur = comp.get("current_durability", 100.0 - comp.get("wear_pct", 0.0))
             max_dur = comp.get("max_durability", 100.0)
-            stat_str = (
-                f"Perf: {comp['performance']:.1f} | Dur: {cur_dur:.0f}%/{max_dur:.0f}% (Wear: {comp['wear_pct']:.0f}%)"
+            cx_stat = c_rect.x + 10
+            cy_stat = c_rect.y + 21
+            stat_col = (0, 220, 240) if can_develop else UITheme.TEXT_MUTED
+            cx_stat += (
+                UITheme.draw_stat_item(
+                    surface,
+                    cx_stat,
+                    cy_stat,
+                    "zap",
+                    f"{comp['performance']:.1f}",
+                    self.font_body,
+                    text_color=stat_col,
+                    icon_color=(255, 200, 40) if can_develop else UITheme.TEXT_MUTED,
+                    icon_size=12,
+                )
+                + 12
             )
-            surface.blit(
-                self.font_body.render(stat_str, True, (0, 220, 240) if can_develop else UITheme.TEXT_MUTED),
-                (c_rect.x + 10, c_rect.y + 21),
+            dur_col = (0, 240, 140) if cur_dur > 50 else (255, 140, 40)
+            cx_stat += (
+                UITheme.draw_stat_item(
+                    surface,
+                    cx_stat,
+                    cy_stat,
+                    "shield",
+                    f"{cur_dur:.0f}%/{max_dur:.0f}%",
+                    self.font_body,
+                    text_color=dur_col if can_develop else UITheme.TEXT_MUTED,
+                    icon_color=dur_col if can_develop else UITheme.TEXT_MUTED,
+                    icon_size=12,
+                )
+                + 12
+            )
+            UITheme.draw_stat_item(
+                surface,
+                cx_stat,
+                cy_stat,
+                "triangle-alert",
+                f"Wear {comp['wear_pct']:.0f}%",
+                self.font_body,
+                text_color=UITheme.TEXT_MUTED,
+                icon_color=(255, 140, 40) if comp["wear_pct"] > 50 else UITheme.TEXT_MUTED,
+                icon_size=11,
             )
 
             # Continuous Knowledge Evolution Pool Bar (2 lines for clean readability)
@@ -334,14 +370,67 @@ class CarEngineeringTab:
                 (sc_rect.x + 180, sc_rect.y + 8),
             )
 
-            # Stats
+            # Stats with Icons
             cost_txt = (
                 f"${supp['cost_season'] / 1000000:.1f}M/yr"
                 if supp["cost_season"] >= 1000000
                 else f"${supp['cost_season'] / 1000:.0f}k/yr"
             )
-            stat_txt = f"Power: {supp['base_power']:.0f} HP | Fuel: {supp['fuel_efficiency']:.0f}% | Rel: {supp['reliability']:.0f}% | Contract: {cost_txt}"
-            surface.blit(self.font_body.render(stat_txt, True, UITheme.TEXT_WHITE), (sc_rect.x + 10, sc_rect.y + 26))
+            sx_supp = sc_rect.x + 10
+            sy_supp = sc_rect.y + 26
+            sx_supp += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx_supp,
+                    sy_supp,
+                    "zap",
+                    f"{supp['base_power']:.0f} HP",
+                    self.font_body,
+                    text_color=UITheme.TEXT_WHITE,
+                    icon_color=(255, 215, 0),
+                    icon_size=12,
+                )
+                + 10
+            )
+            sx_supp += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx_supp,
+                    sy_supp,
+                    "fuel",
+                    f"{supp['fuel_efficiency']:.0f}%",
+                    self.font_body,
+                    text_color=UITheme.TEXT_WHITE,
+                    icon_color=(140, 200, 255),
+                    icon_size=12,
+                )
+                + 10
+            )
+            sx_supp += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx_supp,
+                    sy_supp,
+                    "shield",
+                    f"{supp['reliability']:.0f}%",
+                    self.font_body,
+                    text_color=UITheme.TEXT_WHITE,
+                    icon_color=(0, 240, 140),
+                    icon_size=12,
+                )
+                + 10
+            )
+            UITheme.draw_stat_item(
+                surface,
+                sx_supp,
+                sy_supp,
+                "circle-dollar-sign",
+                cost_txt,
+                self.font_body,
+                text_color=(0, 220, 255),
+                icon_color=(0, 220, 255),
+                icon_size=12,
+            )
 
             phil = supp.get("philosophy", "")
             surface.blit(
@@ -352,18 +441,22 @@ class CarEngineeringTab:
             # Sign Contract Button
             if not is_current:
                 sign_btn = pygame.Rect(s_start_x + s_card_w - 120, sy + 20, 110, 26)
-                pygame.draw.rect(surface, (35, 55, 75), sign_btn, border_radius=3)
-                pygame.draw.rect(surface, (0, 220, 255), sign_btn, width=1, border_radius=3)
-                s_lbl = self.font_btn.render("CONTRACT", True, UITheme.TEXT_WHITE)
-                surface.blit(s_lbl, (sign_btn.x + (sign_btn.width - s_lbl.get_width()) // 2, sign_btn.y + 6))
+                UITheme.draw_button(surface, sign_btn, "CONTRACT", self.font_btn, icon="check", icon_size=12)
 
         # 4. Warehouse Spare Inventory (Right Column Mid)
         w_rect = pygame.Rect(s_start_x, 340, s_card_w, 102)
         pygame.draw.rect(surface, (16, 20, 26), w_rect, border_radius=4)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, w_rect, width=1, border_radius=4)
+        UITheme.draw_icon(
+            surface,
+            "package" if "package" in UITheme.ALIASES else "factory",
+            (w_rect.x + 10, w_rect.y + 7),
+            color=UITheme.ACCENT_CYAN,
+            size=15,
+        )
         surface.blit(
             self.font_card_title.render("TEAM WAREHOUSE & SPARE PARTS INVENTORY", True, UITheme.ACCENT_CYAN),
-            (w_rect.x + 10, w_rect.y + 6),
+            (w_rect.x + 30, w_rect.y + 6),
         )
 
         spares = em.get_spare_parts_in_warehouse(gm.team_id)
@@ -381,15 +474,40 @@ class CarEngineeringTab:
                 pygame.draw.rect(surface, (22, 28, 36), sp_box, border_radius=3)
 
                 sp_name = f"{sp['category'].replace('_', ' ')} (Mk {sp['generation']})"
-                sp_stat = f"Perf: {sp['performance']:.0f} | Dur: {sp.get('current_durability', 100.0):.0f}%"
-                surface.blit(self.font_btn.render(sp_name, True, UITheme.TEXT_WHITE), (sp_box.x + 8, sp_box.y + 3))
-                surface.blit(self.font_badge.render(sp_stat, True, (0, 220, 200)), (sp_box.x + 8, sp_box.y + 16))
+                surface.blit(self.font_btn.render(sp_name, True, UITheme.TEXT_WHITE), (sp_box.x + 8, sp_box.y + 7))
 
-                m_btn = pygame.Rect(sp_box.x + sp_box.width - 95, sp_box.y + 3, 85, 24)
-                pygame.draw.rect(surface, (30, 50, 70), m_btn, border_radius=2)
-                pygame.draw.rect(surface, UITheme.ACCENT_CYAN, m_btn, width=1, border_radius=2)
-                m_lbl = self.font_badge.render(f"MOUNT C#{self.selected_car_slot}", True, UITheme.TEXT_WHITE)
-                surface.blit(m_lbl, (m_btn.x + (m_btn.width - m_lbl.get_width()) // 2, m_btn.y + 5))
+                sp_x = sp_box.x + 160
+                sp_y = sp_box.y + 7
+                sp_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        sp_x,
+                        sp_y,
+                        "zap",
+                        f"{sp['performance']:.0f}",
+                        self.font_badge,
+                        text_color=(0, 220, 200),
+                        icon_color=(255, 200, 40),
+                        icon_size=11,
+                    )
+                    + 12
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    sp_x,
+                    sp_y,
+                    "shield",
+                    f"{sp.get('current_durability', 100.0):.0f}%",
+                    self.font_badge,
+                    text_color=(0, 220, 200),
+                    icon_color=(0, 240, 140),
+                    icon_size=11,
+                )
+
+                m_btn = pygame.Rect(sp_box.x + sp_box.width - 100, sp_box.y + 3, 92, 24)
+                UITheme.draw_button(
+                    surface, m_btn, f"MOUNT C#{self.selected_car_slot}", self.font_badge, icon="wrench", icon_size=11
+                )
 
         # 5. Next-Year Chassis R&D & Dynamic Regulations (Right Column Bottom)
         ng_status = em.get_team_next_gen_status(gm.team_id)

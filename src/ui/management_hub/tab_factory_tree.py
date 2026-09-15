@@ -1821,6 +1821,14 @@ class FactoryTreeTab:
             "FACILITIES": "network",
             "TELEMETRY": "gauge",
             "COMMERCIAL": "circle-dollar-sign",
+            "MARKETING": "circle-dollar-sign",
+            "ENGINEERING": "wrench",
+            "TESTING": "gauge",
+            "HR": "users",
+            "TRACKSIDE": "flag",
+            "DRIVER_PERF": "zap",
+            "MANAGEMENT": "award",
+            "GENERAL": "factory",
         }
         tab_w = max(90, (self.width - 48) // len(depts))
         for idx, (dept_key, label) in enumerate(depts):
@@ -1949,11 +1957,15 @@ class FactoryTreeTab:
                 negative_penalty_mult,
             )
 
-            # Row 1: Node Title (left) & Tier Badge (right)
-            disp_name = self._truncate_text(self.font_card_title, f["name"], sw - 68 * self.zoom)
+            # Row 1: Node Title (left with department icon) & Tier Badge (right)
+            dept_name = f.get("department", "GENERAL")
+            node_icon = dept_icons.get(dept_name, "factory")
+            ic_size = max(10, int(13 * self.zoom))
+            UITheme.draw_icon(surface, node_icon, (sx + 8 * self.zoom, sy + 6 * self.zoom), color=bar_col, size=ic_size)
+            disp_name = self._truncate_text(self.font_card_title, f["name"], sw - 82 * self.zoom)
             surface.blit(
                 self.font_card_title.render(disp_name, True, UITheme.TEXT_WHITE if is_unlocked else (180, 190, 200)),
-                (sx + 10 * self.zoom, sy + 6 * self.zoom),
+                (sx + 24 * self.zoom, sy + 6 * self.zoom),
             )
 
             if is_unlocked:
@@ -1970,21 +1982,38 @@ class FactoryTreeTab:
                     (sx + 10 * self.zoom, sy + 26 * self.zoom),
                 )
 
-                # Row 3: Detail / Breakdown & Upkeep (Unobstructed full row, strictly truncated to fit card)
-                upk_str = f"{b_info['detail_str']} | Upk ${f['base_upkeep'] * cur_tier:,.0f}/mo"
-                disp_upk = self._truncate_text(self.font_body, upk_str, sw - 18 * self.zoom)
+                # Row 3: Detail / Breakdown & Upkeep with Icon
+                upk_amt_str = f"${f['base_upkeep'] * cur_tier:,.0f}/mo"
+                disp_upk = self._truncate_text(self.font_body, f"{b_info['detail_str']} |", sw - 80 * self.zoom)
                 surface.blit(
                     self.font_body.render(disp_upk, True, UITheme.TEXT_MUTED),
                     (sx + 10 * self.zoom, sy + 46 * self.zoom),
                 )
+                upk_x = sx + 10 * self.zoom + self.font_body.size(disp_upk)[0] + 4 * self.zoom
+                UITheme.draw_stat_item(
+                    surface,
+                    int(upk_x),
+                    int(sy + 46 * self.zoom),
+                    "trending-down",
+                    upk_amt_str,
+                    self.font_body,
+                    text_color=UITheme.TEXT_MUTED,
+                    icon_color=(255, 140, 40),
+                    icon_size=max(9, int(11 * self.zoom)),
+                )
 
-                # Row 4: Budget Controls (left/middle) & Upgrade Button (right)
-                b_lbl = self.font_badge.render("BUD:", True, UITheme.TEXT_MUTED)
-                surface.blit(b_lbl, (sx + 10 * self.zoom, sy + 66 * self.zoom))
-
+                # Row 4: Budget Controls (left/middle with icon) & Upgrade Button (right)
                 bud_str = f"${sub_budget / 1000:.0f}k/mo" if sub_budget >= 1000 else f"${sub_budget:,.0f}/mo"
-                surface.blit(
-                    self.font_badge.render(bud_str, True, (0, 220, 255)), (sx + 36 * self.zoom, sy + 66 * self.zoom)
+                UITheme.draw_stat_item(
+                    surface,
+                    int(sx + 8 * self.zoom),
+                    int(sy + 66 * self.zoom),
+                    "circle-dollar-sign",
+                    bud_str,
+                    self.font_badge,
+                    text_color=(0, 220, 255),
+                    icon_color=(0, 220, 255),
+                    icon_size=max(9, int(12 * self.zoom)),
                 )
 
                 minus_btn = pygame.Rect(sx + 88 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
@@ -2003,10 +2032,15 @@ class FactoryTreeTab:
                     next_t = cur_tier + 1
                     upg_cost = f["base_cost"] * (1.5 if next_t == 2 else 2.5) * cost_mult
                     upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 64 * self.zoom, 70 * self.zoom, 20 * self.zoom)
-                    pygame.draw.rect(surface, (40, 65, 90), upg_btn, border_radius=2)
                     upg_cost_str = f"${upg_cost / 1000000:.1f}M" if upg_cost >= 1000000 else f"${upg_cost / 1000:.0f}k"
-                    upg_lbl = self.font_btn.render(f"UPG {upg_cost_str}", True, (0, 220, 255))
-                    surface.blit(upg_lbl, (upg_btn.x + (upg_btn.width - upg_lbl.get_width()) // 2, upg_btn.y + 3))
+                    UITheme.draw_button(
+                        surface,
+                        upg_btn,
+                        f"UPG {upg_cost_str}",
+                        self.font_btn,
+                        icon="wrench",
+                        icon_size=max(8, int(10 * self.zoom)),
+                    )
                 else:
                     max_lbl = self.font_badge.render("[MAX]", True, (255, 215, 0))
                     surface.blit(max_lbl, (sx + sw - max_lbl.get_width() - 8 * self.zoom, sy + 66 * self.zoom))
@@ -2025,32 +2059,63 @@ class FactoryTreeTab:
                     (sx + 10 * self.zoom, sy + 26 * self.zoom),
                 )
 
-                # Row 3: Detail / Base Upkeep (Unobstructed full row, strictly truncated to fit card)
-                cost_str = f"{b_info['detail_str']} | Upkeep: ${f['base_upkeep']:,.0f}/mo"
-                disp_cost = self._truncate_text(self.font_body, cost_str, sw - 18 * self.zoom)
+                # Row 3: Detail / Base Upkeep with Icon
+                upk_amt_str = f"${f['base_upkeep']:,.0f}/mo"
+                disp_cost = self._truncate_text(self.font_body, f"{b_info['detail_str']} |", sw - 80 * self.zoom)
                 surface.blit(
-                    self.font_body.render(disp_cost, True, (140, 150, 160)), (sx + 10 * self.zoom, sy + 46 * self.zoom)
+                    self.font_body.render(disp_cost, True, (140, 150, 160)),
+                    (sx + 10 * self.zoom, sy + 46 * self.zoom),
+                )
+                upk_x = sx + 10 * self.zoom + self.font_body.size(disp_cost)[0] + 4 * self.zoom
+                UITheme.draw_stat_item(
+                    surface,
+                    int(upk_x),
+                    int(sy + 46 * self.zoom),
+                    "trending-down",
+                    upk_amt_str,
+                    self.font_body,
+                    text_color=(140, 150, 160),
+                    icon_color=(255, 140, 40),
+                    icon_size=max(9, int(11 * self.zoom)),
                 )
 
-                # Row 4: Cost (left) & BUILD Button (right)
+                # Row 4: Cost with Icon (left) & BUILD Button (right)
                 b_cost = f["base_cost"] * cost_mult
                 b_cost_str = f"${b_cost / 1000000:.1f}M" if b_cost >= 1000000 else f"${b_cost / 1000:.0f}k"
-                cost_lbl = self.font_badge.render(f"Cost: {b_cost_str}", True, (255, 180, 40))
-                surface.blit(cost_lbl, (sx + 10 * self.zoom, sy + 66 * self.zoom))
+                UITheme.draw_stat_item(
+                    surface,
+                    int(sx + 8 * self.zoom),
+                    int(sy + 66 * self.zoom),
+                    "circle-dollar-sign",
+                    b_cost_str,
+                    self.font_badge,
+                    text_color=(255, 180, 40),
+                    icon_color=(255, 180, 40),
+                    icon_size=max(9, int(12 * self.zoom)),
+                )
 
                 can_b, req_msg = self._can_build_node(node_id, facilities)
                 build_btn = pygame.Rect(sx + sw - 92 * self.zoom, sy + 64 * self.zoom, 86 * self.zoom, 20 * self.zoom)
 
                 if can_b:
-                    pygame.draw.rect(surface, (0, 180, 100), build_btn, border_radius=2)
-                    b_txt = self.font_btn.render(f"BUILD {b_cost_str}", True, (10, 20, 15))
+                    UITheme.draw_button(
+                        surface,
+                        build_btn,
+                        f"BUILD {b_cost_str}",
+                        self.font_btn,
+                        icon="wrench",
+                        icon_size=max(8, int(10 * self.zoom)),
+                    )
                 else:
-                    # Greyed-out locked button for missing parent prerequisites
-                    pygame.draw.rect(surface, (45, 52, 62), build_btn, border_radius=2)
-                    pygame.draw.rect(surface, (65, 75, 88), build_btn, width=1, border_radius=2)
-                    b_txt = self.font_btn.render("LOCKED", True, (140, 150, 160))
-
-                surface.blit(b_txt, (build_btn.x + (build_btn.width - b_txt.get_width()) // 2, build_btn.y + 3))
+                    UITheme.draw_button(
+                        surface,
+                        build_btn,
+                        "LOCKED",
+                        self.font_btn,
+                        icon="lock",
+                        icon_size=max(8, int(10 * self.zoom)),
+                        is_disabled=True,
+                    )
 
         # Restore Canvas Clip
         surface.set_clip(prev_clip)
@@ -2069,14 +2134,24 @@ class FactoryTreeTab:
             hdr_rect = pygame.Rect(drawer_x, 60, 526, 36)
             pygame.draw.rect(surface, (20, 30, 45), hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
 
+            dep_key = fac_info.get("department", "GENERAL")
+            dep_ic = dept_icons.get(dep_key, "factory")
+            UITheme.draw_icon(surface, dep_ic, (drawer_x + 12, 69), color=(255, 215, 0), size=18)
+
             title_txt = f"{fac_info.get('name', 'Facility')} (Tier {fac_info.get('current_tier', 1)}/3)"
-            surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (drawer_x + 14, 70))
+            surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (drawer_x + 36, 70))
 
             # Close button
             close_btn = pygame.Rect(drawer_x + 526 - 70, 68, 60, 22)
-            pygame.draw.rect(surface, (180, 40, 40), close_btn, border_radius=3)
-            c_lbl = self.font_btn.render("X CLOSE", True, UITheme.TEXT_WHITE)
-            surface.blit(c_lbl, (close_btn.x + (close_btn.width - c_lbl.get_width()) // 2, close_btn.y + 4))
+            UITheme.draw_button(
+                surface,
+                close_btn,
+                "CLOSE",
+                self.font_btn,
+                bg_color=(180, 40, 40),
+                icon="x",
+                icon_size=10,
+            )
 
             # Financial Health & Budget Status Card
             fin_status = gm.db.get_department_financial_status(
@@ -2087,7 +2162,17 @@ class FactoryTreeTab:
             pygame.draw.rect(surface, (45, 60, 80), fin_rect, width=1, border_radius=3)
 
             b_str = f"Monthly Budget: ${fin_status['monthly_budget']:,.0f}/mo"
-            surface.blit(self.font_card_title.render(b_str, True, (0, 220, 255)), (fin_rect.x + 10, fin_rect.y + 5))
+            UITheme.draw_stat_item(
+                surface,
+                fin_rect.x + 10,
+                fin_rect.y + 5,
+                "circle-dollar-sign",
+                b_str,
+                self.font_card_title,
+                text_color=(0, 220, 255),
+                icon_color=(0, 220, 255),
+                icon_size=15,
+            )
 
             # Budget minus/plus buttons inside inspector (cleanly right-aligned)
             d_minus = pygame.Rect(fin_rect.x + fin_rect.width - 64, fin_rect.y + 5, 26, 18)
@@ -2098,23 +2183,45 @@ class FactoryTreeTab:
             surface.blit(self.font_btn.render("+", True, UITheme.TEXT_WHITE), (d_plus.x + 7, d_plus.y + 1))
 
             upk_detail = f"Min Op Demand: ${fin_status['min_operational_cost']:,.0f}/mo (Maint: ${fin_status['facility_upkeep']:,.0f} | Eq: ${fin_status['equipment_upkeep']:,.0f} | Wages: ${fin_status['staff_salaries']:,.0f})"
-            surface.blit(
-                self.font_body.render(upk_detail, True, UITheme.TEXT_MUTED), (fin_rect.x + 10, fin_rect.y + 22)
+            UITheme.draw_stat_item(
+                surface,
+                fin_rect.x + 10,
+                fin_rect.y + 22,
+                "trending-down",
+                upk_detail,
+                self.font_body,
+                text_color=UITheme.TEXT_MUTED,
+                icon_color=(255, 140, 40),
+                icon_size=12,
             )
 
             # Department Savings Account row & Sweep button
             savings_amt = fin_status.get("savings_balance", 0.0)
-            sav_txt = f"💰 Dept Savings: ${savings_amt:,.0f}"
-            surface.blit(
-                self.font_badge.render(sav_txt, True, (0, 255, 160) if savings_amt > 0 else (140, 150, 160)),
-                (fin_rect.x + 10, fin_rect.y + 37),
+            sav_txt = f"Dept Savings: ${savings_amt:,.0f}"
+            sav_col = (0, 255, 160) if savings_amt > 0 else (140, 150, 160)
+            UITheme.draw_stat_item(
+                surface,
+                fin_rect.x + 10,
+                fin_rect.y + 38,
+                "coins",
+                sav_txt,
+                self.font_badge,
+                text_color=sav_col,
+                icon_color=sav_col,
+                icon_size=12,
             )
 
             if savings_amt > 0:
-                sweep_btn = pygame.Rect(fin_rect.x + fin_rect.width - 180, fin_rect.y + 33, 172, 17)
-                pygame.draw.rect(surface, (0, 130, 80), sweep_btn, border_radius=2)
-                sw_lbl = self.font_badge.render("🏦 SWEEP TO TREASURY", True, UITheme.TEXT_WHITE)
-                surface.blit(sw_lbl, (sweep_btn.x + (sweep_btn.width - sw_lbl.get_width()) // 2, sweep_btn.y + 1))
+                sweep_btn = pygame.Rect(fin_rect.x + fin_rect.width - 180, fin_rect.y + 33, 172, 18)
+                UITheme.draw_button(
+                    surface,
+                    sweep_btn,
+                    "SWEEP TO TREASURY",
+                    self.font_badge,
+                    bg_color=(0, 130, 80),
+                    icon="circle-dollar-sign",
+                    icon_size=11,
+                )
 
             # Equipment items
             eq_items = gm.db.get_facility_equipment(gm.team_id, self.inspected_node_id, upkeep_mult=upkeep_mult)
@@ -2137,9 +2244,16 @@ class FactoryTreeTab:
             )
 
             # Production Card Title
-            surface.blit(
-                self.font_card_title.render(insp_b["insp_title"], True, (255, 215, 0)),
-                (prod_rect.x + 10, prod_rect.y + 6),
+            UITheme.draw_stat_item(
+                surface,
+                prod_rect.x + 10,
+                prod_rect.y + 6,
+                "award",
+                insp_b["insp_title"],
+                self.font_card_title,
+                text_color=(255, 215, 0),
+                icon_color=(255, 215, 0),
+                icon_size=15,
             )
 
             # Breakdown Line 1
@@ -2148,86 +2262,77 @@ class FactoryTreeTab:
             )
 
             # Breakdown Line 2 (Highlighted Total Output / Advantage)
-            surface.blit(
-                self.font_card_title.render(insp_b["insp_line2"], True, (0, 255, 160)),
-                (prod_rect.x + 10, prod_rect.y + 46),
+            UITheme.draw_stat_item(
+                surface,
+                prod_rect.x + 10,
+                prod_rect.y + 46,
+                "zap",
+                insp_b["insp_line2"],
+                self.font_card_title,
+                text_color=(0, 255, 160),
+                icon_color=(0, 255, 160),
+                icon_size=14,
             )
 
-            # Breakdown Line 3 (Upgrade Impact)
-            surface.blit(
-                self.font_badge.render(insp_b["insp_line3"], True, (255, 180, 40)), (prod_rect.x + 10, prod_rect.y + 68)
-            )
+            # Breakdown Line 3 (Upgrade Impact) & Facility Upgrade Button
+            cur_t = fac_info.get("current_tier", 1)
+            max_t = fac_info.get("max_tier", 3)
+            if cur_t < max_t:
+                next_t = cur_t + 1
+                upg_cost = fac_info.get("base_cost", 0) * (1.5 if next_t == 2 else 2.5) * cost_mult
+                upg_cost_str = f"${upg_cost / 1000000:.1f}M" if upg_cost >= 1000000 else f"${upg_cost / 1000:.0f}k"
+                fac_upg_btn = pygame.Rect(prod_rect.x + prod_rect.width - 134, prod_rect.y + 64, 126, 20)
+                UITheme.draw_button(
+                    surface,
+                    fac_upg_btn,
+                    f"UPGRADE {upg_cost_str}",
+                    self.font_btn,
+                    icon="wrench",
+                    icon_size=11,
+                )
+                disp_line3 = self._truncate_text(self.font_badge, insp_b["insp_line3"], prod_rect.width - 146)
+            else:
+                disp_line3 = self._truncate_text(self.font_badge, insp_b["insp_line3"], prod_rect.width - 20)
+
+            surface.blit(self.font_badge.render(disp_line3, True, (255, 180, 40)), (prod_rect.x + 10, prod_rect.y + 68))
 
             # Sub-Tab Bar (Equipment Rigs vs Room Personnel Roster)
             is_pure_operational = self.inspected_node_id in ("hr_recruitment", "hr_headhunting", "hr_payroll")
             if is_pure_operational:
                 self.inspector_tab = "STAFF"
                 tab_staff_rect = pygame.Rect(drawer_x + 12, 248, 502, 24)
-                pygame.draw.rect(
-                    surface, (25, 35, 50), tab_staff_rect, border_top_left_radius=3, border_top_right_radius=3
-                )
-                pygame.draw.rect(
-                    surface, (0, 220, 255), tab_staff_rect, width=1, border_top_left_radius=3, border_top_right_radius=3
-                )
-                staff_tab_lbl = self.font_badge.render("👥 OPERATIONAL ROSTER & STAFF", True, (0, 220, 255))
-                surface.blit(
-                    staff_tab_lbl,
-                    (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5),
+                UITheme.draw_button(
+                    surface,
+                    tab_staff_rect,
+                    "OPERATIONAL ROSTER & STAFF",
+                    self.font_badge,
+                    is_active=True,
+                    icon="users",
+                    icon_size=13,
                 )
             else:
                 tab_eq_rect = pygame.Rect(drawer_x + 12, 248, 246, 24)
                 tab_staff_rect = pygame.Rect(drawer_x + 264, 248, 250, 24)
 
                 eq_active = self.inspector_tab == "EQUIPMENT"
-                pygame.draw.rect(
+                UITheme.draw_button(
                     surface,
-                    (25, 35, 50) if eq_active else (14, 18, 26),
                     tab_eq_rect,
-                    border_top_left_radius=3,
-                    border_top_right_radius=3,
+                    f"EQUIPMENT RIGS ({len(eq_items)})",
+                    self.font_badge,
+                    is_active=eq_active,
+                    icon="wrench",
+                    icon_size=12,
                 )
-                pygame.draw.rect(
+                UITheme.draw_button(
                     surface,
-                    (0, 220, 255) if eq_active else (40, 50, 65),
-                    tab_eq_rect,
-                    width=1,
-                    border_top_left_radius=3,
-                    border_top_right_radius=3,
-                )
-                eq_tab_lbl = self.font_badge.render(
-                    f"🛠️ EQUIPMENT RIGS ({len(eq_items)})", True, (0, 220, 255) if eq_active else (140, 150, 160)
-                )
-                surface.blit(
-                    eq_tab_lbl, (tab_eq_rect.x + (tab_eq_rect.width - eq_tab_lbl.get_width()) // 2, tab_eq_rect.y + 5)
-                )
-
-                pygame.draw.rect(
-                    surface,
-                    (25, 35, 50) if not eq_active else (14, 18, 26),
                     tab_staff_rect,
-                    border_top_left_radius=3,
-                    border_top_right_radius=3,
+                    "ROOM ROSTER & STAFF",
+                    self.font_badge,
+                    is_active=not eq_active,
+                    icon="users",
+                    icon_size=12,
                 )
-                pygame.draw.rect(
-                    surface,
-                    (0, 220, 255) if not eq_active else (40, 50, 65),
-                    tab_staff_rect,
-                    width=1,
-                    border_top_left_radius=3,
-                    border_top_right_radius=3,
-                )
-                staff_tab_lbl = self.font_badge.render(
-                    "👥 ROOM ROSTER & STAFF", True, (0, 220, 255) if not eq_active else (140, 150, 160)
-                )
-                surface.blit(
-                    staff_tab_lbl,
-                    (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5),
-                )
-
-            surface.blit(
-                staff_tab_lbl,
-                (tab_staff_rect.x + (tab_staff_rect.width - staff_tab_lbl.get_width()) // 2, tab_staff_rect.y + 5),
-            )
 
             # Scrollable Canvas
             eq_canvas = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
@@ -2298,40 +2403,104 @@ class FactoryTreeTab:
                     next_r_sign = "+" if next_r >= 0 else ""
                     d_r_sign = "+" if r_unit >= 0 else ""
 
-                    if eq["current_level"] > 0:
-                        cur_impact_str = f"Current: +{cur_p:.2f} Perf | {cur_r_sign}{cur_r:.2f}% Rel"
-                    else:
-                        cur_impact_str = "Current: +0.00 Perf | +0.00% Rel"
+                    # Current stats row (y + 38)
+                    cx = item_rect.x + 8
+                    cur_col = (0, 240, 140) if is_active else (140, 140, 140)
+                    surface.blit(self.font_body.render("Cur:", True, cur_col), (cx, item_rect.y + 38))
+                    cx += self.font_body.size("Cur:")[0] + 5
 
+                    cx += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            cx,
+                            item_rect.y + 38,
+                            "zap",
+                            f"+{cur_p:.2f}",
+                            self.font_body,
+                            text_color=cur_col,
+                            icon_color=(255, 215, 0) if is_active else (140, 140, 140),
+                            icon_size=12,
+                        )
+                        + 6
+                    )
+
+                    UITheme.draw_stat_item(
+                        surface,
+                        cx,
+                        item_rect.y + 38,
+                        "shield",
+                        f"{cur_r_sign}{cur_r:.2f}%",
+                        self.font_body,
+                        text_color=cur_col,
+                        icon_color=(0, 220, 255) if is_active else (140, 140, 140),
+                        icon_size=12,
+                    )
+
+                    # Next stats row (starting at item_rect.x + 220)
+                    nx = item_rect.x + 220
                     if eq["current_level"] < eq["max_level"]:
-                        if eq["current_level"] == 0:
-                            upg_impact_str = f"-> Next: +{next_p:.2f} Perf | {next_r_sign}{next_r:.2f}% Rel"
-                        else:
-                            upg_impact_str = f"-> Next: +{next_p:.2f} (+{p_unit:.2f}) | {next_r_sign}{next_r:.2f}% ({d_r_sign}{r_unit:.2f}%)"
-                    else:
-                        upg_impact_str = "-> [MAX LEVEL]"
+                        surface.blit(self.font_body.render("Next:", True, (0, 220, 255)), (nx, item_rect.y + 38))
+                        nx += self.font_body.size("Next:")[0] + 5
 
-                    surface.blit(
-                        self.font_body.render(cur_impact_str, True, (0, 240, 140) if is_active else (140, 140, 140)),
-                        (item_rect.x + 8, item_rect.y + 38),
-                    )
-                    surface.blit(
-                        self.font_body.render(
-                            upg_impact_str,
-                            True,
-                            (0, 220, 255) if eq["current_level"] < eq["max_level"] else (255, 215, 0),
-                        ),
-                        (item_rect.x + 220, item_rect.y + 38),
-                    )
+                        p_txt = f"+{next_p:.2f}" + (f" (+{p_unit:.2f})" if eq["current_level"] > 0 else "")
+                        nx += (
+                            UITheme.draw_stat_item(
+                                surface,
+                                nx,
+                                item_rect.y + 38,
+                                "zap",
+                                p_txt,
+                                self.font_body,
+                                text_color=(0, 220, 255),
+                                icon_color=(255, 215, 0),
+                                icon_size=12,
+                            )
+                            + 6
+                        )
+
+                        r_txt = f"{next_r_sign}{next_r:.2f}%" + (
+                            f" ({d_r_sign}{r_unit:.2f}%)" if eq["current_level"] > 0 else ""
+                        )
+                        UITheme.draw_stat_item(
+                            surface,
+                            nx,
+                            item_rect.y + 38,
+                            "shield",
+                            r_txt,
+                            self.font_body,
+                            text_color=(0, 220, 255),
+                            icon_color=(0, 220, 255),
+                            icon_size=12,
+                        )
+                    else:
+                        UITheme.draw_stat_item(
+                            surface,
+                            nx,
+                            item_rect.y + 38,
+                            "sparkles",
+                            "MAX LEVEL",
+                            self.font_body,
+                            text_color=(255, 215, 0),
+                            icon_color=(255, 215, 0),
+                            icon_size=12,
+                        )
 
                     # Upkeep and Action Buttons
                     next_upk = eq["base_upkeep"] * next_lvl * upkeep_mult
                     if eq["current_level"] > 0:
-                        upk_str = f"Upkeep: ${eq['current_upkeep']:,.0f}/mo (Next: ${next_upk:,.0f}/mo)"
+                        upk_str = f"${eq['current_upkeep']:,.0f}/mo (Next: ${next_upk:,.0f}/mo)"
                     else:
-                        upk_str = f"Upkeep: $0/mo (On Buy: ${next_upk:,.0f}/mo)"
-                    surface.blit(
-                        self.font_badge.render(upk_str, True, UITheme.TEXT_MUTED), (item_rect.x + 8, item_rect.y + 56)
+                        upk_str = f"$0/mo (Buy: ${next_upk:,.0f}/mo)"
+                    UITheme.draw_stat_item(
+                        surface,
+                        item_rect.x + 8,
+                        item_rect.y + 56,
+                        "trending-down",
+                        upk_str,
+                        self.font_badge,
+                        text_color=UITheme.TEXT_MUTED,
+                        icon_color=(255, 140, 40),
+                        icon_size=11,
                     )
 
                     # Action Buttons
@@ -2345,32 +2514,37 @@ class FactoryTreeTab:
                     else:
                         # Active Toggle Button (only when installed)
                         if eq["current_level"] > 0:
-                            togg_btn = pygame.Rect(item_rect.x + item_rect.width - 160, item_rect.y + 52, 68, 22)
-                            togg_col = (0, 140, 80) if is_active else (120, 40, 40)
-                            pygame.draw.rect(surface, togg_col, togg_btn, border_radius=2)
-                            t_lbl = self.font_btn.render(
-                                "ACTIVE" if is_active else "SHUTDOWN", True, UITheme.TEXT_WHITE
-                            )
-                            surface.blit(
-                                t_lbl, (togg_btn.x + (togg_btn.width - t_lbl.get_width()) // 2, togg_btn.y + 4)
+                            togg_btn = pygame.Rect(drawer_x + 526 - 170, item_rect.y + 52, 70, 22)
+                            UITheme.draw_button(
+                                surface,
+                                togg_btn,
+                                "ACTIVE" if is_active else "OFF",
+                                self.font_btn,
+                                bg_color=(0, 140, 80) if is_active else (120, 40, 40),
+                                icon="check" if is_active else "x",
+                                icon_size=10,
                             )
 
                         # Manual Install / Upgrade Button
                         if eq["current_level"] < eq["max_level"]:
-                            upg_btn = pygame.Rect(item_rect.x + item_rect.width - 85, item_rect.y + 52, 80, 22)
-                            btn_col = (0, 140, 90) if eq["current_level"] == 0 else (35, 60, 85)
-                            pygame.draw.rect(surface, btn_col, upg_btn, border_radius=2)
+                            upg_btn = pygame.Rect(drawer_x + 526 - 90, item_rect.y + 52, 80, 22)
                             cost_scaled = eq["next_upgrade_cost"] * cost_mult
                             cost_str = (
                                 f"${cost_scaled / 1000000:.1f}M"
                                 if cost_scaled >= 1000000
                                 else f"${cost_scaled / 1000:.0f}k"
                             )
-                            btn_txt = f"BUY {cost_str}" if eq["current_level"] == 0 else f"UPG {cost_str}"
-                            u_lbl = self.font_btn.render(
-                                btn_txt, True, (255, 255, 255) if eq["current_level"] == 0 else (0, 220, 255)
+                            is_buy = eq["current_level"] == 0
+                            UITheme.draw_button(
+                                surface,
+                                upg_btn,
+                                f"BUY {cost_str}" if is_buy else f"UPG {cost_str}",
+                                self.font_btn,
+                                bg_color=(0, 140, 90) if is_buy else (35, 60, 85),
+                                text_color=(255, 255, 255) if is_buy else (0, 220, 255),
+                                icon="shopping-cart" if is_buy else "wrench",
+                                icon_size=11,
                             )
-                            surface.blit(u_lbl, (upg_btn.x + (upg_btn.width - u_lbl.get_width()) // 2, upg_btn.y + 4))
                         else:
                             m_lbl = self.font_badge.render("[ MAX LVL ]", True, (255, 215, 0))
                             surface.blit(
@@ -2399,10 +2573,13 @@ class FactoryTreeTab:
                 )
 
                 if head:
-                    h_name_str = f"👑 HEAD OF DEPARTMENT: {head['name']} (Age {head['age']})"
+                    UITheme.draw_icon(
+                        surface, "award", (head_card_rect.x + 8, head_card_rect.y + 7), color=(255, 215, 0), size=15
+                    )
+                    h_name_str = f"HEAD OF DEPARTMENT: {head['name']} (Age {head['age']})"
                     surface.blit(
                         self.font_card_title.render(h_name_str, True, (255, 215, 0)),
-                        (head_card_rect.x + 8, head_card_rect.y + 6),
+                        (head_card_rect.x + 28, head_card_rect.y + 6),
                     )
 
                     is_h_match = head.get("specialty") == target_spec
@@ -2412,15 +2589,34 @@ class FactoryTreeTab:
                         (head_card_rect.x + 8, head_card_rect.y + 24),
                     )
 
-                    lead_str = f"Leadership: {head.get('stat_leadership', 50):.0f} | Force Multiplier: {p_out['head_mult']:.2f}x | Salary: ${head.get('salary_monthly', 8000):,.0f}/mo"
+                    lead_str = f"Leadership: {head.get('stat_leadership', 50):.0f} | Force Multiplier: {p_out['head_mult']:.2f}x | "
                     surface.blit(
                         self.font_body.render(lead_str, True, (180, 210, 240)),
                         (head_card_rect.x + 8, head_card_rect.y + 44),
                     )
+                    lead_w = self.font_body.size(lead_str)[0]
+                    UITheme.draw_stat_item(
+                        surface,
+                        head_card_rect.x + 8 + lead_w,
+                        head_card_rect.y + 44,
+                        "trending-down",
+                        f"${head.get('salary_monthly', 8000):,.0f}/mo",
+                        self.font_body,
+                        text_color=(180, 210, 240),
+                        icon_color=(255, 140, 40),
+                        icon_size=11,
+                    )
                 else:
-                    surface.blit(
-                        self.font_card_title.render("👑 DEPARTMENT HEAD: ⚠️ VACANT", True, (255, 100, 100)),
+                    UITheme.draw_icon(
+                        surface,
+                        "triangle-alert",
                         (head_card_rect.x + 8, head_card_rect.y + 8),
+                        color=(255, 100, 100),
+                        size=15,
+                    )
+                    surface.blit(
+                        self.font_card_title.render("DEPARTMENT HEAD: VACANT", True, (255, 100, 100)),
+                        (head_card_rect.x + 28, head_card_rect.y + 8),
                     )
                     surface.blit(
                         self.font_body.render(
@@ -2434,17 +2630,32 @@ class FactoryTreeTab:
                     app_head_btn = pygame.Rect(
                         head_card_rect.x + head_card_rect.width - 145, head_card_rect.y + 38, 135, 22
                     )
-                    pygame.draw.rect(surface, (140, 100, 20), app_head_btn, border_radius=2)
-                    surface.blit(
-                        self.font_btn.render("➕ APPOINT HEAD", True, (255, 215, 0)),
-                        (app_head_btn.x + 14, app_head_btn.y + 4),
+                    UITheme.draw_button(
+                        surface,
+                        app_head_btn,
+                        "APPOINT HEAD",
+                        self.font_btn,
+                        bg_color=(140, 100, 20),
+                        text_color=(255, 215, 0),
+                        icon="award",
+                        icon_size=11,
                     )
 
                 curr_y += 76
 
                 # 2. Staff Specialists Header
                 staff_hdr = f"SPECIALIST STAFF ({len(staff_list)}/{p_data['max_staff_slots']} Desks Filled):"
-                surface.blit(self.font_badge.render(staff_hdr, True, (0, 220, 255)), (eq_canvas.x + 8, curr_y))
+                UITheme.draw_stat_item(
+                    surface,
+                    eq_canvas.x + 8,
+                    curr_y,
+                    "users",
+                    staff_hdr,
+                    self.font_badge,
+                    text_color=(0, 220, 255),
+                    icon_color=(0, 220, 255),
+                    icon_size=13,
+                )
                 curr_y += 18
 
                 for s in staff_list:
@@ -2453,12 +2664,20 @@ class FactoryTreeTab:
                     pygame.draw.rect(surface, (40, 52, 68), s_rect, width=1, border_radius=3)
 
                     is_s_match = s.get("specialty") == target_spec
+                    s_col = (0, 240, 140) if is_s_match else UITheme.TEXT_WHITE
+                    UITheme.draw_icon(
+                        surface,
+                        "user",
+                        (s_rect.x + 8, s_rect.y + 7),
+                        color=s_col,
+                        size=14,
+                    )
                     s_title = (
-                        f"👤 {s['name']} (Age {s['age']}) | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}"
+                        f"{s['name']} (Age {s['age']}) | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}"
                     )
                     surface.blit(
-                        self.font_card_title.render(s_title, True, (0, 240, 140) if is_s_match else UITheme.TEXT_WHITE),
-                        (s_rect.x + 8, s_rect.y + 6),
+                        self.font_card_title.render(s_title, True, s_col),
+                        (s_rect.x + 28, s_rect.y + 6),
                     )
 
                     is_mentoring = intern and intern.get("intern_mentor_id") == s.get("id")
@@ -2471,15 +2690,29 @@ class FactoryTreeTab:
 
                     # Promote to Head Button
                     p_btn = pygame.Rect(s_rect.x + s_rect.width - 165, s_rect.y + 24, 80, 20)
-                    pygame.draw.rect(surface, (30, 55, 80), p_btn, border_radius=2)
-                    p_lbl = self.font_btn.render("PROMOTE", True, (0, 220, 255))
-                    surface.blit(p_lbl, (p_btn.x + (p_btn.width - p_lbl.get_width()) // 2, p_btn.y + 3))
+                    UITheme.draw_button(
+                        surface,
+                        p_btn,
+                        "PROMOTE",
+                        self.font_btn,
+                        bg_color=(30, 55, 80),
+                        text_color=(0, 220, 255),
+                        icon="award",
+                        icon_size=10,
+                    )
 
                     # Offer Raise Button
                     r_btn = pygame.Rect(s_rect.x + s_rect.width - 80, s_rect.y + 24, 74, 20)
-                    pygame.draw.rect(surface, (35, 65, 45), r_btn, border_radius=2)
-                    r_lbl = self.font_btn.render("+25% RAISE", True, (0, 240, 140))
-                    surface.blit(r_lbl, (r_btn.x + (r_btn.width - r_lbl.get_width()) // 2, r_btn.y + 3))
+                    UITheme.draw_button(
+                        surface,
+                        r_btn,
+                        "+25% RAISE",
+                        self.font_btn,
+                        bg_color=(35, 65, 45),
+                        text_color=(0, 240, 140),
+                        icon="trending-up",
+                        icon_size=10,
+                    )
 
                     curr_y += 60
 
@@ -2489,18 +2722,21 @@ class FactoryTreeTab:
                     pygame.draw.rect(surface, (12, 18, 26), v_rect, border_radius=3)
                     pygame.draw.rect(surface, (0, 140, 180), v_rect, width=1, border_radius=3)
                     desk_num = len(staff_list) + v_idx + 1
+                    UITheme.draw_icon(surface, "user", (v_rect.x + 10, v_rect.y + 11), color=(0, 180, 220), size=14)
                     surface.blit(
-                        self.font_body.render(
-                            f"➕ Open Desk #{desk_num} (Available for Specialist)", True, (0, 220, 255)
-                        ),
-                        (v_rect.x + 10, v_rect.y + 10),
+                        self.font_body.render(f"Open Desk #{desk_num} (Available for Specialist)", True, (0, 220, 255)),
+                        (v_rect.x + 28, v_rect.y + 10),
                     )
 
                     hire_v_btn = pygame.Rect(v_rect.x + v_rect.width - 130, v_rect.y + 6, 120, 24)
-                    pygame.draw.rect(surface, (0, 140, 80), hire_v_btn, border_radius=2)
-                    surface.blit(
-                        self.font_btn.render("➕ HIRE TO DESK", True, UITheme.TEXT_WHITE),
-                        (hire_v_btn.x + 10, hire_v_btn.y + 5),
+                    UITheme.draw_button(
+                        surface,
+                        hire_v_btn,
+                        "HIRE TO DESK",
+                        self.font_btn,
+                        bg_color=(0, 140, 80),
+                        icon="user",
+                        icon_size=11,
                     )
 
                     curr_y += 42
@@ -2508,7 +2744,17 @@ class FactoryTreeTab:
                 # 3. European 6-Month Intern Desk
                 curr_y += 6
                 intern_hdr = "EUROPEAN 6-MONTH TALENT TRYOUT (INTERN):"
-                surface.blit(self.font_badge.render(intern_hdr, True, (255, 180, 40)), (eq_canvas.x + 8, curr_y))
+                UITheme.draw_stat_item(
+                    surface,
+                    eq_canvas.x + 8,
+                    curr_y,
+                    "graduation-cap",
+                    intern_hdr,
+                    self.font_badge,
+                    text_color=(255, 180, 40),
+                    icon_color=(255, 180, 40),
+                    icon_size=13,
+                )
                 curr_y += 18
 
                 i_rect = pygame.Rect(eq_canvas.x + 6, curr_y, eq_canvas.width - 12, 54)
@@ -2517,9 +2763,18 @@ class FactoryTreeTab:
 
                 if intern:
                     is_done = bool(intern.get("is_potential_revealed"))
-                    i_title = f"🎓 {intern['name']} (Age {intern['age']}) | Month {intern.get('intern_months_completed', 0)}/6"
+                    UITheme.draw_icon(
+                        surface,
+                        "graduation-cap",
+                        (i_rect.x + 8, i_rect.y + 7),
+                        color=(180, 140, 255),
+                        size=15,
+                    )
+                    i_title = (
+                        f"{intern['name']} (Age {intern['age']}) | Month {intern.get('intern_months_completed', 0)}/6"
+                    )
                     surface.blit(
-                        self.font_card_title.render(i_title, True, (180, 140, 255)), (i_rect.x + 8, i_rect.y + 6)
+                        self.font_card_title.render(i_title, True, (180, 140, 255)), (i_rect.x + 28, i_rect.y + 6)
                     )
 
                     if is_done:
@@ -2536,10 +2791,14 @@ class FactoryTreeTab:
                         (i_rect.x + 10, i_rect.y + 16),
                     )
                     int_btn = pygame.Rect(i_rect.x + i_rect.width - 145, i_rect.y + 14, 135, 26)
-                    pygame.draw.rect(surface, (120, 60, 180), int_btn, border_radius=2)
-                    surface.blit(
-                        self.font_btn.render("➕ ASSIGN INTERN", True, UITheme.TEXT_WHITE),
-                        (int_btn.x + 12, int_btn.y + 6),
+                    UITheme.draw_button(
+                        surface,
+                        int_btn,
+                        "ASSIGN INTERN",
+                        self.font_btn,
+                        bg_color=(120, 60, 180),
+                        icon="graduation-cap",
+                        icon_size=12,
                     )
 
             surface.set_clip(drawer_prev_clip)

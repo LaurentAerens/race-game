@@ -74,6 +74,8 @@ def test_ui_modules_import_and_components():
     from src.ui.theme import UITheme
     from src.ui.timing_tower import TimingTower
 
+    assert ManagementHub is not None
+
     surface = pygame.Surface((1280, 720))
     btn_rect = pygame.Rect(10, 10, 120, 30)
     font = UITheme.get_font(12)
@@ -85,6 +87,10 @@ def test_ui_modules_import_and_components():
     # Test icon drawing with UITheme
     r_ic = UITheme.draw_icon(surface, "trophy", (50, 50), color=(255, 215, 0), size=16)
     assert r_ic.width == 16
+
+    # Test stat item drawing with UITheme
+    stat_w = UITheme.draw_stat_item(surface, 10, 50, "zap", "850 HP", font, text_color=(255, 255, 255))
+    assert stat_w > 0
 
     # Test initializing UI components
     b_header = BroadcastHeader(1280, 48)
@@ -98,3 +104,6 @@ def test_ui_modules_import_and_components():
 
     start_screen = StartScreen(1280, 720, lambda: None, lambda: None, lambda: None)
     assert start_screen.width == 1280
+    start_screen.render(surface)
+    start_screen.is_new_game_mode = True
+    start_screen.render(surface)
