@@ -65,3 +65,36 @@ def test_ui_icons_draw_methods():
     badge_rect = pygame.Rect(40, 50, 120, 24)
     UIIcons.draw_icon_badge(canvas, badge_rect, "fuel", "42.5 kg", font, text_color=(255, 255, 255))
 
+
+def test_ui_modules_import_and_components():
+    from src.ui.broadcast_header import BroadcastHeader
+    from src.ui.driver_panel import DriverStrategyPanel
+    from src.ui.management_hub.management_hub import ManagementHub
+    from src.ui.start_screen import StartScreen
+    from src.ui.theme import UITheme
+    from src.ui.timing_tower import TimingTower
+
+    surface = pygame.Surface((1280, 720))
+    btn_rect = pygame.Rect(10, 10, 120, 30)
+    font = UITheme.get_font(12)
+
+    # Test button drawing with icon
+    r = UITheme.draw_button(surface, btn_rect, "TEST BTN", font, icon="wrench", icon_size=14)
+    assert isinstance(r, bool)
+
+    # Test icon drawing with UITheme
+    r_ic = UITheme.draw_icon(surface, "trophy", (50, 50), color=(255, 215, 0), size=16)
+    assert r_ic.width == 16
+
+    # Test initializing UI components
+    b_header = BroadcastHeader(1280, 48)
+    assert b_header.rect.width == 1280
+
+    t_tower = TimingTower(0, 48, 280, 620)
+    assert t_tower.rect.height == 620
+
+    d_panel = DriverStrategyPanel(280, 600, 720, 120, lambda car: None)
+    assert d_panel.rect.width == 720
+
+    start_screen = StartScreen(1280, 720, lambda: None, lambda: None, lambda: None)
+    assert start_screen.width == 1280

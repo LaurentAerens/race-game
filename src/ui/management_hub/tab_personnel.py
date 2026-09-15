@@ -937,7 +937,9 @@ class PersonnelTab:
                 pygame.draw.rect(surface, (50, 65, 85), r_card, width=1, border_radius=3)
 
                 UITheme.draw_icon(surface, "award", (r_card.x + 10, r_card.y + 8), color=(255, 215, 0), size=16)
-                r_title = f"{r_p['name']} ({r_p.get('team_name')}) | {r_p.get('role_type')} | Spec: {r_p.get('specialty')}"
+                r_title = (
+                    f"{r_p['name']} ({r_p.get('team_name')}) | {r_p.get('role_type')} | Spec: {r_p.get('specialty')}"
+                )
                 surface.blit(
                     self.font_card_title.render(r_title, True, UITheme.TEXT_WHITE), (r_card.x + 32, r_card.y + 8)
                 )

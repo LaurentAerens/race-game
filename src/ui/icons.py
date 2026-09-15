@@ -225,4 +225,3 @@ class UIIcons:
     def clear_cache(cls):
         """Clears cached surfaces on scale/resolution changes."""
         cls._surface_cache.clear()
-

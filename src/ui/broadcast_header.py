@@ -148,9 +148,7 @@ class BroadcastHeader:
                 f"S1:{s1}% S2:{s2}% S3:{s3}% | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
             )
         else:
-            w_txt = self.font_sub.render(
-                f"{wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col
-            )
+            w_txt = self.font_sub.render(f"{wet_pct}% Wet | {sim.weather.track_temp:04.1f}°C{radar_tag}", True, wet_col)
         surface.blit(w_txt, (w_rect.x + 22, w_rect.y + 4))
 
         # Mini forward forecast bars

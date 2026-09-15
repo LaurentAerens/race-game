@@ -206,25 +206,21 @@ class CarEngineeringTab:
             }.get(comp["category"], "wrench")
 
             title_col = (255, 255, 255) if can_develop else UITheme.TEXT_MUTED
-            c_ic = UIIcons.get_icon(cat_icon, size=13, color=title_col)
-            surface.blit(c_ic, (c_rect.x + 8, c_rect.y + 7))
+            UITheme.draw_icon(surface, cat_icon, (c_rect.x + 8, c_rect.y + 7), color=title_col, size=13)
 
             cat_name = comp["category"].replace("_", " ")
             surface.blit(
                 self.font_card_title.render(
                     f"{cat_name} (Mk {comp['generation']})",
                     True,
-                    (255, 255, 255) if can_develop else UITheme.TEXT_MUTED,
                     title_col,
                 ),
-                (c_rect.x + 10, c_rect.y + 6),
                 (c_rect.x + 25, c_rect.y + 6),
             )
 
             # Current Performance & Durability
             cur_dur = comp.get("current_durability", 100.0 - comp.get("wear_pct", 0.0))
             max_dur = comp.get("max_durability", 100.0)
-            stat_str = f"Perf: {comp['performance']:.1f} | Durability: {cur_dur:.0f}% / {max_dur:.0f}% (Wear: {comp['wear_pct']:.0f}%)"
             stat_str = (
                 f"Perf: {comp['performance']:.1f} | Dur: {cur_dur:.0f}%/{max_dur:.0f}% (Wear: {comp['wear_pct']:.0f}%)"
             )
@@ -258,7 +254,6 @@ class CarEngineeringTab:
                 col1 = (160, 160, 160)
                 col2 = (120, 120, 120)
             elif not is_fac_ready:
-                line1 = "🔒 FACILITY LOCKED"
                 line1 = "FACILITY LOCKED"
                 line2 = f"Build {fac_name} (Lvl 1)"
                 col1 = (255, 140, 60)
