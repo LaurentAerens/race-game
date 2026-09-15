@@ -1587,9 +1587,6 @@ class CareerDatabase:
         for conn in list(self._open_connections):
             try:
                 conn.close()
-            except Exception:
-                # Connection may already be closed or in an invalid state during cleanup
-                pass
             except sqlite3.Error as e:
                 print(f"[CareerDatabase] Warning closing SQLite connection: {e}")
             except Exception as e:
@@ -4076,20 +4073,15 @@ class CareerDatabase:
 
     def _seed_historical_seasons(self, cur: Optional[sqlite3.Cursor] = None):
         """Seeds 2 prior historical seasons (-1 and 0, corresponding to 2024 and 2025) across all 5 tiers."""
-        own_conn = False
         conn: Optional[sqlite3.Connection] = None
         if cur is None:
             conn = self.get_connection()
             cur = conn.cursor()
-            own_conn = True
-        else:
-            conn = None
 
         try:
             # Check if already seeded
             cur.execute("SELECT COUNT(*) FROM driver_season_history;")
             if cur.fetchone()[0] > 0:
-                if own_conn and conn:
                 if conn is not None:
                     conn.close()
                 return
@@ -4281,13 +4273,11 @@ class CareerDatabase:
                             ),
                         )
 
-            if own_conn and conn:
             if conn is not None:
                 conn.commit()
                 conn.close()
         except Exception as e:
             print(f"[CareerDatabase] Historical seasons seeding error: {e}")
-            if own_conn and conn:
             if conn is not None:
                 conn.close()
 
@@ -4457,7 +4447,6 @@ class CareerDatabase:
             cur = conn.cursor()
 
             # Normalize driver_id and driver_type if prefixed
-            raw_id = driver_id
             if isinstance(driver_id, str):
                 if driver_id.startswith("market_"):
                     driver_type = "MARKET"
