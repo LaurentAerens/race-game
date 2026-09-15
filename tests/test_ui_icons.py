@@ -107,3 +107,10 @@ def test_ui_modules_import_and_components():
     start_screen.render(surface)
     start_screen.is_new_game_mode = True
     start_screen.render(surface)
+
+    from src.ui.management_hub.hub_header import HubHeader
+
+    h_header = HubHeader(1280, lambda: "NORMAL")
+    tab_rects = h_header.get_tab_rects()
+    assert len(tab_rects) == 8
+    h_header.render(surface, "DASHBOARD", {}, {}, 1, 12)
