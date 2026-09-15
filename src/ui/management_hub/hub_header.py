@@ -15,10 +15,8 @@ class HubHeader:
         self.on_cycle_difficulty = on_cycle_difficulty
         self._init_fonts()
 
-
         # Navigation Tabs: (key, label, icon_name)
         self.tabs = [
-
             ("DASHBOARD", "DASHBOARD", "layout-dashboard"),
             ("CAR_RND", "CAR R&D", "wrench"),
             ("FACTORY", "TECH TREE", "network"),

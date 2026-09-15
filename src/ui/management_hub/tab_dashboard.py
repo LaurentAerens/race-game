@@ -122,33 +122,36 @@ class DashboardTab:
         if is_race_week:
             gp_ic = UIIcons.get_icon("flag", size=14, color=UITheme.ACCENT_CYAN)
             surface.blit(gp_ic, (gp_rect.x + 12, gp_rect.y + 7))
-            t_name = race_event.get("track_name", "Grand Prix")
-            t_txt = self.font_title.render(
-                f"NEXT EVENT: {t_name.upper()}",
-                True,
-                UITheme.ACCENT_CYAN,
-            )
+            t_txt = self.font_title.render("UPCOMING GRAND PRIX", True, UITheme.ACCENT_CYAN)
             surface.blit(t_txt, (gp_rect.x + 32, gp_rect.y + 6))
 
             round_badge = self.font_badge.render(
-                f"[ RND {gm.current_round}/{gm.total_rounds} • WK {gm.current_week}/{gm.total_season_weeks} ]",
+                f"[ ROUND {gm.current_round}/{gm.total_rounds} • WEEK {gm.current_week}/{gm.total_season_weeks} ]",
                 True,
                 (0, 220, 255),
             )
             surface.blit(round_badge, (gp_rect.right - 10 - round_badge.get_width(), gp_rect.y + 8))
 
             # Event details
-            tr_ic = UIIcons.get_icon("trophy", size=13, color=(255, 215, 0))
+            tr_ic = UIIcons.get_icon("trophy", size=14, color=(255, 215, 0))
             surface.blit(tr_ic, (gp_rect.x + 14, gp_rect.y + 35))
+            t_name = race_event.get("track_name", "Grand Prix")
+            surface.blit(
+                self.font_card_title.render(t_name, True, (255, 215, 0)),
+                (gp_rect.x + 34, gp_rect.y + 34),
+            )
+
             circ_name = race_event.get("circuit_file", "emerald_ring.json")
             total_laps = race_event.get("total_laps", 15)
+            c_ic = UIIcons.get_icon("network", size=13, color=UITheme.TEXT_MUTED)
+            surface.blit(c_ic, (gp_rect.x + 14, gp_rect.y + 54))
             surface.blit(
                 self.font_body.render(
-                    f"Circuit Layout: {circ_name} ({total_laps} Laps)",
+                    f"Circuit: {circ_name}  |  {total_laps} Laps",
                     True,
-                    UITheme.TEXT_WHITE,
+                    UITheme.TEXT_MUTED,
                 ),
-                (gp_rect.x + 32, gp_rect.y + 34),
+                (gp_rect.x + 32, gp_rect.y + 53),
             )
 
             char_demands = {
@@ -163,26 +166,26 @@ class DashboardTab:
             w_prof = race_event.get("weather_profile", "DYNAMIC")
             w_ic_name = "cloud-rain" if "WET" in w_prof or "RAIN" in w_prof else "sun"
             w_ic = UIIcons.get_icon(w_ic_name, size=13, color=(60, 160, 240) if "WET" in w_prof else (255, 205, 30))
-            surface.blit(w_ic, (gp_rect.x + 14, gp_rect.y + 55))
+            surface.blit(w_ic, (gp_rect.x + 14, gp_rect.y + 72))
 
             surface.blit(
                 self.font_body.render(
-                    f"Forecast: {w_prof} | Character: {track_char}",
+                    f"Forecast: {w_prof}  |  Character: {track_char}",
                     True,
                     UITheme.TEXT_MUTED,
                 ),
-                (gp_rect.x + 32, gp_rect.y + 54),
+                (gp_rect.x + 32, gp_rect.y + 71),
             )
 
             g_ic = UIIcons.get_icon("gauge", size=12, color=demand_col)
-            surface.blit(g_ic, (gp_rect.x + 14, gp_rect.y + 74))
+            surface.blit(g_ic, (gp_rect.x + 14, gp_rect.y + 90))
             surface.blit(
                 self.font_badge.render(f"KEY DEMAND: {demand_text.upper()}", True, demand_col),
-                (gp_rect.x + 30, gp_rect.y + 73),
+                (gp_rect.x + 30, gp_rect.y + 89),
             )
 
             # Car Setup Readiness
-            readiness_rect = pygame.Rect(gp_rect.x + 14, gp_rect.y + 100, gp_rect.width - 28, 84)
+            readiness_rect = pygame.Rect(gp_rect.x + 14, gp_rect.y + 108, gp_rect.width - 28, 76)
             pygame.draw.rect(surface, (18, 22, 28), readiness_rect, border_radius=3)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, readiness_rect, width=1, border_radius=3)
 
@@ -203,7 +206,7 @@ class DashboardTab:
                     True,
                     UITheme.TEXT_WHITE,
                 ),
-                (readiness_rect.x + 10, readiness_rect.y + 26),
+                (readiness_rect.x + 10, readiness_rect.y + 24),
             )
             surface.blit(
                 self.font_body.render(
@@ -211,14 +214,14 @@ class DashboardTab:
                     True,
                     UITheme.TEXT_WHITE,
                 ),
-                (readiness_rect.x + 10, readiness_rect.y + 44),
+                (readiness_rect.x + 10, readiness_rect.y + 40),
             )
 
             chk_mini = UIIcons.get_icon("check", size=12, color=(0, 240, 140))
-            surface.blit(chk_mini, (readiness_rect.x + 10, readiness_rect.y + 63))
+            surface.blit(chk_mini, (readiness_rect.x + 10, readiness_rect.y + 57))
             surface.blit(
                 self.font_badge.render("Full race simulation ready with live pit wall strategy.", True, (0, 240, 140)),
-                (readiness_rect.x + 26, readiness_rect.y + 62),
+                (readiness_rect.x + 26, readiness_rect.y + 56),
             )
         else:
             by_ic = UIIcons.get_icon("wrench", size=14, color=(255, 215, 0))
