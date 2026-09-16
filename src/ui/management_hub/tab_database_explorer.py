@@ -1238,13 +1238,6 @@ class DatabaseExplorerTab:
                     ),
                     (c_rect.x + 10, c_rect.y + 20),
                 )
-                surface.blit(
-                    self.font_body.render(
-                        f"Pace: {d.get('pace', 50)}  |  Age: {d.get('age', 25)}  |  {d.get('points', 0)} PTS",
-                        True,
-                        UITheme.TEXT_MUTED,
-                    ),
-                    (c_rect.x + 10, c_rect.y + 38),
                 ds_x = c_rect.x + 10
                 ds_y = c_rect.y + 38
                 gap = 12

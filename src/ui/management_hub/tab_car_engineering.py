@@ -194,16 +194,9 @@ class CarEngineeringTab:
             )
 
             # Component Title & Generation Badge
-            # Component Title & Generation Badge with Icon
             cat_icon = {
-                "BRAKES": "octagon",
                 "FRONT_WING": "wind",
                 "REAR_WING": "flag",
-                "FRONT_WING": "shield",
-                "SUSPENSION": "network",
-                "ENGINE": "wrench",
-                "FLOOR": "shield",
-                "ERS": "zap",
                 "FLOOR": "layers",
                 "SUSPENSION": "sliders",
                 "BRAKES": "disc",
@@ -637,12 +630,8 @@ class CarEngineeringTab:
         surface.blit(self.font_badge.render(stat2, True, (150, 240, 150)), (ng_rect.x + 10, ng_rect.y + 92))
 
         # Active chassis base rating display
-        # Active chassis base rating display with icons
         act_p = ng_status.get("active_chassis_perf_boost", 0.0)
         act_r = ng_status.get("active_chassis_rel_boost", 0.0)
-        cur_chassis_str = f"Active Chassis: +{act_p:.1f} Perf, +{act_r:.1f}% Rel"
-        surface.blit(
-            self.font_badge.render(cur_chassis_str, True, UITheme.TEXT_MUTED), (ng_rect.x + 10, ng_rect.y + 110)
         cx = ng_rect.x + 10
         cy = ng_rect.y + 110
         lbl_act = self.font_badge.render("Active Chassis Base: ", True, UITheme.TEXT_MUTED)
