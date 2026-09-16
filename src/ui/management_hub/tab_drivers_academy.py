@@ -601,11 +601,6 @@ class DriversAcademyTab:
 
             # Dossier button (Right aligned)
             dossier_btn = pygame.Rect(d_rect.x + d_rect.width - 92, d_rect.y + 6, 84, 20)
-            pygame.draw.rect(surface, (30, 48, 66), dossier_btn, border_radius=2)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN, dossier_btn, width=1, border_radius=2)
-            surface.blit(
-                self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE), (dossier_btn.x + 8, dossier_btn.y + 3)
-            )
             UITheme.draw_button(surface, dossier_btn, "DOSSIER", self.font_badge, icon="user", icon_size=11)
 
             # Line 2: Driver Demographics & Contract Type Badge (dedicated row)
@@ -616,11 +611,6 @@ class DriversAcademyTab:
             tag_surf = self.font_badge.render(f"[{type_tag}]", True, tag_col)
             surface.blit(tag_surf, (d_rect.x + 10 + demo_surf.get_width() + 8, d_rect.y + 24))
 
-            # 8 Driving Stats
-            stat_str1 = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Consistency: {d['consistency']}"
-            stat_str2 = f"Tires: {d['tire_management']} | Defending: {d['defending']} | Fuel: {d['fuel_efficiency']} | Wet: {d['wet_weather']}"
-            surface.blit(self.font_body.render(stat_str1, True, UITheme.TEXT_WHITE), (d_rect.x + 10, d_rect.y + 42))
-            surface.blit(self.font_body.render(stat_str2, True, UITheme.TEXT_WHITE), (d_rect.x + 10, d_rect.y + 58))
             # 8 Driving Stats with Icons
             sx1 = d_rect.x + 10
             sy1 = d_rect.y + 42
@@ -683,9 +673,7 @@ class DriversAcademyTab:
                 gap=3,
             )
 
-            # 3 Off-Track Stats
-            off_str = f"Technical: {d['technical_understanding']} | Communication: {d['communication']} | Commercial: {d['marketability']}"
-            surface.blit(self.font_body.render(off_str, True, (0, 200, 255)), (d_rect.x + 10, d_rect.y + 74))
+            # Row 2: Tires, Defending, Fuel, Wet
             sx2 = d_rect.x + 10
             sy2 = d_rect.y + 58
             sx2 += (
@@ -1000,9 +988,6 @@ class DriversAcademyTab:
                         "Peak Mental Form" if mor >= 90 else ("Solid Confidence" if mor >= 75 else "Mental Fatigue")
                     )
                     mor_col = (0, 240, 140) if mor >= 85 else ((255, 200, 0) if mor >= 70 else (255, 90, 90))
-                    surface.blit(
-                        self.font_badge.render(f"Mental Morale: {mor:.0f}% — {mental_status}", True, mor_col),
-                        (card_rect.x + 10, card_rect.y + 48),
                     UITheme.draw_stat_item(
                         surface,
                         card_rect.x + 10,
@@ -1016,9 +1001,6 @@ class DriversAcademyTab:
                         gap=4,
                     )
 
-                    stat_str = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Tires: {d['tire_management']}"
-                    surface.blit(
-                        self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 68)
                     st_x = card_rect.x + 10
                     st_y = card_rect.y + 68
                     gap = 10
@@ -1164,10 +1146,6 @@ class DriversAcademyTab:
 
                 # Dossier Button
                 btn_dos = pygame.Rect(card_rect.x + card_w - 100, cy + 6, 90, 20)
-                pygame.draw.rect(surface, (30, 48, 66), btn_dos, border_radius=2)
-                pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_dos, width=1, border_radius=2)
-                dos_lbl = self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE)
-                surface.blit(dos_lbl, (btn_dos.x + (btn_dos.width - dos_lbl.get_width()) // 2, btn_dos.y + 3))
                 UITheme.draw_button(surface, btn_dos, "DOSSIER", self.font_badge, icon="user", icon_size=10)
 
                 surface.blit(
@@ -1175,9 +1153,6 @@ class DriversAcademyTab:
                     (card_rect.x + 10, card_rect.y + 26),
                 )
 
-                stat_str = f"Pace: {p['pace']} | Starts: {p['race_starts']} | Braking: {p['braking']} | Tires: {p['tire_management']} | Wet: {p['wet_weather']}"
-                surface.blit(
-                    self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 10, card_rect.y + 44)
                 st_x = card_rect.x + 10
                 st_y = card_rect.y + 44
                 gap = 10
@@ -1445,9 +1420,6 @@ class DriversAcademyTab:
                 )
                 surface.blit(self.font_badge.render(arch_tag, True, arch_col), (card_rect.x + 280, card_rect.y + 8))
 
-                stat_str = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Tires: {d['tire_management']} | Defending: {d['defending']}"
-                surface.blit(
-                    self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 32)
                 st_x = card_rect.x + 10
                 st_y = card_rect.y + 32
                 gap = 10
@@ -1529,10 +1501,6 @@ class DriversAcademyTab:
 
                 # Dossier Button
                 btn_dos = pygame.Rect(card_rect.x + card_w - 110, cy + 3, 100, 18)
-                pygame.draw.rect(surface, (30, 48, 66), btn_dos, border_radius=2)
-                pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_dos, width=1, border_radius=2)
-                dos_lbl = self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE)
-                surface.blit(dos_lbl, (btn_dos.x + (btn_dos.width - dos_lbl.get_width()) // 2, btn_dos.y + 2))
                 UITheme.draw_button(surface, btn_dos, "DOSSIER", self.font_badge, icon="user", icon_size=10)
 
                 # Negotiate Contract Button

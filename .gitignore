@@ -59,3 +59,5 @@ site/
 !packaging/*.spec
 
 AGENTS.md
+career.db-wal
+career.db-shm
