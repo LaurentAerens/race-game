@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pygame
 
-from ...core.race_weekend import CarSetup, PracticePlan, RaceWeekendManager, RaceWeekendSession
+from ...core.race_weekend import CarSetup, RaceWeekendManager, RaceWeekendSession
 from ...ui.theme import UITheme
 
 
@@ -194,25 +194,12 @@ class RaceWeekendScreen:
                 self.status_message = f"📋 Copied Car #{self.active_car_slot} setup to Car #{other_slot} as baseline."
                 return True
 
-            # Practice Plan Buttons
-            plan_panel = pygame.Rect(24, 425, 480, 175)
-            plan_buttons = [
-                (PracticePlan.BALANCED, pygame.Rect(plan_panel.x + 14, plan_panel.y + 35, 215, 34)),
-                (PracticePlan.FAST_LAP, pygame.Rect(plan_panel.x + 245, plan_panel.y + 35, 215, 34)),
-                (PracticePlan.SPRINT_STINTS, pygame.Rect(plan_panel.x + 14, plan_panel.y + 75, 215, 34)),
-                (PracticePlan.LONG_RUNS, pygame.Rect(plan_panel.x + 245, plan_panel.y + 75, 215, 34)),
-            ]
-            for plan_enum, btn_r in plan_buttons:
-                if btn_r.collidepoint(mx, my):
-                    mgr.set_practice_plan(self.active_car_slot, plan_enum)
-                    self.status_message = f"Selected {plan_enum.value} program for Car #{self.active_car_slot}."
-                    return True
-
-            # Practice Stint Buttons (Short, Sprint, Race Sim)
+            # Practice Stint Buttons (Short, Sprint, Race Sim) & Time Hop
             btn_short = pygame.Rect(24, self.height - 75, 150, 48)
             btn_sprint = pygame.Rect(182, self.height - 75, 155, 48)
             btn_long = pygame.Rect(345, self.height - 75, 160, 48)
-            next_btn = pygame.Rect(520, self.height - 75, self.width - 544, 48)
+            btn_fast_forward = pygame.Rect(520, self.height - 75, 330, 48)
+            next_btn = pygame.Rect(865, self.height - 75, self.width - 889, 48)
 
             d_name = (
                 self.drivers[self.active_car_slot - 1]["name"]
@@ -221,29 +208,60 @@ class RaceWeekendScreen:
             )
 
             if btn_short.collidepoint(mx, my):
-                res = mgr.run_practice_run(self.active_car_slot, d_name, stint_type="SHORT")
-                if res.get("is_expired"):
-                    self.status_message = "Session time expired! Chequered flag is out for this car."
+                if mgr.is_chequered_flag():
+                    self.status_message = "Session time expired! Chequered flag is out."
+                elif mgr.is_car_on_track(self.active_car_slot):
+                    self.status_message = f"Car #{self.active_car_slot} is currently out on track."
                 else:
-                    self.status_message = f"Completed Short Stint ({res['laps_completed']} laps, {res['time_cost_min']:.0f}m)! Time left: {res['time_remaining_min']:.0f}m. Conf: {res['confidence_pct']}%."
+                    res = mgr.start_practice_stint(self.active_car_slot, d_name, stint_type="SHORT")
+                    if res.get("success"):
+                        self.status_message = f"🏎️ Car #{self.active_car_slot} sent out on Short Stint ({res['laps_target']} laps, ~{res['time_cost_min']:.0f}m). Debrief available upon return."
+                    else:
+                        self.status_message = res.get("message", "Unable to start stint.")
                 return True
+
             elif btn_sprint.collidepoint(mx, my):
-                res = mgr.run_practice_run(self.active_car_slot, d_name, stint_type="SPRINT")
-                if res.get("is_expired"):
-                    self.status_message = "Session time expired! Chequered flag is out for this car."
+                if mgr.is_chequered_flag():
+                    self.status_message = "Session time expired! Chequered flag is out."
+                elif mgr.is_car_on_track(self.active_car_slot):
+                    self.status_message = f"Car #{self.active_car_slot} is currently out on track."
                 else:
-                    self.status_message = f"Completed Sprint Stint ({res['laps_completed']} laps, {res['time_cost_min']:.0f}m)! Time left: {res['time_remaining_min']:.0f}m. Conf: {res['confidence_pct']}%."
+                    res = mgr.start_practice_stint(self.active_car_slot, d_name, stint_type="SPRINT")
+                    if res.get("success"):
+                        self.status_message = f"🛡️ Car #{self.active_car_slot} sent out on Sprint Stint ({res['laps_target']} laps, ~{res['time_cost_min']:.0f}m). Debrief available upon return."
+                    else:
+                        self.status_message = res.get("message", "Unable to start stint.")
                 return True
+
             elif btn_long.collidepoint(mx, my):
                 if mgr.tier >= 3:
                     self.status_message = "Race Simulation is available in Tier 1 & Tier 2 Grand Prix."
                     return True
-                res = mgr.run_practice_run(self.active_car_slot, d_name, stint_type="LONG")
-                if res.get("is_expired"):
-                    self.status_message = "Session time expired! Chequered flag is out for this car."
+                if mgr.is_chequered_flag():
+                    self.status_message = "Session time expired! Chequered flag is out."
+                elif mgr.is_car_on_track(self.active_car_slot):
+                    self.status_message = f"Car #{self.active_car_slot} is currently out on track."
                 else:
-                    self.status_message = f"Completed Race Sim ({res['laps_completed']} laps, {res['time_cost_min']:.0f}m)! Time left: {res['time_remaining_min']:.0f}m. Conf: {res['confidence_pct']}%."
+                    res = mgr.start_practice_stint(self.active_car_slot, d_name, stint_type="LONG")
+                    if res.get("success"):
+                        self.status_message = f"🏁 Car #{self.active_car_slot} sent out on Race Sim stint ({res['laps_target']} laps, ~{res['time_cost_min']:.0f}m). Debrief available upon return."
+                    else:
+                        self.status_message = res.get("message", "Unable to start stint.")
                 return True
+
+            elif btn_fast_forward.collidepoint(mx, my):
+                if mgr.is_chequered_flag():
+                    self.status_message = "Free Practice session time is up! Proceed to the next session."
+                else:
+                    prev_completed = len(mgr.driver_feedback[1]) + len(mgr.driver_feedback[2])
+                    delta = mgr.fast_forward_to_next_completion()
+                    now_completed = len(mgr.driver_feedback[1]) + len(mgr.driver_feedback[2])
+                    if now_completed > prev_completed:
+                        self.status_message = f"⏩ Advanced session time by {delta:.0f}m! Car returned to garage. Driver debrief is ready."
+                    else:
+                        self.status_message = f"⏩ Advanced session time by {delta:.0f}m. Time remaining: {float(mgr.session_time_remaining):.0f}m."
+                return True
+
             elif next_btn.collidepoint(mx, my):
                 has_next = mgr.advance_to_next_session()
                 if has_next:
@@ -379,6 +397,12 @@ class RaceWeekendScreen:
         return results
 
     def render(self, surface: pygame.Surface):
+        now = pygame.time.get_ticks()
+        dt = (now - getattr(self, "last_frame_ticks", now)) / 1000.0
+        self.last_frame_ticks = now
+        if self.manager.is_practice:
+            self.manager.update_fp_traffic(dt)
+
         surface.fill(UITheme.BG_DARK)
         mgr = self.manager
 
@@ -460,6 +484,91 @@ class RaceWeekendScreen:
                 (s_rect.x + (s_rect.width - txt.get_width()) // 2, s_rect.y + (s_rect.height - txt.get_height()) // 2),
             )
 
+    def _render_mini_track(self, surface: pygame.Surface, rect: pygame.Rect):
+        """Renders live circuit radar with AI cars and active player cars circulating."""
+        mgr = self.manager
+        UITheme.draw_panel(surface, rect)
+        p_hdr = pygame.Rect(rect.x, rect.y, rect.width, 24)
+        pygame.draw.rect(surface, UITheme.PANEL_HEADER, p_hdr, border_top_left_radius=4, border_top_right_radius=4)
+        surface.blit(
+            self.font_header.render("LIVE CIRCUIT — FP TRAFFIC RADAR", True, (0, 240, 255)),
+            (rect.x + 10, rect.y + 4),
+        )
+
+        circuit = mgr.get_circuit()
+        if circuit is None or len(circuit.points) < 3:
+            surface.blit(
+                self.font_body.render("Circuit radar telemetry offline.", True, UITheme.TEXT_MUTED),
+                (rect.x + 16, rect.y + 40),
+            )
+            return
+
+        view_r = pygame.Rect(rect.x + 12, rect.y + 26, rect.width - 24, rect.height - 48)
+        pts = circuit.points[:: max(1, len(circuit.points) // 100)]
+        min_x = min(p[0] for p in pts)
+        max_x = max(p[0] for p in pts)
+        min_y = min(p[1] for p in pts)
+        max_y = max(p[1] for p in pts)
+
+        bb_w = max(1.0, max_x - min_x)
+        bb_h = max(1.0, max_y - min_y)
+        scale = min(view_r.width / bb_w, view_r.height / bb_h) * 0.88
+        mid_x = (min_x + max_x) / 2.0
+        mid_y = (min_y + max_y) / 2.0
+        cx = view_r.x + view_r.width / 2.0
+        cy = view_r.y + view_r.height / 2.0
+
+        def _to_screen(px: float, py: float) -> Tuple[int, int]:
+            return (int(cx + (px - mid_x) * scale), int(cy + (py - mid_y) * scale))
+
+        # Circuit outline
+        screen_pts = [_to_screen(p[0], p[1]) for p in pts]
+        if len(screen_pts) > 2:
+            pygame.draw.lines(surface, (32, 42, 58), True, screen_pts, width=5)
+            pygame.draw.lines(surface, (65, 85, 115), True, screen_pts, width=2)
+
+        # Pit lane
+        if circuit.pit_lane_enabled and len(circuit.pit_points) > 2:
+            pit_pts = [_to_screen(p[0], p[1]) for p in circuit.pit_points[:: max(1, len(circuit.pit_points) // 25)]]
+            if len(pit_pts) > 1:
+                pygame.draw.lines(surface, (110, 100, 35), False, pit_pts, width=2)
+
+        # Start / Finish line
+        sf_pos = circuit.get_position(0.0)
+        sf_sx, sf_sy = _to_screen(sf_pos[0], sf_pos[1])
+        pygame.draw.circle(surface, (255, 255, 255), (sf_sx, sf_sy), 3)
+
+        # Ambient AI traffic
+        active_ai = 0
+        for car in mgr.fp_cars:
+            if not car["in_pit"]:
+                active_ai += 1
+                c_pos = circuit.get_position(car["dist_m"])
+                sx, sy = _to_screen(c_pos[0], c_pos[1])
+                pygame.draw.circle(surface, car["color"], (sx, sy), 3)
+
+        # Player Car 1
+        st1 = mgr.active_stints.get(1)
+        if st1 is not None:
+            c1_pos = circuit.get_position(st1.get("dist_m", 0.0))
+            sx1, sy1 = _to_screen(c1_pos[0], c1_pos[1])
+            pygame.draw.circle(surface, (0, 240, 255), (sx1, sy1), 5)
+            pygame.draw.circle(surface, (255, 255, 255), (sx1, sy1), 5, width=1)
+
+        # Player Car 2
+        st2 = mgr.active_stints.get(2)
+        if st2 is not None:
+            c2_pos = circuit.get_position(st2.get("dist_m", 0.0))
+            sx2, sy2 = _to_screen(c2_pos[0], c2_pos[1])
+            pygame.draw.circle(surface, (255, 170, 0), (sx2, sy2), 5)
+            pygame.draw.circle(surface, (255, 255, 255), (sx2, sy2), 5, width=1)
+
+        # Traffic Footer
+        p1_tag = "🟢 C1 ON TRACK" if st1 else "🅿️ C1 GARAGE"
+        p2_tag = "🟠 C2 ON TRACK" if st2 else "🅿️ C2 GARAGE"
+        f_txt = f"{p1_tag}  |  {p2_tag}  |  🏎️ {active_ai} AI ON CIRCUIT"
+        surface.blit(self.font_badge.render(f_txt, True, UITheme.TEXT_MUTED), (rect.x + 10, rect.y + rect.height - 18))
+
     def _render_practice_session(self, surface: pygame.Surface):
         mgr = self.manager
         slot = self.active_car_slot
@@ -471,19 +580,26 @@ class RaceWeekendScreen:
         d1_name = self.drivers[0]["name"] if len(self.drivers) > 0 else "Car 1"
         d2_name = self.drivers[1]["name"] if len(self.drivers) > 1 else "Car 2"
 
+        c1_status = "🏎️" if mgr.is_car_on_track(1) else "🅿️"
+        c2_status = "🏎️" if mgr.is_car_on_track(2) else "🅿️"
+
         pygame.draw.rect(surface, (30, 48, 70) if slot == 1 else (18, 24, 32), c1_rect, border_radius=3)
         pygame.draw.rect(surface, (0, 220, 255) if slot == 1 else (40, 50, 65), c1_rect, width=1, border_radius=3)
-        t1 = self.font_card.render(f"CAR #1: {d1_name[:8]}", True, (0, 220, 255) if slot == 1 else UITheme.TEXT_MUTED)
+        t1 = self.font_card.render(
+            f"CAR #1 {c1_status}: {d1_name[:7]}", True, (0, 220, 255) if slot == 1 else UITheme.TEXT_MUTED
+        )
         surface.blit(t1, (c1_rect.x + (c1_rect.width - t1.get_width()) // 2, c1_rect.y + 6))
 
         pygame.draw.rect(surface, (30, 48, 70) if slot == 2 else (18, 24, 32), c2_rect, border_radius=3)
         pygame.draw.rect(surface, (0, 220, 255) if slot == 2 else (40, 50, 65), c2_rect, width=1, border_radius=3)
-        t2 = self.font_card.render(f"CAR #2: {d2_name[:8]}", True, (0, 220, 255) if slot == 2 else UITheme.TEXT_MUTED)
+        t2 = self.font_card.render(
+            f"CAR #2 {c2_status}: {d2_name[:7]}", True, (0, 220, 255) if slot == 2 else UITheme.TEXT_MUTED
+        )
         surface.blit(t2, (c2_rect.x + (c2_rect.width - t2.get_width()) // 2, c2_rect.y + 6))
 
         # Session Clock Badge
-        rem_m = mgr.session_time_remaining.get(slot, 60.0)
-        laps_c = mgr.session_laps_completed.get(slot, 0)
+        rem_m = float(mgr.session_time_remaining)
+        total_laps = mgr.session_laps_completed.get(1, 0) + mgr.session_laps_completed.get(2, 0)
         timer_rect = pygame.Rect(280, 110, 224, 28)
         if rem_m <= 0.0:
             pygame.draw.rect(surface, (50, 20, 20), timer_rect, border_radius=3)
@@ -493,7 +609,7 @@ class RaceWeekendScreen:
             t_col = (0, 240, 140) if rem_m > 25.0 else ((255, 205, 30) if rem_m > 10.0 else (255, 100, 50))
             pygame.draw.rect(surface, (20, 28, 38), timer_rect, border_radius=3)
             pygame.draw.rect(surface, (40, 55, 75), timer_rect, width=1, border_radius=3)
-            txt_t = self.font_badge.render(f"⏱️ TIME: {int(rem_m)}m LEFT | {laps_c} LAPS", True, t_col)
+            txt_t = self.font_badge.render(f"⏱️ SESSION: {int(rem_m)}m LEFT | {total_laps} LAPS", True, t_col)
         surface.blit(txt_t, (timer_rect.x + (timer_rect.width - txt_t.get_width()) // 2, timer_rect.y + 7))
 
         # B. Setup Tuning Panel (Left)
@@ -532,7 +648,7 @@ class RaceWeekendScreen:
             track_r = pygame.Rect(setup_rect.x + 185, row_y + 8, 170, 10)
             pygame.draw.rect(surface, (16, 20, 28), track_r, border_radius=3)
 
-            # Setup Analytics guidance target range overlay (bracket / shaded zone)
+            # Setup Analytics guidance target range overlay
             if guidance_ranges and p_key in guidance_ranges:
                 g_min, g_max = guidance_ranges[p_key]
                 g_pct_min = max(0.0, min(1.0, (g_min - min_v) / (max_v - min_v)))
@@ -581,152 +697,230 @@ class RaceWeekendScreen:
                 (b_r.x + (b_r.width - self.font_badge.size(b_txt)[0]) // 2, b_r.y + 7),
             )
 
-        # C. Practice Plans Selector (Bottom Left)
-        plan_panel = pygame.Rect(24, 425, 480, 175)
-        UITheme.draw_panel(surface, plan_panel)
-        p_hdr = pygame.Rect(plan_panel.x, plan_panel.y, plan_panel.width, 26)
-        pygame.draw.rect(surface, UITheme.PANEL_HEADER, p_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(
-            self.font_header.render("SELECT PRACTICE RUN PROGRAM", True, (255, 205, 30)),
-            (plan_panel.x + 12, plan_panel.y + 5),
-        )
-
-        active_plan = mgr.practice_plans[slot]
-        plan_buttons = [
-            (PracticePlan.BALANCED, "⚖️ BALANCED PROGRAM", pygame.Rect(plan_panel.x + 14, plan_panel.y + 35, 215, 34)),
-            (PracticePlan.FAST_LAP, "⚡ FAST LAP (QUALY)", pygame.Rect(plan_panel.x + 245, plan_panel.y + 35, 215, 34)),
-            (PracticePlan.SPRINT_STINTS, "🏎️ SPRINT STINTS", pygame.Rect(plan_panel.x + 14, plan_panel.y + 75, 215, 34)),
-            (PracticePlan.LONG_RUNS, "🛡️ LONG RUNS (RACE)", pygame.Rect(plan_panel.x + 245, plan_panel.y + 75, 215, 34)),
-        ]
-
-        for plan_enum, lbl, btn_r in plan_buttons:
-            is_sel = plan_enum == active_plan
-            pygame.draw.rect(surface, (30, 52, 75) if is_sel else (20, 26, 36), btn_r, border_radius=3)
-            pygame.draw.rect(
-                surface, (0, 220, 255) if is_sel else (45, 55, 70), btn_r, width=2 if is_sel else 1, border_radius=3
-            )
-            txt = self.font_card.render(lbl, True, (0, 240, 255) if is_sel else UITheme.TEXT_MUTED)
-            surface.blit(txt, (btn_r.x + 10, btn_r.y + 8))
-
-        # Description of active plan
-        descs = {
-            PracticePlan.BALANCED: "Balanced program: +6% extra setup confidence gain and well-rounded pace data.",
-            PracticePlan.FAST_LAP: "Low-fuel hot-lap flying simulation: Awards up to +0.65s Qualifying Pace Boost.",
-            PracticePlan.SPRINT_STINTS: "Medium-stint simulation: Reduces Sprint tire degradation by up to 30%.",
-            PracticePlan.LONG_RUNS: "Heavy-fuel simulation: Cuts Normal Race tire wear by 35% & saves 15% fuel.",
-        }
-        desc_box = pygame.Rect(plan_panel.x + 14, plan_panel.y + 118, plan_panel.width - 28, 45)
-        pygame.draw.rect(surface, (16, 22, 30), desc_box, border_radius=3)
-        surface.blit(self.font_badge.render(descs[active_plan], True, (0, 240, 140)), (desc_box.x + 8, desc_box.y + 12))
+        # C. Live Circuit Mini-Track Radar (Bottom Left - replaces old plan selector)
+        track_panel = pygame.Rect(24, 425, 480, 175)
+        self._render_mini_track(surface, track_panel)
 
         # D. Driver Feedback & Confidence Gauge (Right)
         fb_rect = pygame.Rect(520, 150, self.width - 544, 450)
         UITheme.draw_panel(surface, fb_rect)
         fb_hdr = pygame.Rect(fb_rect.x, fb_rect.y, fb_rect.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, fb_hdr, border_top_left_radius=4, border_top_right_radius=4)
-        surface.blit(
-            self.font_header.render(f"CAR #{slot} TELEMETRY & DRIVER RADIO FEEDBACK", True, UITheme.ACCENT_CYAN),
-            (fb_rect.x + 12, fb_rect.y + 6),
-        )
 
-        # Confidence Gauge
-        conf = mgr.setup_confidence[slot]
-        surface.blit(
-            self.font_card.render(f"SETUP CONFIDENCE: {conf:.1f}%", True, (255, 215, 0)),
-            (fb_rect.x + 16, fb_rect.y + 36),
-        )
-        gauge_bar = pygame.Rect(fb_rect.x + 16, fb_rect.y + 56, fb_rect.width - 32, 14)
-        pygame.draw.rect(surface, (16, 20, 26), gauge_bar, border_radius=3)
-        fill_w = int(gauge_bar.width * (conf / 100.0))
-        g_col = (0, 240, 140) if conf > 75 else ((255, 200, 40) if conf > 45 else (240, 70, 70))
-        pygame.draw.rect(surface, g_col, (gauge_bar.x, gauge_bar.y, fill_w, gauge_bar.height), border_radius=3)
+        active_stint = mgr.active_stints.get(slot)
+        if active_stint is not None:
+            surface.blit(
+                self.font_header.render(f"CAR #{slot} — STINT IN PROGRESS ON CIRCUIT", True, (0, 240, 255)),
+                (fb_rect.x + 12, fb_rect.y + 6),
+            )
 
-        # Setup Curve Potential Ratings
-        perf_score, wear_score = mgr.evaluate_car_setup_scores(slot)
-        p_pct = int(perf_score * 100)
-        w_pct = int(wear_score * 100)
-        p_col = (0, 240, 255) if p_pct > 80 else ((255, 205, 30) if p_pct > 60 else (240, 70, 70))
-        w_col = (0, 240, 140) if w_pct > 80 else ((255, 205, 30) if w_pct > 60 else (240, 70, 70))
-        surface.blit(
-            self.font_badge.render(f"⚡ FLYING PACE POTENTIAL: {p_pct}%", True, p_col), (fb_rect.x + 16, fb_rect.y + 76)
-        )
-        surface.blit(
-            self.font_badge.render(f"🛡️ TIRE PRESERVATION: {w_pct}%", True, w_col), (fb_rect.x + 230, fb_rect.y + 76)
-        )
+            # Active Stint Info Card
+            st_type = active_stint["stint_type"]
+            t_rem = active_stint["time_remaining_min"]
+            t_tot = max(0.1, active_stint["total_duration_min"])
+            l_tgt = active_stint["laps_target"]
+            prog = max(0.0, min(1.0, 1.0 - (t_rem / t_tot)))
 
-        # Plan bonuses list
-        bonuses = mgr.practice_bonuses[slot]
-        b_txt = f"Accumulated Bonuses: Qualy Pace: +{bonuses['qualy_pace_bonus']:.2f}s | Sprint Wear: -{bonuses['sprint_wear_bonus'] * 100:.0f}% | Race Wear: -{bonuses['race_wear_bonus'] * 100:.0f}% | Fuel: -{bonuses['fuel_saving_bonus'] * 100:.0f}%"
-        surface.blit(self.font_badge.render(b_txt, True, UITheme.TEXT_MUTED), (fb_rect.x + 16, fb_rect.y + 98))
-
-        # Recent Feedback items
-        fb_list = mgr.driver_feedback[slot]
-        surface.blit(
-            self.font_header.render("RADIO DEBRIEF & COMMENTS:", True, UITheme.TEXT_WHITE),
-            (fb_rect.x + 16, fb_rect.y + 120),
-        )
-
-        y_cursor = fb_rect.y + 142
-        if not fb_list:
+            surface.blit(
+                self.font_card.render(f"ACTIVE RUN PROGRAM: {st_type} STINT", True, (255, 215, 0)),
+                (fb_rect.x + 16, fb_rect.y + 42),
+            )
             surface.blit(
                 self.font_body.render(
-                    "No practice runs completed yet. Choose a stint below to test the setup on track.",
-                    True,
-                    UITheme.TEXT_MUTED,
+                    f"Target Laps: {l_tgt} Laps | Expected Duration: ~{t_tot:.0f} Minutes", True, UITheme.TEXT_WHITE
                 ),
-                (fb_rect.x + 16, y_cursor),
+                (fb_rect.x + 16, fb_rect.y + 66),
             )
-        else:
-            latest = fb_list[-1]
-            surface.blit(
-                self.font_card.render(f'Driver Debrief: "{latest["summary_quote"]}"', True, (0, 240, 140)),
-                (fb_rect.x + 16, y_cursor),
-            )
-            y_cursor += 24
-            for pt in latest["feedback_points"][:6]:
-                surface.blit(self.font_body.render(f"• {pt}", True, UITheme.TEXT_WHITE), (fb_rect.x + 20, y_cursor))
-                y_cursor += 20
 
-        # E. Practice Stint Action Buttons (Bottom Left) & Next Session (Bottom Right)
+            # Progress Bar
+            surface.blit(
+                self.font_badge.render(
+                    f"STINT PROGRESS: {int(prog * 100)}% ({t_rem:.1f}m remaining)", True, (0, 240, 140)
+                ),
+                (fb_rect.x + 16, fb_rect.y + 96),
+            )
+            prog_bar = pygame.Rect(fb_rect.x + 16, fb_rect.y + 116, fb_rect.width - 32, 16)
+            pygame.draw.rect(surface, (16, 22, 30), prog_bar, border_radius=3)
+            fill_w = int(prog_bar.width * prog)
+            pygame.draw.rect(surface, (0, 220, 255), (prog_bar.x, prog_bar.y, fill_w, prog_bar.height), border_radius=3)
+
+            # Live Notice Box
+            notice_rect = pygame.Rect(fb_rect.x + 16, fb_rect.y + 152, fb_rect.width - 32, 140)
+            pygame.draw.rect(surface, (16, 24, 34), notice_rect, border_radius=4)
+            pygame.draw.rect(surface, (35, 52, 75), notice_rect, width=1, border_radius=4)
+
+            surface.blit(
+                self.font_card.render("📡 LIVE PIT WALL TELEMETRY STREAM", True, (0, 240, 255)),
+                (notice_rect.x + 14, notice_rect.y + 12),
+            )
+            notice_lines = [
+                "• Car is completing scheduled laps out on circuit.",
+                "• Driver radio debrief is deferred until the car returns to garage.",
+                "• Mechanical feel, tire degradation rate (%/lap), and wear balance",
+                "  will be compiled and unlocked once the stint concludes.",
+                "",
+                "💡 Tip: Click '⏩ FAST FORWARD' below to advance directly to stint completion!",
+            ]
+            for idx, n_line in enumerate(notice_lines):
+                col = (0, 240, 140) if "Tip:" in n_line else UITheme.TEXT_MUTED
+                surface.blit(
+                    self.font_body.render(n_line, True, col), (notice_rect.x + 14, notice_rect.y + 36 + idx * 18)
+                )
+
+        else:
+            # In Garage: Show Full Telemetry & Completed Debrief
+            surface.blit(
+                self.font_header.render(f"CAR #{slot} TELEMETRY & DRIVER RADIO FEEDBACK", True, UITheme.ACCENT_CYAN),
+                (fb_rect.x + 12, fb_rect.y + 6),
+            )
+
+            # Confidence Gauge
+            conf = mgr.setup_confidence[slot]
+            surface.blit(
+                self.font_card.render(f"SETUP CONFIDENCE: {conf:.1f}%", True, (255, 215, 0)),
+                (fb_rect.x + 16, fb_rect.y + 36),
+            )
+            gauge_bar = pygame.Rect(fb_rect.x + 16, fb_rect.y + 56, fb_rect.width - 32, 14)
+            pygame.draw.rect(surface, (16, 20, 26), gauge_bar, border_radius=3)
+            fill_w = int(gauge_bar.width * (conf / 100.0))
+            g_col = (0, 240, 140) if conf > 75 else ((255, 200, 40) if conf > 45 else (240, 70, 70))
+            pygame.draw.rect(surface, g_col, (gauge_bar.x, gauge_bar.y, fill_w, gauge_bar.height), border_radius=3)
+
+            # Setup Curve Potential Ratings
+            perf_score, wear_score = mgr.evaluate_car_setup_scores(slot)
+            p_pct = int(perf_score * 100)
+            w_pct = int(wear_score * 100)
+            p_col = (0, 240, 255) if p_pct > 80 else ((255, 205, 30) if p_pct > 60 else (240, 70, 70))
+            w_col = (0, 240, 140) if w_pct > 80 else ((255, 205, 30) if w_pct > 60 else (240, 70, 70))
+            surface.blit(
+                self.font_badge.render(f"⚡ FLYING PACE POTENTIAL: {p_pct}%", True, p_col),
+                (fb_rect.x + 16, fb_rect.y + 76),
+            )
+            surface.blit(
+                self.font_badge.render(f"🛡️ TIRE PRESERVATION: {w_pct}%", True, w_col),
+                (fb_rect.x + 230, fb_rect.y + 76),
+            )
+
+            # Plan bonuses list
+            bonuses = mgr.practice_bonuses[slot]
+            b_txt = f"Accumulated Bonuses: Qualy Pace: +{bonuses['qualy_pace_bonus']:.2f}s | Sprint Wear: -{bonuses['sprint_wear_bonus'] * 100:.0f}% | Race Wear: -{bonuses['race_wear_bonus'] * 100:.0f}% | Fuel: -{bonuses['fuel_saving_bonus'] * 100:.0f}%"
+            surface.blit(self.font_badge.render(b_txt, True, UITheme.TEXT_MUTED), (fb_rect.x + 16, fb_rect.y + 98))
+
+            # Recent Feedback items
+            fb_list = mgr.driver_feedback[slot]
+            surface.blit(
+                self.font_header.render("RADIO DEBRIEF & COMMENTS:", True, UITheme.TEXT_WHITE),
+                (fb_rect.x + 16, fb_rect.y + 120),
+            )
+
+            y_cursor = fb_rect.y + 142
+            if not fb_list:
+                surface.blit(
+                    self.font_body.render(
+                        "Car is currently in pit garage. Choose a stint below to dispatch the driver on track.",
+                        True,
+                        UITheme.TEXT_MUTED,
+                    ),
+                    (fb_rect.x + 16, y_cursor),
+                )
+            else:
+                latest = fb_list[-1]
+                surface.blit(
+                    self.font_card.render(
+                        f'Latest Stint ({latest.get("stint_type", "RUN")}): "{latest["summary_quote"]}"',
+                        True,
+                        (0, 240, 140),
+                    ),
+                    (fb_rect.x + 16, y_cursor),
+                )
+                y_cursor += 24
+                for pt in latest["feedback_points"][:6]:
+                    surface.blit(self.font_body.render(f"• {pt}", True, UITheme.TEXT_WHITE), (fb_rect.x + 20, y_cursor))
+                    y_cursor += 20
+
+        # E. Practice Stint Action Buttons & Time Hop (Bottom Bar)
         btn_short = pygame.Rect(24, self.height - 75, 150, 48)
         btn_sprint = pygame.Rect(182, self.height - 75, 155, 48)
         btn_long = pygame.Rect(345, self.height - 75, 160, 48)
-        next_btn = pygame.Rect(520, self.height - 75, self.width - 544, 48)
+        btn_fast_forward = pygame.Rect(520, self.height - 75, 330, 48)
+        next_btn = pygame.Rect(865, self.height - 75, self.width - 889, 48)
 
         can_run = rem_m > 0.0
+        car_on_track = mgr.is_car_on_track(slot)
+        can_start_stint = can_run and not car_on_track
 
-        # Dynamic laps per stint from manager
         short_laps = mgr.stint_laps.get("SHORT", 5)
         sprint_laps = mgr.stint_laps.get("SPRINT", 12)
         long_laps = mgr.stint_laps.get("LONG", 22)
 
-        # Short Stint button
-        pygame.draw.rect(surface, (0, 150, 85) if can_run else (24, 30, 28), btn_short, border_radius=4)
-        pygame.draw.rect(surface, (0, 240, 140) if can_run else (45, 55, 50), btn_short, width=1, border_radius=4)
-        t_s1 = self.font_btn.render(f"🏎️ SHORT ({short_laps}L)", True, (10, 25, 15) if can_run else UITheme.TEXT_MUTED)
-        t_s2 = self.font_badge.render("~10 MIN STINT", True, (10, 35, 20) if can_run else (60, 70, 65))
+        # 1. Short Stint button
+        pygame.draw.rect(surface, (0, 150, 85) if can_start_stint else (24, 30, 28), btn_short, border_radius=4)
+        pygame.draw.rect(
+            surface, (0, 240, 140) if can_start_stint else (45, 55, 50), btn_short, width=1, border_radius=4
+        )
+        s_lbl = "CAR ON TRACK" if car_on_track else f"🏎️ SHORT ({short_laps}L)"
+        t_s1 = self.font_btn.render(s_lbl, True, (10, 25, 15) if can_start_stint else UITheme.TEXT_MUTED)
+        t_s2 = self.font_badge.render("~10 MIN STINT", True, (10, 35, 20) if can_start_stint else (60, 70, 65))
         surface.blit(t_s1, (btn_short.x + (btn_short.width - t_s1.get_width()) // 2, btn_short.y + 8))
         surface.blit(t_s2, (btn_short.x + (btn_short.width - t_s2.get_width()) // 2, btn_short.y + 28))
 
-        # Sprint Stint button
-        pygame.draw.rect(surface, (20, 95, 140) if can_run else (24, 28, 34), btn_sprint, border_radius=4)
-        pygame.draw.rect(surface, (0, 220, 255) if can_run else (45, 50, 60), btn_sprint, width=1, border_radius=4)
-        t_m1 = self.font_btn.render(f"🏎️ SPRINT ({sprint_laps}L)", True, (10, 20, 30) if can_run else UITheme.TEXT_MUTED)
-        t_m2 = self.font_badge.render("~20 MIN STINT", True, (10, 30, 45) if can_run else (60, 65, 75))
+        # 2. Sprint Stint button
+        pygame.draw.rect(surface, (20, 95, 140) if can_start_stint else (24, 28, 34), btn_sprint, border_radius=4)
+        pygame.draw.rect(
+            surface, (0, 220, 255) if can_start_stint else (45, 50, 60), btn_sprint, width=1, border_radius=4
+        )
+        m_lbl = "CAR ON TRACK" if car_on_track else f"🛡️ SPRINT ({sprint_laps}L)"
+        t_m1 = self.font_btn.render(m_lbl, True, (10, 20, 30) if can_start_stint else UITheme.TEXT_MUTED)
+        t_m2 = self.font_badge.render("~20 MIN STINT", True, (10, 30, 45) if can_start_stint else (60, 65, 75))
         surface.blit(t_m1, (btn_sprint.x + (btn_sprint.width - t_m1.get_width()) // 2, btn_sprint.y + 8))
         surface.blit(t_m2, (btn_sprint.x + (btn_sprint.width - t_m2.get_width()) // 2, btn_sprint.y + 28))
 
-        # Race Sim Long Stint button (Tier 1 & 2 only)
-        can_race_sim = can_run and mgr.tier < 3
+        # 3. Race Sim Long Stint button (Tier 1 & 2 only)
+        can_race_sim = can_start_stint and mgr.tier < 3
         pygame.draw.rect(surface, (110, 50, 130) if can_race_sim else (24, 22, 28), btn_long, border_radius=4)
         pygame.draw.rect(surface, (210, 110, 255) if can_race_sim else (45, 40, 52), btn_long, width=1, border_radius=4)
-        t_l1 = self.font_btn.render(f"🛡️ RACE SIM ({long_laps}L)", True, (25, 10, 30) if can_race_sim else (90, 80, 100))
+        l_lbl = "CAR ON TRACK" if car_on_track else f"🏁 RACE SIM ({long_laps}L)"
+        t_l1 = self.font_btn.render(l_lbl, True, (25, 10, 30) if can_race_sim else (90, 80, 100))
         sub_txt = "~32 MIN STINT" if mgr.tier < 3 else "[TIER 1/2 GP ONLY]"
         t_l2 = self.font_badge.render(sub_txt, True, (35, 15, 45) if can_race_sim else (90, 80, 100))
         surface.blit(t_l1, (btn_long.x + (btn_long.width - t_l1.get_width()) // 2, btn_long.y + 8))
         surface.blit(t_l2, (btn_long.x + (btn_long.width - t_l2.get_width()) // 2, btn_long.y + 28))
 
-        # Next Session button
+        # 4. Fast Forward / Hop in Time button
+        running_stints = [s for s in mgr.active_stints.values() if s is not None]
+        if running_stints:
+            earliest = min(running_stints, key=lambda s: s["time_remaining_min"])
+            e_slot = earliest["car_slot"]
+            e_rem = earliest["time_remaining_min"]
+            ff_title = f"⏩ FAST FORWARD (CAR #{e_slot} FINISH)"
+            ff_sub = f"Advance {e_rem:.0f}m forward to next stint completion"
+            pygame.draw.rect(surface, (35, 75, 105), btn_fast_forward, border_radius=4)
+            pygame.draw.rect(surface, (0, 240, 255), btn_fast_forward, width=2, border_radius=4)
+            t_ff1 = self.font_btn.render(ff_title, True, (0, 240, 255))
+            t_ff2 = self.font_badge.render(ff_sub, True, (160, 220, 255))
+        elif can_run:
+            ff_title = "⏩ ADVANCE TIME (+5 MIN)"
+            ff_sub = "Simulate 5 minutes of Free Practice session"
+            pygame.draw.rect(surface, (25, 35, 48), btn_fast_forward, border_radius=4)
+            pygame.draw.rect(surface, (50, 70, 95), btn_fast_forward, width=1, border_radius=4)
+            t_ff1 = self.font_btn.render(ff_title, True, UITheme.TEXT_WHITE)
+            t_ff2 = self.font_badge.render(ff_sub, True, UITheme.TEXT_MUTED)
+        else:
+            ff_title = "🏁 FREE PRACTICE EXPIRED"
+            ff_sub = "Chequered flag dropped — proceed to Qualifying"
+            pygame.draw.rect(surface, (35, 20, 20), btn_fast_forward, border_radius=4)
+            pygame.draw.rect(surface, (80, 40, 40), btn_fast_forward, width=1, border_radius=4)
+            t_ff1 = self.font_btn.render(ff_title, True, (255, 100, 100))
+            t_ff2 = self.font_badge.render(ff_sub, True, (180, 80, 80))
+
+        surface.blit(
+            t_ff1, (btn_fast_forward.x + (btn_fast_forward.width - t_ff1.get_width()) // 2, btn_fast_forward.y + 8)
+        )
+        surface.blit(
+            t_ff2, (btn_fast_forward.x + (btn_fast_forward.width - t_ff2.get_width()) // 2, btn_fast_forward.y + 28)
+        )
+
+        # 5. Next Session button
         pygame.draw.rect(surface, (30, 55, 80), next_btn, border_radius=4)
         pygame.draw.rect(surface, (0, 220, 255), next_btn, width=1, border_radius=4)
         next_lbl = (

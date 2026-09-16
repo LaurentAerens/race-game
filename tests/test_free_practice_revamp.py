@@ -263,3 +263,99 @@ def test_car_physics_incorporates_setup_scores():
     wear_factor_opt = getattr(car_optimal, "setup_wear_factor", 1.0)
     wear_factor_bad = getattr(car_bad, "setup_wear_factor", 1.2)
     assert wear_factor_opt < wear_factor_bad
+
+
+def test_stint_linked_bonuses():
+    """Verify that stint types directly award their linked run program bonuses."""
+    track_meta = {"track_name": "Emerald Ring", "circuit_file": "emerald_ring.json"}
+    rwm = RaceWeekendManager(league_tier=1, track_metadata=track_meta)
+
+    # Initial bonuses 0
+    assert rwm.practice_bonuses[1]["qualy_pace_bonus"] == 0.0
+    assert rwm.practice_bonuses[1]["sprint_wear_bonus"] == 0.0
+    assert rwm.practice_bonuses[1]["race_wear_bonus"] == 0.0
+
+    # Short stint awards qualy pace bonus
+    rwm.run_practice_run(car_slot=1, driver_name="Driver 1", stint_type=StintType.SHORT)
+    assert rwm.practice_bonuses[1]["qualy_pace_bonus"] > 0.0
+    assert rwm.practice_bonuses[1]["sprint_wear_bonus"] == 0.0
+
+    # Sprint stint awards sprint wear bonus
+    rwm.run_practice_run(car_slot=1, driver_name="Driver 1", stint_type=StintType.SPRINT)
+    assert rwm.practice_bonuses[1]["sprint_wear_bonus"] > 0.0
+    assert rwm.practice_bonuses[1]["race_wear_bonus"] == 0.0
+
+    # Long stint awards race wear & fuel saving bonus
+    rwm.run_practice_run(car_slot=1, driver_name="Driver 1", stint_type=StintType.LONG)
+    assert rwm.practice_bonuses[1]["race_wear_bonus"] > 0.0
+    assert rwm.practice_bonuses[1]["fuel_saving_bonus"] > 0.0
+
+
+def test_deferred_stint_lifecycle_and_fast_forward():
+    """Verify deferred feedback lifecycle and hop forward in time for simultaneous stints."""
+    track_meta = {"track_name": "Emerald Ring", "circuit_file": "emerald_ring.json"}
+    rwm = RaceWeekendManager(league_tier=1, track_metadata=track_meta)
+
+    assert rwm.session_time_remaining[1] == 60.0
+    assert rwm.session_time_remaining[2] == 60.0
+
+    # Dispatch Car 1 on Short Stint (~10 min)
+    res1 = rwm.start_practice_stint(car_slot=1, driver_name="Driver 1", stint_type="SHORT")
+    assert res1["success"] is True
+    assert rwm.is_car_on_track(1) is True
+    assert len(rwm.driver_feedback[1]) == 0, "Debrief must NOT be available while stint is running"
+
+    # Trying to start another stint on Car 1 while running is disallowed
+    res1_dup = rwm.start_practice_stint(car_slot=1, driver_name="Driver 1", stint_type="SHORT")
+    assert res1_dup["success"] is False
+
+    # Dispatch Car 2 on Sprint Stint (~20 min)
+    res2 = rwm.start_practice_stint(car_slot=2, driver_name="Driver 2", stint_type="SPRINT")
+    assert res2["success"] is True
+    assert rwm.is_car_on_track(2) is True
+    assert len(rwm.driver_feedback[2]) == 0
+
+    dur1 = rwm.active_stints[1]["time_remaining_min"]
+    dur2 = rwm.active_stints[2]["time_remaining_min"]
+    assert dur1 < dur2
+
+    # Fast forward: should jump by dur1 (earliest finisher)
+    jumped = rwm.fast_forward_to_next_completion()
+    assert jumped == pytest.approx(dur1, abs=0.1)
+
+    # Car 1 should now be FINISHED and back in the garage with debrief revealed!
+    assert rwm.is_car_on_track(1) is False
+    assert len(rwm.driver_feedback[1]) == 1
+    assert "feedback_points" in rwm.driver_feedback[1][0]
+
+    # Car 2 should STILL be out on track with remaining time
+    assert rwm.is_car_on_track(2) is True
+    assert len(rwm.driver_feedback[2]) == 0
+    rem_car2 = rwm.active_stints[2]["time_remaining_min"]
+    assert rem_car2 == pytest.approx(dur2 - dur1, abs=0.2)
+
+    # Fast forward again: jumps remaining time for Car 2
+    jumped2 = rwm.fast_forward_to_next_completion()
+    assert jumped2 == pytest.approx(rem_car2, abs=0.1)
+    assert rwm.is_car_on_track(2) is False
+    assert len(rwm.driver_feedback[2]) == 1
+
+
+def test_mini_track_circuit_radar_and_traffic():
+    """Verify circuit loading, mini-track geometry, and ambient Free Practice traffic."""
+    track_meta = {"track_name": "Emerald Ring", "circuit_file": "emerald_ring.json"}
+    rwm = RaceWeekendManager(league_tier=1, track_metadata=track_meta)
+
+    circuit = rwm.get_circuit()
+    assert circuit is not None
+    assert len(circuit.points) > 10
+
+    # Ambient AI traffic initialized
+    assert len(rwm.fp_cars) >= 8
+    initial_dists = [c["dist_m"] for c in rwm.fp_cars if not c["in_pit"]]
+
+    # Animate traffic
+    rwm.update_fp_traffic(dt_seconds=1.0)
+    updated_dists = [c["dist_m"] for c in rwm.fp_cars if not c["in_pit"]]
+    # At least some cars moved forward along track
+    assert any(u != i for u, i in zip(updated_dists, initial_dists))
