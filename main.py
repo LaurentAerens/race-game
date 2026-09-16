@@ -274,6 +274,8 @@ class RaceGameApp:
             on_start_live_session=self.start_live_session_from_weekend,
             on_finish_weekend=self.on_weekend_completed,
             driver_car_pairs=self.driver_car_pairs,
+            career_db=self.management_hub.db,
+            team_id=self.management_hub.gm.team_id,
         )
 
         self.tutorial_manager.sync_game_state("WEEKEND")
@@ -325,6 +327,10 @@ class RaceGameApp:
             league_tier=current_tier,
             car_durabilities=car_durs,
             weather_profile=weather_prof,
+            car_setup_scores={
+                1: self.weekend_manager.evaluate_car_setup_scores(1),
+                2: self.weekend_manager.evaluate_car_setup_scores(2),
+            },
         )
         self.sim.team_facilities = fac_tiers
         self.sim.team_equipment = eq_lvls

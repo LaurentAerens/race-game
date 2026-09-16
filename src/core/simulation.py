@@ -32,6 +32,7 @@ class Simulation:
         weather_profile: Optional[str] = None,
         rain_chance: Optional[float] = None,
         max_wetness_cap: Optional[float] = None,
+        car_setup_scores: Optional[Dict[int, Tuple[float, float]]] = None,
     ):
         self.circuit = circuit
         self.total_laps = total_laps
@@ -41,6 +42,7 @@ class Simulation:
         self.practice_bonuses = practice_bonuses or {}
         self.league_tier = league_tier
         self.car_durabilities = car_durabilities or {}
+        self.car_setup_scores = car_setup_scores or {}
 
         self.current_lap = 1
         self.race_time = 0.0
@@ -90,6 +92,8 @@ class Simulation:
             c_conf = 50.0
             c_bonuses = None
             c_dur = None
+            c_perf = 0.75
+            c_wear = 0.75
             if getattr(driver, "is_player", False):
                 slot = 1 if getattr(driver, "number", 1) % 2 != 0 else 2
                 if slot in self.car_setups:
@@ -100,6 +104,8 @@ class Simulation:
                     c_bonuses = self.practice_bonuses[slot]
                 if slot in self.car_durabilities:
                     c_dur = self.car_durabilities[slot]
+                if slot in self.car_setup_scores:
+                    c_perf, c_wear = self.car_setup_scores[slot]
 
             car = Car(
                 car_id=i + 1,
@@ -111,6 +117,8 @@ class Simulation:
                 practice_bonuses=c_bonuses,
                 league_tier=self.league_tier,
                 initial_part_durabilities=c_dur,
+                setup_perf_score=c_perf,
+                setup_wear_score=c_wear,
             )
 
             # Grid stagger (left / right alternating)

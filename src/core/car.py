@@ -28,6 +28,8 @@ class Car:
         practice_bonuses: Optional[Dict[str, float]] = None,
         league_tier: int = 3,
         initial_part_durabilities: Optional[Dict[str, float]] = None,
+        setup_perf_score: float = 0.75,
+        setup_wear_score: float = 0.75,
     ):
         self.id = car_id
         self.driver = driver
@@ -37,6 +39,8 @@ class Car:
         self.setup_confidence = setup_confidence
         self.practice_bonuses = practice_bonuses or {}
         self.league_tier: int = league_tier
+        self.setup_perf_score: float = setup_perf_score
+        self.setup_wear_score: float = setup_wear_score
 
         # Position & Kinematics
         self.s: float = 0.0  # Track distance (meters)
@@ -366,7 +370,8 @@ class Car:
             effective_grip *= wet_line_bonus
 
         conf_factor = 0.94 + 0.10 * (self.setup_confidence / 100.0)
-        effective_grip *= conf_factor
+        setup_perf_factor = 0.92 + 0.10 * self.setup_perf_score
+        effective_grip *= conf_factor * setup_perf_factor
         driver_skill = self.driver.get_skill_factor(track_wetness)
 
         wing_aero_factor = 0.85 + 0.15 * (self.setup.front_wing / 100.0) + 0.15 * (self.setup.rear_wing / 100.0)
@@ -853,6 +858,8 @@ class Car:
         )
         plan_wear_reduction = max(0.65, plan_wear_reduction)
 
+        setup_wear_factor = 1.35 - 0.40 * self.setup_wear_score
+
         self.tires.apply_wear_and_thermals(
             dist_travelled=dist_travelled,
             track_length=circuit.length,
@@ -861,6 +868,7 @@ class Car:
             * chassis_preserve_factor
             * driver_preserve_factor
             * suspension_wear_factor
+            * setup_wear_factor
             * plan_wear_reduction,
             cornering_g=cornering_g,
             fuel_weight_kg=self.fuel_kg,

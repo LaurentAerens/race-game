@@ -2363,6 +2363,22 @@ class CareerDatabase:
             );
             """)
 
+            # 21. Personal Track Setup Presets
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS track_setup_presets (
+                team_id INTEGER NOT NULL,
+                track_name TEXT NOT NULL,
+                car_slot INTEGER NOT NULL DEFAULT 1,
+                front_wing REAL NOT NULL,
+                rear_wing REAL NOT NULL,
+                suspension REAL NOT NULL,
+                gear_ratio REAL NOT NULL,
+                brake_bias REAL NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (team_id, track_name, car_slot)
+            );
+            """)
+
             cur.execute("SELECT COUNT(*) FROM balance_settings;")
             if cur.fetchone()[0] == 0:
                 for cat, settings in BALANCE_REGISTRY.to_dict().items():
@@ -5008,3 +5024,70 @@ class CareerDatabase:
             cur.execute("SELECT * FROM teams WHERE name = ? COLLATE NOCASE;", (team_name,))
             row = cur.fetchone()
             return dict(row) if row else None
+
+    def save_track_setup_preset(
+        self,
+        team_id: int,
+        track_name: str,
+        car_slot: int,
+        front_wing: float,
+        rear_wing: float,
+        suspension: float,
+        gear_ratio: float,
+        brake_bias: float,
+    ) -> bool:
+        """Persists a personal setup configuration for a specific track and car slot."""
+        with self.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO track_setup_presets (
+                    team_id, track_name, car_slot, front_wing, rear_wing, suspension, gear_ratio, brake_bias, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(team_id, track_name, car_slot) DO UPDATE SET
+                    front_wing = excluded.front_wing,
+                    rear_wing = excluded.rear_wing,
+                    suspension = excluded.suspension,
+                    gear_ratio = excluded.gear_ratio,
+                    brake_bias = excluded.brake_bias,
+                    updated_at = CURRENT_TIMESTAMP;
+                """,
+                (team_id, track_name, car_slot, front_wing, rear_wing, suspension, gear_ratio, brake_bias),
+            )
+            conn.commit()
+            return True
+
+    def load_track_setup_preset(self, team_id: int, track_name: str, car_slot: int = 1) -> Optional[Dict[str, float]]:
+        """Retrieves a saved personal setup for a track and car slot, falling back to car_slot 1 if needed."""
+        with self.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT front_wing, rear_wing, suspension, gear_ratio, brake_bias
+                FROM track_setup_presets
+                WHERE team_id = ? AND track_name = ? AND car_slot = ?;
+                """,
+                (team_id, track_name, car_slot),
+            )
+            row = cur.fetchone()
+            if not row and car_slot != 1:
+                # Fallback to car 1 preset if car 2 specific preset not found
+                cur.execute(
+                    """
+                    SELECT front_wing, rear_wing, suspension, gear_ratio, brake_bias
+                    FROM track_setup_presets
+                    WHERE team_id = ? AND track_name = ? AND car_slot = 1;
+                    """,
+                    (team_id, track_name),
+                )
+                row = cur.fetchone()
+
+            if row:
+                return {
+                    "front_wing": float(row[0]),
+                    "rear_wing": float(row[1]),
+                    "suspension": float(row[2]),
+                    "gear_ratio": float(row[3]),
+                    "brake_bias": float(row[4]),
+                }
+            return None
