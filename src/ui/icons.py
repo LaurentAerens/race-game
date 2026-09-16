@@ -46,6 +46,15 @@ class UIIcons:
         "market": "briefcase",
         "academy": "graduation-cap",
         "options": "sliders",
+        "brakes": "disc",
+        "brake": "disc",
+        "front_wing": "wind",
+        "rear_wing": "flag",
+        "floor": "layers",
+        "suspension": "sliders",
+        "engine": "cpu",
+        "ers": "battery-charging",
+        "battery": "battery-charging",
     }
 
     @classmethod

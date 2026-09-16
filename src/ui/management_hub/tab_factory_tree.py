@@ -1,10 +1,11 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 import pygame
 
 from ...management.engineering_manager import EngineeringManager
 from ...management.game_manager import GameManager
+from ..icons import UIIcons
 from ..theme import UITheme
 
 
@@ -15,6 +16,118 @@ class FactoryTreeTab:
     Allows building, upgrading, granular monthly sub-budget controls,
     and clicking into any facility to inspect, configure, and manage 5-15 specialized equipment items.
     """
+
+    # 7 Fundamental Car Components: (Category, 2-Letter Code, Lucide Icon, Full Display Name)
+    CAR_PARTS: List[Tuple[str, str, str, str]] = [
+        ("FRONT_WING", "FW", "wind", "Front Wing"),
+        ("REAR_WING", "RW", "flag", "Rear Wing"),
+        ("FLOOR", "FL", "layers", "Floor / Underbody"),
+        ("SUSPENSION", "SU", "sliders", "Suspension"),
+        ("BRAKES", "BR", "disc", "Brakes"),
+        ("ENGINE", "EN", "cpu", "Engine / ICE"),
+        ("ERS", "ER", "battery-charging", "ERS Hybrid"),
+    ]
+
+    @classmethod
+    def get_facility_influenced_parts(cls, node_id: str) -> Set[str]:
+        """Returns the set of car component categories directly influenced by this facility node."""
+        from ...management.engineering_manager import RELEVANT_COMPONENT_FACILITIES
+
+        influenced = set()
+        for cat, fac_list in RELEVANT_COMPONENT_FACILITIES.items():
+            if node_id in fac_list:
+                influenced.add(cat)
+
+        # Cross-cutting, specialized, and multi-part facilities
+        multi_map: Dict[str, Set[str]] = {
+            "eng_workshop": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES", "ENGINE", "ERS"},
+            "test_qa_ndt": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES", "ENGINE", "ERS"},
+            "mfg_rapid_proto": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES", "ENGINE", "ERS"},
+            "track_telemetry": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES", "ENGINE", "ERS"},
+            "track_comm_uplink": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES", "ENGINE", "ERS"},
+            "eng_cad_office": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES"},
+            "track_fast_repair": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION", "BRAKES"},
+            "track_setup_telemetry": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION"},
+            "track_virtual_sim": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION"},
+            "track_reverse_eng": {"FRONT_WING", "REAR_WING", "FLOOR"},
+            "eng_aero_model_shop": {"FRONT_WING", "REAR_WING", "FLOOR"},
+            "mfg_cleanroom_autoclave": {"FRONT_WING", "REAR_WING", "FLOOR", "SUSPENSION"},
+            "mfg_paint_bay": {"FRONT_WING", "REAR_WING", "FLOOR"},
+            "mfg_prepreg_freezer": {"FRONT_WING", "REAR_WING", "FLOOR"},
+            "mfg_rapid_tooling": {"FRONT_WING", "REAR_WING", "FLOOR"},
+            "eng_works_powertrain": {"ENGINE", "ERS"},
+            "mfg_additive_metal": {"SUSPENSION", "BRAKES", "ENGINE", "ERS"},
+            "mfg_cnc_machining": {"SUSPENSION", "BRAKES", "ENGINE"},
+            "eng_comp_materials": {"SUSPENSION", "BRAKES", "FLOOR"},
+            "eng_kinematics_lab": {"SUSPENSION", "BRAKES"},
+            "test_shaker_rig": {"SUSPENSION", "FLOOR"},
+            "test_torsional_rig": {"SUSPENSION"},
+            "track_sim_rig": {"SUSPENSION"},
+        }
+        if node_id in multi_map:
+            influenced.update(multi_map[node_id])
+
+        return influenced
+
+    def _draw_parts_grid(
+        self,
+        surface: pygame.Surface,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        influenced_parts: Set[str],
+        is_unlocked: bool,
+    ):
+        """
+        Renders a crisp 7-slot mini grid of all car components on the facility card,
+        vibrantly highlighting the parts directly influenced by this facility.
+        """
+        num_parts = len(self.CAR_PARTS)
+        gap = max(1.0, 2.0 * self.zoom)
+        total_gaps = (num_parts - 1) * gap
+        chip_w = (width - total_gaps) / num_parts
+
+        for idx, (cat, code, icon_name, full_name) in enumerate(self.CAR_PARTS):
+            cx = x + idx * (chip_w + gap)
+            chip_rect = pygame.Rect(int(cx), int(y), int(chip_w), int(height))
+
+            is_influenced = cat in influenced_parts
+
+            if is_influenced:
+                if is_unlocked:
+                    bg_col = (14, 42, 54)
+                    border_col = (0, 220, 220)
+                    icon_col = (0, 245, 255)
+                    text_col = (255, 255, 255)
+                else:
+                    # Unbuilt facility: golden amber preview of future influenced parts
+                    bg_col = (36, 30, 16)
+                    border_col = (230, 180, 50)
+                    icon_col = (255, 205, 70)
+                    text_col = (240, 230, 200)
+            else:
+                bg_col = (14, 18, 24)
+                border_col = (28, 34, 44)
+                icon_col = (50, 60, 72)
+                text_col = (55, 65, 78)
+
+            pygame.draw.rect(surface, bg_col, chip_rect, border_radius=2)
+            pygame.draw.rect(surface, border_col, chip_rect, width=1, border_radius=2)
+
+            # Draw icon and code
+            ic_size = max(8, int(10 * self.zoom))
+            ic_surf = UIIcons.get_icon(icon_name, size=ic_size, color=icon_col)
+            txt_surf = self.font_mini.render(code, True, text_col)
+
+            # Center icon + text inside the chip
+            total_w = ic_surf.get_width() + 2 + txt_surf.get_width()
+            start_ix = chip_rect.x + max(2, (chip_rect.width - total_w) // 2)
+            surface.blit(ic_surf, (start_ix, chip_rect.y + (chip_rect.height - ic_surf.get_height()) // 2))
+            surface.blit(
+                txt_surf,
+                (start_ix + ic_surf.get_width() + 2, chip_rect.y + (chip_rect.height - txt_surf.get_height()) // 2),
+            )
 
     def __init__(self, screen_width: int, screen_height: int):
         self.width = screen_width
@@ -51,6 +164,7 @@ class FactoryTreeTab:
         self.font_body = UITheme.get_font(11, bold=False)
         self.font_badge = UITheme.get_font(10, bold=True)
         self.font_btn = UITheme.get_font(10, bold=True)
+        self.font_mini = UITheme.get_font(8, bold=True)
 
     def resize(self, width: int, height: int):
         self.width = width
@@ -158,7 +272,7 @@ class FactoryTreeTab:
                 depths[k] = v
 
         node_w_spacing = 330.0  # Generous 80px horizontal gap for smooth Bézier curve runway
-        node_h_spacing = 125.0  # 35px vertical gap between rows for clean distinction
+        node_h_spacing = 145.0  # Generous vertical gap between rows for clean distinction
 
         # 4. Lay out departments vertically with clean row offsets & crossing minimization
         current_y_offset = 0.0
@@ -1518,7 +1632,7 @@ class FactoryTreeTab:
                         return True
 
                 # Facility Upgrade Button inside drawer
-                prod_rect = pygame.Rect(drawer_x + 12, 156, 502, 92)
+                prod_rect = pygame.Rect(drawer_x + 12, 156, 502, 116)
                 fac_list = gm.db.get_team_facilities(gm.team_id)
                 f_dict = {f["id"]: f for f in fac_list}
                 cur_f = f_dict.get(self.inspected_node_id, {})
@@ -1526,15 +1640,15 @@ class FactoryTreeTab:
                 max_t = cur_f.get("max_tier", 3)
 
                 if cur_t < max_t:
-                    fac_upg_btn = pygame.Rect(prod_rect.x + prod_rect.width - 134, prod_rect.y + 64, 126, 22)
+                    fac_upg_btn = pygame.Rect(prod_rect.x + prod_rect.width - 134, prod_rect.y + 4, 126, 22)
                     if fac_upg_btn.collidepoint(mx, my):
                         success, msg = em.upgrade_facility_node(gm.team_id, self.inspected_node_id, cost_mult=cost_mult)
                         self.status_message = msg
                         return True
 
                 # Drawer Sub-Tabs: [ EQUIPMENT RIGS ] vs [ ROOM ROSTER & STAFF ]
-                tab_eq_rect = pygame.Rect(drawer_x + 12, 248, 246, 24)
-                tab_staff_rect = pygame.Rect(drawer_x + 264, 248, 250, 24)
+                tab_eq_rect = pygame.Rect(drawer_x + 12, 276, 246, 24)
+                tab_staff_rect = pygame.Rect(drawer_x + 264, 276, 250, 24)
                 if tab_eq_rect.collidepoint(mx, my):
                     self.inspector_tab = "EQUIPMENT"
                     self.inspector_scroll_y = 0.0
@@ -1547,7 +1661,7 @@ class FactoryTreeTab:
                 if self.inspector_tab == "EQUIPMENT":
                     # Equipment list item clicks
                     eq_items = gm.db.get_facility_equipment(gm.team_id, self.inspected_node_id)
-                    eq_list_rect = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
+                    eq_list_rect = pygame.Rect(drawer_x + 12, 304, 502, self.height - 395)
 
                     if eq_list_rect.collidepoint(mx, my):
                         item_y_start = eq_list_rect.y + self.inspector_scroll_y
@@ -1578,7 +1692,7 @@ class FactoryTreeTab:
                     p_data = gm.staff_manager.get_facility_personnel(gm.team_id, self.inspected_node_id, cur_t)
                     staff_list = p_data["staff"]
 
-                    staff_list_rect = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
+                    staff_list_rect = pygame.Rect(drawer_x + 12, 304, 502, self.height - 395)
                     if staff_list_rect.collidepoint(mx, my):
                         curr_y = staff_list_rect.y + self.inspector_scroll_y
 
@@ -1696,7 +1810,7 @@ class FactoryTreeTab:
             sx = self.pan_x + gx * self.zoom
             sy = self.pan_y + gy * self.zoom
             sw = 250 * self.zoom
-            sh = 90 * self.zoom
+            sh = 106 * self.zoom
 
             is_unlocked = bool(f.get("is_unlocked", False))
             cur_tier = f.get("current_tier") or 0
@@ -1709,8 +1823,8 @@ class FactoryTreeTab:
 
             if is_unlocked:
                 # Minus & Plus budget buttons
-                minus_btn = pygame.Rect(sx + 88 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
-                plus_btn = pygame.Rect(sx + 112 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
+                minus_btn = pygame.Rect(sx + 88 * self.zoom, sy + 80 * self.zoom, 20 * self.zoom, 18 * self.zoom)
+                plus_btn = pygame.Rect(sx + 112 * self.zoom, sy + 80 * self.zoom, 20 * self.zoom, 18 * self.zoom)
 
                 if minus_btn.collidepoint(mx, my):
                     st = gm.db.get_department_financial_status(gm.team_id, node_id, upkeep_mult=upkeep_mult)
@@ -1729,7 +1843,7 @@ class FactoryTreeTab:
 
                 # Upgrade Tier button
                 if cur_tier < max_tier:
-                    upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 64 * self.zoom, 70 * self.zoom, 20 * self.zoom)
+                    upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 80 * self.zoom, 70 * self.zoom, 20 * self.zoom)
                     if upg_btn.collidepoint(mx, my):
                         success, msg = em.upgrade_facility_node(gm.team_id, node_id, cost_mult=cost_mult)
                         self.status_message = msg
@@ -1741,7 +1855,7 @@ class FactoryTreeTab:
                 return True
             else:
                 # Build / Construct Button
-                build_btn = pygame.Rect(sx + sw - 92 * self.zoom, sy + 64 * self.zoom, 86 * self.zoom, 20 * self.zoom)
+                build_btn = pygame.Rect(sx + sw - 92 * self.zoom, sy + 80 * self.zoom, 86 * self.zoom, 20 * self.zoom)
                 if build_btn.collidepoint(mx, my):
                     can_b, req_msg = self._can_build_node(node_id, facilities)
                     if can_b:
@@ -1876,9 +1990,9 @@ class FactoryTreeTab:
             p2 = self.node_positions[v]
 
             x1 = self.pan_x + (p1[0] + 250) * self.zoom
-            y1 = self.pan_y + (p1[1] + 45) * self.zoom
+            y1 = self.pan_y + (p1[1] + 53) * self.zoom
             x2 = self.pan_x + p2[0] * self.zoom
-            y2 = self.pan_y + (p2[1] + 45) * self.zoom
+            y2 = self.pan_y + (p2[1] + 53) * self.zoom
 
             is_active = bool(u_f.get("is_unlocked", False) and v_f.get("is_unlocked", False))
             if is_active:
@@ -1902,7 +2016,7 @@ class FactoryTreeTab:
             sx = self.pan_x + gx * self.zoom
             sy = self.pan_y + gy * self.zoom
             sw = 250 * self.zoom
-            sh = 90 * self.zoom
+            sh = 106 * self.zoom
 
             if (
                 sx + sw < canvas_rect.x
@@ -1968,6 +2082,8 @@ class FactoryTreeTab:
                 (sx + 24 * self.zoom, sy + 6 * self.zoom),
             )
 
+            influenced_parts = self.get_facility_influenced_parts(node_id)
+
             if is_unlocked:
                 tier_str = f"TIER {cur_tier}/{max_tier}"
                 surface.blit(
@@ -1979,21 +2095,32 @@ class FactoryTreeTab:
                 disp_benefit = self._truncate_text(self.font_badge, b_info["benefit_str"], sw - 18 * self.zoom)
                 surface.blit(
                     self.font_badge.render(disp_benefit, True, b_info["tag_color"]),
-                    (sx + 10 * self.zoom, sy + 26 * self.zoom),
+                    (sx + 10 * self.zoom, sy + 23 * self.zoom),
                 )
 
-                # Row 3: Detail / Breakdown & Upkeep with Icon
+                # Row 3: Car Components Influence Mini-Grid (All 7 Car Parts)
+                self._draw_parts_grid(
+                    surface,
+                    sx + 8 * self.zoom,
+                    sy + 39 * self.zoom,
+                    sw - 16 * self.zoom,
+                    17 * self.zoom,
+                    influenced_parts,
+                    is_unlocked=True,
+                )
+
+                # Row 4: Detail / Breakdown & Upkeep with Icon
                 upk_amt_str = f"${f['base_upkeep'] * cur_tier:,.0f}/mo"
                 disp_upk = self._truncate_text(self.font_body, f"{b_info['detail_str']} |", sw - 80 * self.zoom)
                 surface.blit(
                     self.font_body.render(disp_upk, True, UITheme.TEXT_MUTED),
-                    (sx + 10 * self.zoom, sy + 46 * self.zoom),
+                    (sx + 10 * self.zoom, sy + 60 * self.zoom),
                 )
                 upk_x = sx + 10 * self.zoom + self.font_body.size(disp_upk)[0] + 4 * self.zoom
                 UITheme.draw_stat_item(
                     surface,
                     int(upk_x),
-                    int(sy + 46 * self.zoom),
+                    int(sy + 60 * self.zoom),
                     "trending-down",
                     upk_amt_str,
                     self.font_body,
@@ -2002,12 +2129,12 @@ class FactoryTreeTab:
                     icon_size=max(9, int(11 * self.zoom)),
                 )
 
-                # Row 4: Budget Controls (left/middle with icon) & Upgrade Button (right)
+                # Row 5: Budget Controls (left/middle with icon) & Upgrade Button (right)
                 bud_str = f"${sub_budget / 1000:.0f}k/mo" if sub_budget >= 1000 else f"${sub_budget:,.0f}/mo"
                 UITheme.draw_stat_item(
                     surface,
                     int(sx + 8 * self.zoom),
-                    int(sy + 66 * self.zoom),
+                    int(sy + 82 * self.zoom),
                     "circle-dollar-sign",
                     bud_str,
                     self.font_badge,
@@ -2016,8 +2143,8 @@ class FactoryTreeTab:
                     icon_size=max(9, int(12 * self.zoom)),
                 )
 
-                minus_btn = pygame.Rect(sx + 88 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
-                plus_btn = pygame.Rect(sx + 112 * self.zoom, sy + 64 * self.zoom, 20 * self.zoom, 18 * self.zoom)
+                minus_btn = pygame.Rect(sx + 88 * self.zoom, sy + 80 * self.zoom, 20 * self.zoom, 18 * self.zoom)
+                plus_btn = pygame.Rect(sx + 112 * self.zoom, sy + 80 * self.zoom, 20 * self.zoom, 18 * self.zoom)
 
                 pygame.draw.rect(surface, (45, 55, 70), minus_btn, border_radius=2)
                 pygame.draw.rect(surface, (45, 55, 70), plus_btn, border_radius=2)
@@ -2027,11 +2154,11 @@ class FactoryTreeTab:
                 surface.blit(m_txt, (minus_btn.x + (minus_btn.width - m_txt.get_width()) // 2, minus_btn.y + 1))
                 surface.blit(p_txt, (plus_btn.x + (plus_btn.width - p_txt.get_width()) // 2, plus_btn.y + 1))
 
-                # Upgrade button if not max tier (right side of Row 4)
+                # Upgrade button if not max tier (right side of Row 5)
                 if cur_tier < max_tier:
                     next_t = cur_tier + 1
                     upg_cost = f["base_cost"] * (1.5 if next_t == 2 else 2.5) * cost_mult
-                    upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 64 * self.zoom, 70 * self.zoom, 20 * self.zoom)
+                    upg_btn = pygame.Rect(sx + sw - 76 * self.zoom, sy + 80 * self.zoom, 70 * self.zoom, 20 * self.zoom)
                     upg_cost_str = f"${upg_cost / 1000000:.1f}M" if upg_cost >= 1000000 else f"${upg_cost / 1000:.0f}k"
                     UITheme.draw_button(
                         surface,
@@ -2043,7 +2170,7 @@ class FactoryTreeTab:
                     )
                 else:
                     max_lbl = self.font_badge.render("[MAX]", True, (255, 215, 0))
-                    surface.blit(max_lbl, (sx + sw - max_lbl.get_width() - 8 * self.zoom, sy + 66 * self.zoom))
+                    surface.blit(max_lbl, (sx + sw - max_lbl.get_width() - 8 * self.zoom, sy + 82 * self.zoom))
 
             else:
                 # Row 1 (Right): UNBUILT Badge
@@ -2056,21 +2183,32 @@ class FactoryTreeTab:
                 disp_benefit = self._truncate_text(self.font_badge, b_info["benefit_str"], sw - 18 * self.zoom)
                 surface.blit(
                     self.font_badge.render(disp_benefit, True, b_info["tag_color"]),
-                    (sx + 10 * self.zoom, sy + 26 * self.zoom),
+                    (sx + 10 * self.zoom, sy + 23 * self.zoom),
                 )
 
-                # Row 3: Detail / Base Upkeep with Icon
+                # Row 3: Car Components Influence Mini-Grid (Preview of what it will influence once built)
+                self._draw_parts_grid(
+                    surface,
+                    sx + 8 * self.zoom,
+                    sy + 39 * self.zoom,
+                    sw - 16 * self.zoom,
+                    17 * self.zoom,
+                    influenced_parts,
+                    is_unlocked=False,
+                )
+
+                # Row 4: Detail / Base Upkeep with Icon
                 upk_amt_str = f"${f['base_upkeep']:,.0f}/mo"
                 disp_cost = self._truncate_text(self.font_body, f"{b_info['detail_str']} |", sw - 80 * self.zoom)
                 surface.blit(
                     self.font_body.render(disp_cost, True, (140, 150, 160)),
-                    (sx + 10 * self.zoom, sy + 46 * self.zoom),
+                    (sx + 10 * self.zoom, sy + 60 * self.zoom),
                 )
                 upk_x = sx + 10 * self.zoom + self.font_body.size(disp_cost)[0] + 4 * self.zoom
                 UITheme.draw_stat_item(
                     surface,
                     int(upk_x),
-                    int(sy + 46 * self.zoom),
+                    int(sy + 60 * self.zoom),
                     "trending-down",
                     upk_amt_str,
                     self.font_body,
@@ -2079,13 +2217,13 @@ class FactoryTreeTab:
                     icon_size=max(9, int(11 * self.zoom)),
                 )
 
-                # Row 4: Cost with Icon (left) & BUILD Button (right)
+                # Row 5: Cost with Icon (left) & BUILD Button (right)
                 b_cost = f["base_cost"] * cost_mult
                 b_cost_str = f"${b_cost / 1000000:.1f}M" if b_cost >= 1000000 else f"${b_cost / 1000:.0f}k"
                 UITheme.draw_stat_item(
                     surface,
                     int(sx + 8 * self.zoom),
-                    int(sy + 66 * self.zoom),
+                    int(sy + 82 * self.zoom),
                     "circle-dollar-sign",
                     b_cost_str,
                     self.font_badge,
@@ -2095,7 +2233,7 @@ class FactoryTreeTab:
                 )
 
                 can_b, req_msg = self._can_build_node(node_id, facilities)
-                build_btn = pygame.Rect(sx + sw - 92 * self.zoom, sy + 64 * self.zoom, 86 * self.zoom, 20 * self.zoom)
+                build_btn = pygame.Rect(sx + sw - 92 * self.zoom, sy + 80 * self.zoom, 86 * self.zoom, 20 * self.zoom)
 
                 if can_b:
                     UITheme.draw_button(
@@ -2227,7 +2365,7 @@ class FactoryTreeTab:
             eq_items = gm.db.get_facility_equipment(gm.team_id, self.inspected_node_id, upkeep_mult=upkeep_mult)
 
             # Department Production & Upgrade Impact Breakdown Card
-            prod_rect = pygame.Rect(drawer_x + 12, 156, 502, 88)
+            prod_rect = pygame.Rect(drawer_x + 12, 156, 502, 116)
             pygame.draw.rect(surface, (18, 26, 38), prod_rect, border_radius=3)
             pygame.draw.rect(surface, (0, 180, 220), prod_rect, width=1, border_radius=3)
 
@@ -2243,45 +2381,28 @@ class FactoryTreeTab:
                 negative_penalty_mult,
             )
 
-            # Production Card Title
+            # Row 1: Production Card Title (left) & Facility Upgrade Button (right)
+            cur_t = fac_info.get("current_tier", 1)
+            max_t = fac_info.get("max_tier", 3)
+            title_w_limit = prod_rect.width - (145 if cur_t < max_t else 20)
+            disp_insp_title = self._truncate_text(self.font_card_title, insp_b["insp_title"], title_w_limit)
             UITheme.draw_stat_item(
                 surface,
                 prod_rect.x + 10,
-                prod_rect.y + 6,
+                prod_rect.y + 5,
                 "award",
-                insp_b["insp_title"],
+                disp_insp_title,
                 self.font_card_title,
                 text_color=(255, 215, 0),
                 icon_color=(255, 215, 0),
-                icon_size=15,
-            )
-
-            # Breakdown Line 1
-            surface.blit(
-                self.font_body.render(insp_b["insp_line1"], True, (200, 220, 240)), (prod_rect.x + 10, prod_rect.y + 26)
-            )
-
-            # Breakdown Line 2 (Highlighted Total Output / Advantage)
-            UITheme.draw_stat_item(
-                surface,
-                prod_rect.x + 10,
-                prod_rect.y + 46,
-                "zap",
-                insp_b["insp_line2"],
-                self.font_card_title,
-                text_color=(0, 255, 160),
-                icon_color=(0, 255, 160),
                 icon_size=14,
             )
 
-            # Breakdown Line 3 (Upgrade Impact) & Facility Upgrade Button
-            cur_t = fac_info.get("current_tier", 1)
-            max_t = fac_info.get("max_tier", 3)
             if cur_t < max_t:
                 next_t = cur_t + 1
                 upg_cost = fac_info.get("base_cost", 0) * (1.5 if next_t == 2 else 2.5) * cost_mult
                 upg_cost_str = f"${upg_cost / 1000000:.1f}M" if upg_cost >= 1000000 else f"${upg_cost / 1000:.0f}k"
-                fac_upg_btn = pygame.Rect(prod_rect.x + prod_rect.width - 134, prod_rect.y + 64, 126, 20)
+                fac_upg_btn = pygame.Rect(prod_rect.x + prod_rect.width - 134, prod_rect.y + 4, 126, 20)
                 UITheme.draw_button(
                     surface,
                     fac_upg_btn,
@@ -2290,17 +2411,75 @@ class FactoryTreeTab:
                     icon="wrench",
                     icon_size=11,
                 )
-                disp_line3 = self._truncate_text(self.font_badge, insp_b["insp_line3"], prod_rect.width - 146)
-            else:
-                disp_line3 = self._truncate_text(self.font_badge, insp_b["insp_line3"], prod_rect.width - 20)
 
-            surface.blit(self.font_badge.render(disp_line3, True, (255, 180, 40)), (prod_rect.x + 10, prod_rect.y + 68))
+            # Row 2: Car Components Influence Matrix (All 7 Car Parts)
+            inf_parts = self.get_facility_influenced_parts(self.inspected_node_id)
+            p_gap = 4
+            p_w = (prod_rect.width - 20 - 6 * p_gap) / 7
+            p_h = 28
+            for p_idx, (cat, code, icon_name, full_name) in enumerate(self.CAR_PARTS):
+                px = prod_rect.x + 10 + p_idx * (p_w + p_gap)
+                p_rect = pygame.Rect(int(px), prod_rect.y + 27, int(p_w), p_h)
+                is_inf = cat in inf_parts
+
+                if is_inf:
+                    p_bg = (14, 44, 56)
+                    p_border = (0, 240, 220)
+                    p_ic_col = (0, 245, 255)
+                    p_txt_col = (255, 255, 255)
+                    status_lbl = "ACTIVE"
+                    status_col = (0, 255, 160)
+                else:
+                    p_bg = (15, 19, 26)
+                    p_border = (28, 35, 46)
+                    p_ic_col = (55, 65, 78)
+                    p_txt_col = (65, 75, 88)
+                    status_lbl = "NONE"
+                    status_col = (70, 80, 95)
+
+                pygame.draw.rect(surface, p_bg, p_rect, border_radius=3)
+                pygame.draw.rect(surface, p_border, p_rect, width=1, border_radius=3)
+
+                # Icon + Code on line 1
+                p_ic = UIIcons.get_icon(icon_name, size=11, color=p_ic_col)
+                p_code_txt = self.font_badge.render(code, True, p_txt_col)
+                header_w = p_ic.get_width() + 3 + p_code_txt.get_width()
+                h_x = p_rect.x + (p_rect.width - header_w) // 2
+                surface.blit(p_ic, (h_x, p_rect.y + 3))
+                surface.blit(p_code_txt, (h_x + p_ic.get_width() + 3, p_rect.y + 2))
+
+                # Status on line 2
+                st_surf = self.font_mini.render(status_lbl, True, status_col)
+                surface.blit(st_surf, (p_rect.x + (p_rect.width - st_surf.get_width()) // 2, p_rect.y + 15))
+
+            # Row 3: Breakdown Line 1
+            surface.blit(
+                self.font_body.render(insp_b["insp_line1"], True, (200, 220, 240)),
+                (prod_rect.x + 10, prod_rect.y + 59),
+            )
+
+            # Row 4: Breakdown Line 2 (Highlighted Total Output / Advantage)
+            UITheme.draw_stat_item(
+                surface,
+                prod_rect.x + 10,
+                prod_rect.y + 77,
+                "zap",
+                insp_b["insp_line2"],
+                self.font_card_title,
+                text_color=(0, 255, 160),
+                icon_color=(0, 255, 160),
+                icon_size=13,
+            )
+
+            # Row 5: Breakdown Line 3 (Upgrade Impact)
+            disp_line3 = self._truncate_text(self.font_badge, insp_b["insp_line3"], prod_rect.width - 20)
+            surface.blit(self.font_badge.render(disp_line3, True, (255, 180, 40)), (prod_rect.x + 10, prod_rect.y + 96))
 
             # Sub-Tab Bar (Equipment Rigs vs Room Personnel Roster)
             is_pure_operational = self.inspected_node_id in ("hr_recruitment", "hr_headhunting", "hr_payroll")
             if is_pure_operational:
                 self.inspector_tab = "STAFF"
-                tab_staff_rect = pygame.Rect(drawer_x + 12, 248, 502, 24)
+                tab_staff_rect = pygame.Rect(drawer_x + 12, 276, 502, 24)
                 UITheme.draw_button(
                     surface,
                     tab_staff_rect,
@@ -2311,8 +2490,8 @@ class FactoryTreeTab:
                     icon_size=13,
                 )
             else:
-                tab_eq_rect = pygame.Rect(drawer_x + 12, 248, 246, 24)
-                tab_staff_rect = pygame.Rect(drawer_x + 264, 248, 250, 24)
+                tab_eq_rect = pygame.Rect(drawer_x + 12, 276, 246, 24)
+                tab_staff_rect = pygame.Rect(drawer_x + 264, 276, 250, 24)
 
                 eq_active = self.inspector_tab == "EQUIPMENT"
                 UITheme.draw_button(
@@ -2335,7 +2514,7 @@ class FactoryTreeTab:
                 )
 
             # Scrollable Canvas
-            eq_canvas = pygame.Rect(drawer_x + 12, 276, 502, self.height - 365)
+            eq_canvas = pygame.Rect(drawer_x + 12, 304, 502, self.height - 395)
             pygame.draw.rect(surface, (10, 14, 20), eq_canvas, border_radius=3)
             pygame.draw.rect(surface, (35, 45, 60), eq_canvas, width=1, border_radius=3)
 
