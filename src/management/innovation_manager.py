@@ -258,8 +258,6 @@ class InnovationManager:
                 trackside_crew_count = int(t_res) if t_res > 0 else max(3, int(workforce_count * 0.18))
 
         # Query unlocked factory upgrade levels for success bonuses
-        factory_bonus = 0.0
-        trackside_bonus = 0.0
         with self.db.get_connection() as conn:
             cur = conn.cursor()
             cur.execute(

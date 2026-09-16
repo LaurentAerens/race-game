@@ -45,7 +45,8 @@ def hex_to_rgb(hex_str: str) -> Tuple[int, int, int]:
         hex_str = hex_str.lstrip("#")
         if len(hex_str) == 6:
             return (int(hex_str[0:2], 16), int(hex_str[2:4], 16), int(hex_str[4:6], 16))
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
+        # Invalid hex color string format, use default fallback color
         pass
     return (70, 140, 240)
 

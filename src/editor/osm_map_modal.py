@@ -118,6 +118,7 @@ class OSMMapModal:
         try:
             pygame.key.start_text_input()
         except Exception:
+            # Older pygame versions or platforms without IME/text input support
             pass
 
     def close(self):
@@ -126,6 +127,7 @@ class OSMMapModal:
         try:
             pygame.key.stop_text_input()
         except Exception:
+            # Older pygame versions or platforms without IME/text input support
             pass
 
     def screen_to_world(self, sx: int, sy: int) -> Tuple[float, float]:
@@ -340,6 +342,7 @@ class OSMMapModal:
                 try:
                     pygame.key.start_text_input()
                 except Exception:
+                    # Ignore if platform doesn't support text input API
                     pass
                 return True
             else:

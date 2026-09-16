@@ -414,16 +414,13 @@ class StaffManager:
             policies = self.db.get_hr_policies(team_id)
 
             t_rec = fac_tiers.get("hr_recruitment", 0)
-            t_head = fac_tiers.get("hr_headhunting", 0)
             t_pay = fac_tiers.get("hr_payroll", 0)
             t_team = fac_tiers.get("hr_teambuilding", 0)
             t_lead = fac_tiers.get("hr_leadership_institute", 0)
-            t_rev = fac_tiers.get("hr_performance_review", 0)
             t_cull = fac_tiers.get("hr_performance_cull", 0)
             t_tech = fac_tiers.get("hr_tech_academy", 0)
             t_craft = fac_tiers.get("hr_craft_workshop", 0)
             t_opt = fac_tiers.get("hr_workforce_optimizer", 0)
-            t_well = fac_tiers.get("hr_wellness_center", 0)
             t_proc = fac_tiers.get("hr_equipment_procurement", 0)
             t_mgmt = fac_tiers.get("mgmt_boardroom", 0)
 
@@ -941,7 +938,6 @@ class StaffManager:
             if not p_row:
                 return False, "Personnel not found."
             p_name = p_row[0]
-            old_role = p_row[1]
             old_node = p_row[2]
 
             if new_node_id is None:

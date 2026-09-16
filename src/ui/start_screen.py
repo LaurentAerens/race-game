@@ -217,14 +217,12 @@ class StartScreen:
                         return
 
                 # Tutorial Checkbox Click
-                tut_box = pygame.Rect(self.width // 2 - 200, self.height - 102, 400, 24)
                 tut_box = pygame.Rect(self.width // 2 - 220, self.height - 104, 440, 24)
                 if tut_box.collidepoint(mx, my):
                     self.enable_tutorial = not self.enable_tutorial
                     return
 
                 # Start Career Button (Bottom Center)
-                btn_start = pygame.Rect(self.width // 2 - 220, self.height - 66, 440, 46)
                 btn_start = pygame.Rect(self.width // 2 - 220, self.height - 74, 440, 44)
                 if btn_start.collidepoint(mx, my):
                     color_hex = COLOR_PALETTE[self.selected_color_idx][0]

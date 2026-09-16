@@ -73,6 +73,7 @@ def parse_osm_road_width(tags: Dict[str, Any]) -> float:
                 if 2.5 <= w_val <= 45.0:
                     return round(max(7.0, min(30.0, w_val)), 2)
             except ValueError:
+                # Value could not be parsed as float, proceed to next tag
                 pass
 
     # 2. Try 'lanes' tag
@@ -86,6 +87,7 @@ def parse_osm_road_width(tags: Dict[str, Any]) -> float:
                 calculated_w = max(7.5, lanes * 3.5 + 4.0)
                 return round(max(7.0, min(30.0, calculated_w)), 2)
         except ValueError:
+            # Value could not be parsed as int/float, fall back to highway classification
             pass
 
     # 3. Fallback based on road classification
@@ -102,7 +104,6 @@ def project_gps_to_meters(lat: float, lon: float, lat0: float, lon0: float) -> T
     x: Easting (+)
     y: Northing (-) so that North is upwards in typical Pygame 2D canvas.
     """
-    lat_rad = math.radians(lat)
     lat0_rad = math.radians(lat0)
     d_lon_rad = math.radians(lon - lon0)
     d_lat_rad = math.radians(lat - lat0)
@@ -209,6 +210,7 @@ def fetch_road_network(
                             reprojected_ways.append(w_copy)
                     return {"center": [lat, lon], "radius": radius_m, "ways": reprojected_ways}
         except Exception:
+            # Cache read/deserialization failed, proceed to live query
             pass
 
     # Build Overpass QL query covering all drivable roads as well as cycleways, bike highways, paths, and service tracks

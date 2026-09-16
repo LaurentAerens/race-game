@@ -730,7 +730,6 @@ class Car:
                     self.overtake_move_type = "DIVE_BOMB"
                     # Huge brake advantage carries speed effortlessly
                     if brake_ratio > 1.20 or (self.driver.braking > 0.90 and brake_ratio > 1.05):
-                        target_v = max(target_v, car_ahead.speed * 1.05)
                         if ahead_defending and not car_ahead.locked_up and random.random() < 0.06:
                             car_ahead.locked_up = True
                             car_ahead.lockup_timer = 1.0

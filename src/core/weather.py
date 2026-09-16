@@ -132,8 +132,6 @@ class WeatherSystem:
         duration = random.randint(max(3, int(total_laps * 0.30)), max(6, int(total_laps * 0.85)))
         end_lap = min(total_laps + 10, start_lap + duration)
         peak_intensity = min(1.0, self.max_race_wetness)
-
-        curr = self.rain_intensity
         for lap in range(1, total_laps + 1):
             if start_lap <= lap <= end_lap:
                 ramp_laps = max(1, int((end_lap - start_lap) * 0.25))

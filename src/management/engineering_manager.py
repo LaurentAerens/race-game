@@ -1162,7 +1162,6 @@ class EngineeringManager:
                 fac_name = fac["name"]
                 fac_tier = fac["current_tier"]
                 status = self.db.get_department_financial_status(team_id, node_id, upkeep_mult=upkeep_mult)
-                budget = status["monthly_budget"]
                 surplus_deficit = status["surplus_or_deficit"]
                 equipment_list = self.db.get_facility_equipment(team_id, node_id, upkeep_mult=upkeep_mult)
 

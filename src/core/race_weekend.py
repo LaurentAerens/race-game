@@ -329,6 +329,7 @@ class RaceWeekendManager:
                     if c.length > 50.0:
                         return float(c.length)
                 except Exception:
+                    # Ignore corrupted or unreadable circuit JSON and fall back to known lengths
                     pass
 
         # 3. Known fallback lengths based on track file name

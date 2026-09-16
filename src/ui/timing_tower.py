@@ -50,7 +50,6 @@ class TimingTower:
 
         # Header columns with icons
         txt_pos = self.font_header.render("POS", True, UITheme.TEXT_MUTED)
-        txt_drv = self.font_header.render("DRIVER", True, UITheme.TEXT_MUTED)
         surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
 
         ic_drv = UIIcons.get_icon("user", size=12, color=UITheme.TEXT_MUTED)
