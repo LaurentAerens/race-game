@@ -71,12 +71,6 @@ class TimingTower:
         txt_pit = self.font_header.render("PIT", True, UITheme.TEXT_MUTED)
         surface.blit(txt_pit, (self.rect.x + 265, self.rect.y + 6))
 
-        surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
-        surface.blit(txt_drv, (self.rect.x + 42, self.rect.y + 6))
-        surface.blit(txt_gap, (self.rect.x + 130, self.rect.y + 6))
-        surface.blit(txt_tire, (self.rect.x + 195, self.rect.y + 6))
-        surface.blit(txt_pit, (self.rect.x + 252, self.rect.y + 6))
-
         # Rows
         start_y = self.rect.y + 28
         for i, car in enumerate(sim.cars[:20]):

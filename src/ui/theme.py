@@ -170,10 +170,11 @@ class UITheme:
                     txt_surf, (start_x + ic_surf.get_width() + gap, rect.y + (rect.height - txt_surf.get_height()) // 2)
                 )
             else:
+                ox = 1 if icon == "play" else 0
                 surface.blit(
                     ic_surf,
                     (
-                        rect.x + (rect.width - ic_surf.get_width()) // 2,
+                        rect.x + (rect.width - ic_surf.get_width()) // 2 + ox,
                         rect.y + (rect.height - ic_surf.get_height()) // 2,
                     ),
                 )
