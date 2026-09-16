@@ -197,12 +197,18 @@ class CarEngineeringTab:
             # Component Title & Generation Badge with Icon
             cat_icon = {
                 "BRAKES": "octagon",
+                "FRONT_WING": "wind",
                 "REAR_WING": "flag",
                 "FRONT_WING": "shield",
                 "SUSPENSION": "network",
                 "ENGINE": "wrench",
                 "FLOOR": "shield",
                 "ERS": "zap",
+                "FLOOR": "layers",
+                "SUSPENSION": "sliders",
+                "BRAKES": "disc",
+                "ENGINE": "cpu",
+                "ERS": "battery-charging",
             }.get(comp["category"], "wrench")
 
             title_col = (255, 255, 255) if can_develop else UITheme.TEXT_MUTED
@@ -289,16 +295,48 @@ class CarEngineeringTab:
                 line2 = "No R&D Permitted"
                 col1 = (160, 160, 160)
                 col2 = (120, 120, 120)
+                surface.blit(self.font_badge.render(line1, True, (160, 160, 160)), (bar_rect.x + 6, bar_rect.y + 2))
+                surface.blit(self.font_badge.render(line2, True, (120, 120, 120)), (bar_rect.x + 6, bar_rect.y + 15))
             elif not is_fac_ready:
                 line1 = "FACILITY LOCKED"
                 line2 = f"Build {fac_name} (Lvl 1)"
                 col1 = (255, 140, 60)
                 col2 = (220, 160, 100)
+                surface.blit(self.font_badge.render(line1, True, (255, 140, 60)), (bar_rect.x + 6, bar_rect.y + 2))
+                surface.blit(self.font_badge.render(line2, True, (220, 160, 100)), (bar_rect.x + 6, bar_rect.y + 15))
             else:
                 line1 = f"KNOWLEDGE: ({races} races)"
                 line2 = f"+{k_min:.1f}–{k_max:.1f} Perf | +{rk_min:.1f}–{rk_max:.1f}% Rel"
                 col1 = (255, 255, 255)
                 col2 = (0, 230, 245)
+                surface.blit(self.font_badge.render(line1, True, (255, 255, 255)), (bar_rect.x + 6, bar_rect.y + 2))
+                kx = bar_rect.x + 6
+                ky = bar_rect.y + 15
+                kx += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        kx,
+                        ky,
+                        "zap",
+                        f"+{k_min:.1f}–{k_max:.1f}",
+                        self.font_badge,
+                        text_color=(0, 230, 245),
+                        icon_color=(255, 200, 40),
+                        icon_size=11,
+                    )
+                    + 8
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    kx,
+                    ky,
+                    "shield",
+                    f"+{rk_min:.1f}–{rk_max:.1f}%",
+                    self.font_badge,
+                    text_color=(0, 230, 245),
+                    icon_color=(0, 240, 140),
+                    icon_size=11,
+                )
 
             surface.blit(self.font_badge.render(line1, True, col1), (bar_rect.x + 6, bar_rect.y + 2))
             surface.blit(self.font_badge.render(line2, True, col2), (bar_rect.x + 6, bar_rect.y + 15))
@@ -554,22 +592,86 @@ class CarEngineeringTab:
         surface.blit(self.font_body.render(alloc_info, True, UITheme.TEXT_WHITE), (s_start_x + 270, btn_y + 4))
 
         # Stats lines
+        # Stats lines with icons
         pts = ng_status.get("points", 0.0)
         perf_b = ng_status.get("projected_perf_boost", 0.0)
         rel_b = ng_status.get("projected_rel_boost", 0.0)
         tire_b = ng_status.get("projected_tire_pres_bonus", 0.0)
         fuel_b = ng_status.get("projected_fuel_eff_bonus", 0.0)
         stat1 = f"Accumulated: {pts:,.0f} pts | Next-Year Base Boost: +{perf_b:.1f} Perf, +{rel_b:.1f}% Rel"
+
+        # Row 1: Accumulated Points & Next-Year Base Boost with icons
+        sx = ng_rect.x + 10
+        sy = ng_rect.y + 74
+        lbl_acc = self.font_body.render(f"Accumulated: {pts:,.0f} pts  |  Next-Year Boost: ", True, (0, 220, 255))
+        surface.blit(lbl_acc, (sx, sy))
+        sx += lbl_acc.get_width()
+        sx += (
+            UITheme.draw_stat_item(
+                surface,
+                sx,
+                sy,
+                "zap",
+                f"+{perf_b:.1f}",
+                self.font_body,
+                text_color=(0, 220, 255),
+                icon_color=(255, 200, 40),
+                icon_size=12,
+            )
+            + 10
+        )
+        UITheme.draw_stat_item(
+            surface,
+            sx,
+            sy,
+            "shield",
+            f"+{rel_b:.1f}%",
+            self.font_body,
+            text_color=(0, 220, 255),
+            icon_color=(0, 240, 140),
+            icon_size=12,
+        )
+
         stat2 = f"Chassis Perks: +{tire_b:.1f}% Tyre Life, +{fuel_b:.1f}% Fuel Mileage (Applies to all parts!)"
         surface.blit(self.font_body.render(stat1, True, (0, 220, 255)), (ng_rect.x + 10, ng_rect.y + 74))
         surface.blit(self.font_badge.render(stat2, True, (150, 240, 150)), (ng_rect.x + 10, ng_rect.y + 92))
 
         # Active chassis base rating display
+        # Active chassis base rating display with icons
         act_p = ng_status.get("active_chassis_perf_boost", 0.0)
         act_r = ng_status.get("active_chassis_rel_boost", 0.0)
         cur_chassis_str = f"Active Chassis: +{act_p:.1f} Perf, +{act_r:.1f}% Rel"
         surface.blit(
             self.font_badge.render(cur_chassis_str, True, UITheme.TEXT_MUTED), (ng_rect.x + 10, ng_rect.y + 110)
+        cx = ng_rect.x + 10
+        cy = ng_rect.y + 110
+        lbl_act = self.font_badge.render("Active Chassis Base: ", True, UITheme.TEXT_MUTED)
+        surface.blit(lbl_act, (cx, cy))
+        cx += lbl_act.get_width()
+        cx += (
+            UITheme.draw_stat_item(
+                surface,
+                cx,
+                cy,
+                "zap",
+                f"+{act_p:.1f}",
+                self.font_badge,
+                text_color=UITheme.TEXT_MUTED,
+                icon_color=(255, 200, 40),
+                icon_size=11,
+            )
+            + 8
+        )
+        UITheme.draw_stat_item(
+            surface,
+            cx,
+            cy,
+            "shield",
+            f"+{act_r:.1f}%",
+            self.font_badge,
+            text_color=UITheme.TEXT_MUTED,
+            icon_color=(0, 240, 140),
+            icon_size=11,
         )
 
         # Port-Back Row
@@ -590,6 +692,7 @@ class CarEngineeringTab:
             pygame.draw.rect(surface, (40, 180, 80), pb_box, width=1, border_radius=3)
             pb_txt = self.font_body.render(
                 f"PORT-BACK TRACK TESTING: +{bonus_rel:.2f}% Rel telemetry active ({bonus_wks} wks left)",
+                f"PORT-BACK TRACK TESTING: +{bonus_rel:.2f}% Reliability telemetry active ({bonus_wks} wks left)",
                 True,
                 (100, 255, 150),
             )
