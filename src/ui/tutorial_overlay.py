@@ -224,7 +224,6 @@ class TutorialOverlay:
 
             # Button rects at bottom of card
             btn_y = card_rect.bottom - 44
-            btn_w = 110
             btn_h = 32
 
             btn_skip = pygame.Rect(card_rect.x + 16, btn_y, 100, btn_h)

@@ -102,15 +102,12 @@ class BroadcastHeader:
         surface.blit(lap_ic, (190, 8))
         lap_str = f"LAP {min(sim.total_laps, sim.current_lap)} / {sim.total_laps}"
         l_surf = self.font_lap.render(lap_str, True, UITheme.ACCENT_YELLOW)
-        surface.blit(l_surf, (190, 6))
         surface.blit(l_surf, (208, 6))
 
-        clock_str = f"TIME: {sim.format_time(sim.race_time)}"
         clock_ic = UIIcons.get_icon("timer", size=12, color=UITheme.TEXT_MUTED)
         surface.blit(clock_ic, (190, 28))
         clock_str = sim.format_time(sim.race_time)
         c_surf = self.font_sub.render(clock_str, True, UITheme.TEXT_MUTED)
-        surface.blit(c_surf, (190, 26))
         surface.blit(c_surf, (206, 26))
 
         # 3. Weather Radar & Track Wetness (extends width if weather station is present)

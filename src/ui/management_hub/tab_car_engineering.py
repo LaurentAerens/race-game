@@ -100,7 +100,6 @@ class CarEngineeringTab:
                 return True
 
         # 5. Next-Gen R&D Card Click (under warehouse)
-        ng_status = em.get_team_next_gen_status(gm.team_id)
         ng_rect_y = 450
         btn_w = 58
         btn_h = 24

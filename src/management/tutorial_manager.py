@@ -320,6 +320,7 @@ class TutorialManager:
         try:
             self.db.save_tutorial_progress(self.team_id, step_id, self.is_active, self.is_completed, self.is_skipped)
         except Exception:
+            # Fallback if DB saving fails (e.g. table not migrated or closed connection)
             pass
 
     def _get_step_index_by_id(self, step_id: str) -> int:
@@ -381,6 +382,7 @@ class TutorialManager:
             try:
                 self.db.reset_tutorial_progress(self.team_id)
             except Exception:
+                # Silently ignore DB reset errors in transient or uninitialized test environments
                 pass
         first_step = self.get_current_step()
         if first_step and first_step.required_tab and self.on_switch_tab:
@@ -412,6 +414,7 @@ class TutorialManager:
                     description=f"Tutorial Incentive: {step.title}",
                 )
             except Exception:
+                # Silently ignore failure to credit reward if DB transaction fails
                 pass
 
     def sync_game_state(self, current_mode: str, current_tab: Optional[str] = None):

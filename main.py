@@ -40,6 +40,7 @@ if sys.platform == "win32":
         try:
             ctypes.windll.user32.SetProcessDPIAware()
         except Exception:
+            # DPI awareness calls may fail on older Windows versions or headless environments
             pass
 
 

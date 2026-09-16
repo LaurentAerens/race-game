@@ -92,9 +92,8 @@ class RaceWeekendScreen:
             ("brake_bias", 50.0, 65.0),
         ]
 
-        for idx, (p_name, min_v, max_v) in enumerate(param_names):
+        for p_name, min_v, max_v in param_names:
             if self.dragging_param == p_name:
-                row_y = setup_rect.y + 36 + idx * 36
                 track_x = setup_rect.x + 185
                 track_w = 170
                 rel_x = max(0, min(track_w, mx - track_x))

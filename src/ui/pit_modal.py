@@ -210,8 +210,6 @@ class PitStrategyModal:
         pygame.draw.rect(surface, fw_bg, fw_rect, border_radius=4)
         pygame.draw.rect(surface, fw_border, fw_rect, width=2 if self.replace_front_wing else 1, border_radius=4)
 
-        chk_icon = "[X]" if self.replace_front_wing else "[ ]"
-        stock_txt = f"{chk_icon} SWAP FRONT WING (+4.0s)"
         chk_name = "check" if self.replace_front_wing else "wrench"
         chk_col = (0, 230, 110) if self.replace_front_wing else UITheme.TEXT_MUTED
         chk_ic = UIIcons.get_icon(chk_name, size=13, color=chk_col)
@@ -219,14 +217,12 @@ class PitStrategyModal:
 
         stock_txt = "SWAP FRONT WING (+4.0s)"
         stock_col = UITheme.TEXT_WHITE if self.spare_wing_available else (120, 120, 120)
-        surface.blit(self.font_btn.render(stock_txt, True, stock_col), (fw_rect.x + 8, fw_rect.y + 6))
         surface.blit(self.font_btn.render(stock_txt, True, stock_col), (fw_rect.x + 25, fw_rect.y + 6))
         avail_txt = (
             f"Spare in Stock ({self.spare_wing_durability:.0f}%)" if self.spare_wing_available else "NO SPARE IN STOCK"
         )
         surface.blit(
             self.font_badge.render(avail_txt, True, (0, 200, 220) if self.spare_wing_available else (220, 60, 60)),
-            (fw_rect.x + 8, fw_rect.y + 24),
             (fw_rect.x + 25, fw_rect.y + 24),
         )
 
@@ -236,9 +232,6 @@ class PitStrategyModal:
         pygame.draw.rect(surface, er_bg, er_rect, border_radius=4)
         pygame.draw.rect(surface, er_border, er_rect, width=2 if self.emergency_repairs else 1, border_radius=4)
 
-        er_chk = "[X]" if self.emergency_repairs else "[ ]"
-        er_txt = f"{er_chk} EMERGENCY REPAIRS (+14.0s)"
-        surface.blit(self.font_btn.render(er_txt, True, UITheme.TEXT_WHITE), (er_rect.x + 8, er_rect.y + 6))
         er_ic_name = "check" if self.emergency_repairs else "shield"
         er_ic_col = (255, 140, 40) if self.emergency_repairs else UITheme.TEXT_MUTED
         er_ic = UIIcons.get_icon(er_ic_name, size=13, color=er_ic_col)
@@ -247,7 +240,6 @@ class PitStrategyModal:
         er_txt = "EMERGENCY REPAIRS (+14.0s)"
         surface.blit(self.font_btn.render(er_txt, True, UITheme.TEXT_WHITE), (er_rect.x + 25, er_rect.y + 6))
         er_sub = "Patches worn parts back to 55-60%"
-        surface.blit(self.font_badge.render(er_sub, True, (255, 180, 80)), (er_rect.x + 8, er_rect.y + 24))
         surface.blit(self.font_badge.render(er_sub, True, (255, 180, 80)), (er_rect.x + 25, er_rect.y + 24))
 
         # 3. Pit Duration Forecast
@@ -256,7 +248,6 @@ class PitStrategyModal:
             est_stop += 4.0
         if self.emergency_repairs:
             est_stop += 14.0
-        forecast_str = f"Estimated Stationary Stop Duration: ~{est_stop:.1f}s (Tire Change: ~2.4s"
 
         t_ic = UIIcons.get_icon("timer", size=13, color=(255, 215, 0))
         surface.blit(t_ic, (self.rect.x + 22, self.rect.y + 252))
@@ -268,7 +259,6 @@ class PitStrategyModal:
             forecast_str += " + 14.0s Repairs"
         forecast_str += ")"
         f_surf = self.font_badge.render(forecast_str, True, (255, 215, 0))
-        surface.blit(f_surf, (self.rect.x + 22, self.rect.y + 252))
         surface.blit(f_surf, (self.rect.x + 39, self.rect.y + 252))
 
         # Part health overview line
