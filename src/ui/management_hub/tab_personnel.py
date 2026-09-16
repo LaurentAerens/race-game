@@ -661,6 +661,50 @@ class PersonnelTab:
                     dir_sub = f"Leadership: {dir_obj.get('stat_leadership', 50):.0f} | Core: {dir_obj.get('stat_engineering', 50):.0f} | Salary: ${dir_obj.get('salary_monthly', 12000):,.0f}/mo"
                     surface.blit(
                         self.font_body.render(dir_sub, True, (180, 200, 220)), (dir_card.x + 32, dir_card.y + 24)
+                    ds_x = dir_card.x + 32
+                    ds_y = dir_card.y + 24
+                    gap = 14
+                    ds_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            ds_x,
+                            ds_y,
+                            "award",
+                            f"Leadership: {dir_obj.get('stat_leadership', 50):.0f}",
+                            self.font_body,
+                            text_color=(180, 200, 220),
+                            icon_color=(255, 160, 200),
+                            icon_size=12,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    ds_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            ds_x,
+                            ds_y,
+                            "wrench",
+                            f"Core: {dir_obj.get('stat_engineering', 50):.0f}",
+                            self.font_body,
+                            text_color=(180, 200, 220),
+                            icon_color=(0, 220, 255),
+                            icon_size=12,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    UITheme.draw_stat_item(
+                        surface,
+                        ds_x,
+                        ds_y,
+                        "circle-dollar-sign",
+                        f"${dir_obj.get('salary_monthly', 12000):,.0f}/mo",
+                        self.font_body,
+                        text_color=(180, 200, 220),
+                        icon_color=(255, 200, 40),
+                        icon_size=12,
+                        gap=3,
                     )
                 else:
                     pygame.draw.rect(surface, (28, 20, 24), dir_card, border_radius=3)
@@ -874,6 +918,80 @@ class PersonnelTab:
                 stats_line = f"Eng: {e_str} | Craft: {c_str} | Mkt: {m_str} | Comm: {comm_str} | Wage: ${app.get('salary_requested', 1000):,.0f}/mo"
                 surface.blit(
                     self.font_body.render(stats_line, True, UITheme.TEXT_MUTED), (card_r.x + 32, card_r.y + 30)
+                st_x = card_r.x + 32
+                st_y = card_r.y + 30
+                gap = 10
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "wrench",
+                        f"Eng: {e_str}",
+                        self.font_body,
+                        UITheme.TEXT_MUTED,
+                        (0, 220, 255),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "sparkles",
+                        f"Craft: {c_str}",
+                        self.font_body,
+                        UITheme.TEXT_MUTED,
+                        (255, 180, 40),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "trending-up",
+                        f"Mkt: {m_str}",
+                        self.font_body,
+                        UITheme.TEXT_MUTED,
+                        (255, 215, 0),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "radio",
+                        f"Comm: {comm_str}",
+                        self.font_body,
+                        UITheme.TEXT_MUTED,
+                        (140, 200, 255),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    st_x,
+                    st_y,
+                    "circle-dollar-sign",
+                    f"${app.get('salary_requested', 1000):,.0f}/mo",
+                    self.font_body,
+                    UITheme.TEXT_MUTED,
+                    (255, 200, 40),
+                    icon_size=12,
+                    gap=3,
                 )
 
                 # Buttons
@@ -949,6 +1067,66 @@ class PersonnelTab:
                 l_scout = gm.staff_manager.get_stat_scouting_display(gm.team_id, r_p.get("stat_leadership", 50))
                 r_stat = f"Eng: {e_scout} | Lead: {l_scout} | Current Wage: ${cur_sal:,.0f}/mo | Est. Buyout: ${cur_sal * 6:,.0f}"
                 surface.blit(self.font_body.render(r_stat, True, (180, 200, 220)), (r_card.x + 32, r_card.y + 28))
+                rt_x = r_card.x + 32
+                rt_y = r_card.y + 28
+                gap = 12
+                rt_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        rt_x,
+                        rt_y,
+                        "wrench",
+                        f"Eng: {e_scout}",
+                        self.font_body,
+                        (180, 200, 220),
+                        (0, 220, 255),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                rt_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        rt_x,
+                        rt_y,
+                        "award",
+                        f"Lead: {l_scout}",
+                        self.font_body,
+                        (180, 200, 220),
+                        (255, 160, 200),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                rt_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        rt_x,
+                        rt_y,
+                        "circle-dollar-sign",
+                        f"Wage: ${cur_sal:,.0f}/mo",
+                        self.font_body,
+                        (180, 200, 220),
+                        (255, 200, 40),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    rt_x,
+                    rt_y,
+                    "coins",
+                    f"Buyout: ${cur_sal * 6:,.0f}",
+                    self.font_body,
+                    (180, 200, 220),
+                    (255, 140, 40),
+                    icon_size=12,
+                    gap=3,
+                )
 
                 poach_btn = pygame.Rect(r_card.x + r_card.width - 160, r_card.y + 18, 150, 30)
                 UITheme.draw_button(surface, poach_btn, "POACH & ASSIGN", self.font_btn, icon="briefcase", icon_size=14)

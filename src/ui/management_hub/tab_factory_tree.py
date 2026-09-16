@@ -2772,18 +2772,53 @@ class FactoryTreeTab:
                     surface.blit(
                         self.font_body.render(lead_str, True, (180, 210, 240)),
                         (head_card_rect.x + 8, head_card_rect.y + 44),
+                    hs_x = head_card_rect.x + 8
+                    hs_y = head_card_rect.y + 44
+                    gap = 12
+                    hs_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            hs_x,
+                            hs_y,
+                            "award",
+                            f"Leadership: {head.get('stat_leadership', 50):.0f}",
+                            self.font_body,
+                            text_color=(180, 210, 240),
+                            icon_color=(255, 160, 200),
+                            icon_size=11,
+                            gap=3,
+                        )
+                        + gap
                     )
                     lead_w = self.font_body.size(lead_str)[0]
+                    hs_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            hs_x,
+                            hs_y,
+                            "zap",
+                            f"Multiplier: {p_out['head_mult']:.2f}x",
+                            self.font_body,
+                            text_color=(180, 210, 240),
+                            icon_color=(0, 220, 255),
+                            icon_size=11,
+                            gap=3,
+                        )
+                        + gap
+                    )
                     UITheme.draw_stat_item(
                         surface,
                         head_card_rect.x + 8 + lead_w,
                         head_card_rect.y + 44,
+                        hs_x,
+                        hs_y,
                         "trending-down",
                         f"${head.get('salary_monthly', 8000):,.0f}/mo",
                         self.font_body,
                         text_color=(180, 210, 240),
                         icon_color=(255, 140, 40),
                         icon_size=11,
+                        gap=3,
                     )
                 else:
                     UITheme.draw_icon(
@@ -2865,7 +2900,70 @@ class FactoryTreeTab:
                     surface.blit(
                         self.font_body.render(stat_info, True, (255, 160, 40) if is_mentoring else UITheme.TEXT_MUTED),
                         (s_rect.x + 8, s_rect.y + 26),
+                    mor = s.get("morale", 85)
+                    mor_col = (0, 240, 140) if mor >= 80 else ((255, 200, 40) if mor >= 60 else (255, 90, 90))
+
+                    ss_x = s_rect.x + 8
+                    ss_y = s_rect.y + 26
+                    gap = 10
+                    ss_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            ss_x,
+                            ss_y,
+                            "wrench",
+                            f"Eng: {s.get('stat_engineering', 35):.0f}",
+                            self.font_body,
+                            text_color=UITheme.TEXT_MUTED,
+                            icon_color=(0, 220, 255),
+                            icon_size=11,
+                            gap=3,
+                        )
+                        + gap
                     )
+                    ss_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            ss_x,
+                            ss_y,
+                            "sparkles",
+                            f"Craft: {s.get('stat_craftsmanship', 35):.0f}",
+                            self.font_body,
+                            text_color=UITheme.TEXT_MUTED,
+                            icon_color=(255, 180, 40),
+                            icon_size=11,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    ss_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            ss_x,
+                            ss_y,
+                            "heart",
+                            f"{mor:.0f}%",
+                            self.font_body,
+                            text_color=mor_col,
+                            icon_color=mor_col,
+                            icon_size=11,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    if is_mentoring:
+                        UITheme.draw_stat_item(
+                            surface,
+                            ss_x,
+                            ss_y,
+                            "graduation-cap",
+                            "MENTOR (-15%)",
+                            self.font_badge,
+                            text_color=(255, 160, 40),
+                            icon_color=(255, 160, 40),
+                            icon_size=11,
+                            gap=3,
+                        )
 
                     # Promote to Head Button
                     p_btn = pygame.Rect(s_rect.x + s_rect.width - 165, s_rect.y + 24, 80, 20)
@@ -2959,6 +3057,19 @@ class FactoryTreeTab:
                     if is_done:
                         pot_str = f"Tryout Complete! True Potential: {intern.get('stat_potential', 70)}/100 (Ready for Full Contract)"
                         surface.blit(self.font_body.render(pot_str, True, (0, 255, 160)), (i_rect.x + 8, i_rect.y + 26))
+                        pot_val = intern.get("stat_potential", 70)
+                        UITheme.draw_stat_item(
+                            surface,
+                            i_rect.x + 8,
+                            i_rect.y + 26,
+                            "zap",
+                            f"Tryout Complete! True Potential: {pot_val}/100 (Ready for Full Contract)",
+                            self.font_body,
+                            text_color=(0, 255, 160),
+                            icon_color=(180, 140, 255),
+                            icon_size=12,
+                            gap=4,
+                        )
                     else:
                         m_info = "Shadowing Staff Mentor (Mentor takes -15% guidance penalty)"
                         surface.blit(

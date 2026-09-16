@@ -1245,6 +1245,50 @@ class DatabaseExplorerTab:
                         UITheme.TEXT_MUTED,
                     ),
                     (c_rect.x + 10, c_rect.y + 38),
+                ds_x = c_rect.x + 10
+                ds_y = c_rect.y + 38
+                gap = 12
+                ds_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        ds_x,
+                        ds_y,
+                        "zap",
+                        f"Pace: {d.get('pace', 50)}",
+                        self.font_body,
+                        text_color=UITheme.TEXT_MUTED,
+                        icon_color=(255, 215, 0),
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                ds_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        ds_x,
+                        ds_y,
+                        "user",
+                        f"Age: {d.get('age', 25)}",
+                        self.font_body,
+                        text_color=UITheme.TEXT_MUTED,
+                        icon_color=UITheme.TEXT_MUTED,
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    ds_x,
+                    ds_y,
+                    "trophy",
+                    f"{d.get('points', 0)} PTS",
+                    self.font_body,
+                    text_color=UITheme.TEXT_MUTED,
+                    icon_color=(0, 220, 255),
+                    icon_size=11,
+                    gap=3,
                 )
 
                 view_btn = pygame.Rect(c_rect.x + c_rect.width - 92, c_rect.y + 16, 84, 24)

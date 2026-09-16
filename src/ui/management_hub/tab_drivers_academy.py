@@ -606,6 +606,7 @@ class DriversAcademyTab:
             surface.blit(
                 self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE), (dossier_btn.x + 8, dossier_btn.y + 3)
             )
+            UITheme.draw_button(surface, dossier_btn, "DOSSIER", self.font_badge, icon="user", icon_size=11)
 
             # Line 2: Driver Demographics & Contract Type Badge (dedicated row)
             demo_str = f"{d['age']}yo | #{d['number']}"
@@ -620,10 +621,176 @@ class DriversAcademyTab:
             stat_str2 = f"Tires: {d['tire_management']} | Defending: {d['defending']} | Fuel: {d['fuel_efficiency']} | Wet: {d['wet_weather']}"
             surface.blit(self.font_body.render(stat_str1, True, UITheme.TEXT_WHITE), (d_rect.x + 10, d_rect.y + 42))
             surface.blit(self.font_body.render(stat_str2, True, UITheme.TEXT_WHITE), (d_rect.x + 10, d_rect.y + 58))
+            # 8 Driving Stats with Icons
+            sx1 = d_rect.x + 10
+            sy1 = d_rect.y + 42
+            gap = 12
+            sx1 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx1,
+                    sy1,
+                    "zap",
+                    f"Pace: {d['pace']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (255, 215, 0),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            sx1 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx1,
+                    sy1,
+                    "disc",
+                    f"Braking: {d['braking']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (0, 220, 255),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            sx1 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx1,
+                    sy1,
+                    "flag",
+                    f"Starts: {d['race_starts']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (200, 215, 230),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            UITheme.draw_stat_item(
+                surface,
+                sx1,
+                sy1,
+                "target",
+                f"Consistency: {d['consistency']}",
+                self.font_body,
+                UITheme.TEXT_WHITE,
+                (0, 240, 140),
+                icon_size=12,
+                gap=3,
+            )
 
             # 3 Off-Track Stats
             off_str = f"Technical: {d['technical_understanding']} | Communication: {d['communication']} | Commercial: {d['marketability']}"
             surface.blit(self.font_body.render(off_str, True, (0, 200, 255)), (d_rect.x + 10, d_rect.y + 74))
+            sx2 = d_rect.x + 10
+            sy2 = d_rect.y + 58
+            sx2 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx2,
+                    sy2,
+                    "layers",
+                    f"Tires: {d['tire_management']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (255, 170, 50),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            sx2 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx2,
+                    sy2,
+                    "shield",
+                    f"Defending: {d['defending']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (100, 200, 255),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            sx2 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx2,
+                    sy2,
+                    "fuel",
+                    f"Fuel: {d['fuel_efficiency']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (140, 230, 140),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            UITheme.draw_stat_item(
+                surface,
+                sx2,
+                sy2,
+                "cloud-rain",
+                f"Wet: {d['wet_weather']}",
+                self.font_body,
+                UITheme.TEXT_WHITE,
+                (120, 190, 255),
+                icon_size=12,
+                gap=3,
+            )
+
+            # 3 Off-Track Stats with Icons
+            sx3 = d_rect.x + 10
+            sy3 = d_rect.y + 74
+            sx3 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx3,
+                    sy3,
+                    "wrench",
+                    f"Technical: {d['technical_understanding']}",
+                    self.font_body,
+                    (0, 200, 255),
+                    (0, 200, 255),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            sx3 += (
+                UITheme.draw_stat_item(
+                    surface,
+                    sx3,
+                    sy3,
+                    "radio",
+                    f"Communication: {d['communication']}",
+                    self.font_body,
+                    (0, 200, 255),
+                    (140, 200, 255),
+                    icon_size=12,
+                    gap=3,
+                )
+                + gap
+            )
+            UITheme.draw_stat_item(
+                surface,
+                sx3,
+                sy3,
+                "trending-up",
+                f"Commercial: {d['marketability']}",
+                self.font_body,
+                (0, 200, 255),
+                (255, 215, 0),
+                icon_size=12,
+                gap=3,
+            )
 
             # Career Stage & Contract Buyout info
             age = d.get("age", 25)
@@ -836,11 +1003,81 @@ class DriversAcademyTab:
                     surface.blit(
                         self.font_badge.render(f"Mental Morale: {mor:.0f}% — {mental_status}", True, mor_col),
                         (card_rect.x + 10, card_rect.y + 48),
+                    UITheme.draw_stat_item(
+                        surface,
+                        card_rect.x + 10,
+                        card_rect.y + 48,
+                        "heart",
+                        f"Mental Morale: {mor:.0f}% — {mental_status}",
+                        self.font_badge,
+                        text_color=mor_col,
+                        icon_color=mor_col,
+                        icon_size=12,
+                        gap=4,
                     )
 
                     stat_str = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Tires: {d['tire_management']}"
                     surface.blit(
                         self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 68)
+                    st_x = card_rect.x + 10
+                    st_y = card_rect.y + 68
+                    gap = 10
+                    st_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            st_x,
+                            st_y,
+                            "zap",
+                            f"Pace: {d['pace']}",
+                            self.font_body,
+                            UITheme.TEXT_WHITE,
+                            (255, 215, 0),
+                            icon_size=12,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    st_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            st_x,
+                            st_y,
+                            "disc",
+                            f"Braking: {d['braking']}",
+                            self.font_body,
+                            UITheme.TEXT_WHITE,
+                            (0, 220, 255),
+                            icon_size=12,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    st_x += (
+                        UITheme.draw_stat_item(
+                            surface,
+                            st_x,
+                            st_y,
+                            "flag",
+                            f"Starts: {d['race_starts']}",
+                            self.font_body,
+                            UITheme.TEXT_WHITE,
+                            (200, 215, 230),
+                            icon_size=12,
+                            gap=3,
+                        )
+                        + gap
+                    )
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "layers",
+                        f"Tires: {d['tire_management']}",
+                        self.font_body,
+                        UITheme.TEXT_WHITE,
+                        (255, 170, 50),
+                        icon_size=12,
+                        gap=3,
                     )
 
                     # Promote Buttons (Opens Negotiation Modal with 80% Homegrown loyalty discount)
@@ -868,6 +1105,7 @@ class DriversAcademyTab:
                     pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_dos, width=1, border_radius=3)
                     dos_lbl = self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE)
                     surface.blit(dos_lbl, (btn_dos.x + (btn_dos.width - dos_lbl.get_width()) // 2, btn_dos.y + 4))
+                    UITheme.draw_button(surface, btn_dos, "DOSSIER", self.font_badge, icon="user", icon_size=11)
 
                     # Release Button
                     btn_rel = pygame.Rect(card_rect.x + card_w - 90, cy + 76, 80, 22)
@@ -930,6 +1168,7 @@ class DriversAcademyTab:
                 pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_dos, width=1, border_radius=2)
                 dos_lbl = self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE)
                 surface.blit(dos_lbl, (btn_dos.x + (btn_dos.width - dos_lbl.get_width()) // 2, btn_dos.y + 3))
+                UITheme.draw_button(surface, btn_dos, "DOSSIER", self.font_badge, icon="user", icon_size=10)
 
                 surface.blit(
                     self.font_body.render(f'Scout Report: "{p["scouting_notes"]}"', True, (170, 185, 200)),
@@ -939,6 +1178,80 @@ class DriversAcademyTab:
                 stat_str = f"Pace: {p['pace']} | Starts: {p['race_starts']} | Braking: {p['braking']} | Tires: {p['tire_management']} | Wet: {p['wet_weather']}"
                 surface.blit(
                     self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 10, card_rect.y + 44)
+                st_x = card_rect.x + 10
+                st_y = card_rect.y + 44
+                gap = 10
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "zap",
+                        f"Pace: {p['pace']}",
+                        self.font_badge,
+                        (0, 220, 255),
+                        (255, 215, 0),
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "disc",
+                        f"Braking: {p['braking']}",
+                        self.font_badge,
+                        (0, 220, 255),
+                        (0, 220, 255),
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "flag",
+                        f"Starts: {p['race_starts']}",
+                        self.font_badge,
+                        (0, 220, 255),
+                        (200, 215, 230),
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "layers",
+                        f"Tires: {p['tire_management']}",
+                        self.font_badge,
+                        (0, 220, 255),
+                        (255, 170, 50),
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    st_x,
+                    st_y,
+                    "cloud-rain",
+                    f"Wet: {p['wet_weather']}",
+                    self.font_badge,
+                    (0, 220, 255),
+                    (120, 190, 255),
+                    icon_size=11,
+                    gap=3,
                 )
 
                 sel_seat_id = self.selected_feeder_seats.get(p["id"])
@@ -1135,6 +1448,80 @@ class DriversAcademyTab:
                 stat_str = f"Pace: {d['pace']} | Starts: {d['race_starts']} | Braking: {d['braking']} | Tires: {d['tire_management']} | Defending: {d['defending']}"
                 surface.blit(
                     self.font_body.render(stat_str, True, UITheme.TEXT_WHITE), (card_rect.x + 10, card_rect.y + 32)
+                st_x = card_rect.x + 10
+                st_y = card_rect.y + 32
+                gap = 10
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "zap",
+                        f"Pace: {d['pace']}",
+                        self.font_body,
+                        UITheme.TEXT_WHITE,
+                        (255, 215, 0),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "disc",
+                        f"Braking: {d['braking']}",
+                        self.font_body,
+                        UITheme.TEXT_WHITE,
+                        (0, 220, 255),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "flag",
+                        f"Starts: {d['race_starts']}",
+                        self.font_body,
+                        UITheme.TEXT_WHITE,
+                        (200, 215, 230),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                st_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        st_x,
+                        st_y,
+                        "layers",
+                        f"Tires: {d['tire_management']}",
+                        self.font_body,
+                        UITheme.TEXT_WHITE,
+                        (255, 170, 50),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + gap
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    st_x,
+                    st_y,
+                    "shield",
+                    f"Defending: {d['defending']}",
+                    self.font_body,
+                    UITheme.TEXT_WHITE,
+                    (100, 200, 255),
+                    icon_size=12,
+                    gap=3,
                 )
                 surface.blit(
                     self.font_badge.render(finance_txt, True, (200, 220, 240)), (card_rect.x + 10, card_rect.y + 54)
@@ -1146,6 +1533,7 @@ class DriversAcademyTab:
                 pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_dos, width=1, border_radius=2)
                 dos_lbl = self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE)
                 surface.blit(dos_lbl, (btn_dos.x + (btn_dos.width - dos_lbl.get_width()) // 2, btn_dos.y + 2))
+                UITheme.draw_button(surface, btn_dos, "DOSSIER", self.font_badge, icon="user", icon_size=10)
 
                 # Negotiate Contract Button
                 btn_neg = pygame.Rect(card_rect.x + card_w - 170, cy + 24, 160, 42)
