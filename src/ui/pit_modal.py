@@ -161,6 +161,8 @@ class PitStrategyModal:
         s_surf = self.font_desc.render(sub_text, True, UITheme.TEXT_MUTED)
         surface.blit(s_surf, (self.rect.x + 18, self.rect.y + 44))
 
+        from .icons import UIIcons
+
         # Compound cards
         for idx, c_name in enumerate(self.available_compounds):
             comp = TIRE_COMPOUNDS[c_name]
@@ -175,6 +177,8 @@ class PitStrategyModal:
 
             # Pip color
             pygame.draw.circle(surface, comp.color_rgb, (b_rect.x + 14, b_rect.y + 14), 6)
+            # Tyre wheel graphic
+            UIIcons.draw_tyre(surface, (b_rect.x + 8, b_rect.y + 8), comp.color_rgb, size=16)
 
             # Name & Code
             c_lbl = self.font_btn.render(comp.code, True, UITheme.TEXT_WHITE)
@@ -208,14 +212,22 @@ class PitStrategyModal:
 
         chk_icon = "[X]" if self.replace_front_wing else "[ ]"
         stock_txt = f"{chk_icon} SWAP FRONT WING (+4.0s)"
+        chk_name = "check" if self.replace_front_wing else "wrench"
+        chk_col = (0, 230, 110) if self.replace_front_wing else UITheme.TEXT_MUTED
+        chk_ic = UIIcons.get_icon(chk_name, size=13, color=chk_col)
+        surface.blit(chk_ic, (fw_rect.x + 8, fw_rect.y + 8))
+
+        stock_txt = "SWAP FRONT WING (+4.0s)"
         stock_col = UITheme.TEXT_WHITE if self.spare_wing_available else (120, 120, 120)
         surface.blit(self.font_btn.render(stock_txt, True, stock_col), (fw_rect.x + 8, fw_rect.y + 6))
+        surface.blit(self.font_btn.render(stock_txt, True, stock_col), (fw_rect.x + 25, fw_rect.y + 6))
         avail_txt = (
             f"Spare in Stock ({self.spare_wing_durability:.0f}%)" if self.spare_wing_available else "NO SPARE IN STOCK"
         )
         surface.blit(
             self.font_badge.render(avail_txt, True, (0, 200, 220) if self.spare_wing_available else (220, 60, 60)),
             (fw_rect.x + 8, fw_rect.y + 24),
+            (fw_rect.x + 25, fw_rect.y + 24),
         )
 
         er_rect = pygame.Rect(self.rect.x + 237, self.rect.y + 194, 205, 42)
@@ -227,8 +239,16 @@ class PitStrategyModal:
         er_chk = "[X]" if self.emergency_repairs else "[ ]"
         er_txt = f"{er_chk} EMERGENCY REPAIRS (+14.0s)"
         surface.blit(self.font_btn.render(er_txt, True, UITheme.TEXT_WHITE), (er_rect.x + 8, er_rect.y + 6))
+        er_ic_name = "check" if self.emergency_repairs else "shield"
+        er_ic_col = (255, 140, 40) if self.emergency_repairs else UITheme.TEXT_MUTED
+        er_ic = UIIcons.get_icon(er_ic_name, size=13, color=er_ic_col)
+        surface.blit(er_ic, (er_rect.x + 8, er_rect.y + 8))
+
+        er_txt = "EMERGENCY REPAIRS (+14.0s)"
+        surface.blit(self.font_btn.render(er_txt, True, UITheme.TEXT_WHITE), (er_rect.x + 25, er_rect.y + 6))
         er_sub = "Patches worn parts back to 55-60%"
         surface.blit(self.font_badge.render(er_sub, True, (255, 180, 80)), (er_rect.x + 8, er_rect.y + 24))
+        surface.blit(self.font_badge.render(er_sub, True, (255, 180, 80)), (er_rect.x + 25, er_rect.y + 24))
 
         # 3. Pit Duration Forecast
         est_stop = 2.4
@@ -237,6 +257,11 @@ class PitStrategyModal:
         if self.emergency_repairs:
             est_stop += 14.0
         forecast_str = f"Estimated Stationary Stop Duration: ~{est_stop:.1f}s (Tire Change: ~2.4s"
+
+        t_ic = UIIcons.get_icon("timer", size=13, color=(255, 215, 0))
+        surface.blit(t_ic, (self.rect.x + 22, self.rect.y + 252))
+
+        forecast_str = f"Estimated Stationary Stop: ~{est_stop:.1f}s (Tire: ~2.4s"
         if self.replace_front_wing:
             forecast_str += " + 4.0s Wing"
         if self.emergency_repairs:
@@ -244,19 +269,25 @@ class PitStrategyModal:
         forecast_str += ")"
         f_surf = self.font_badge.render(forecast_str, True, (255, 215, 0))
         surface.blit(f_surf, (self.rect.x + 22, self.rect.y + 252))
+        surface.blit(f_surf, (self.rect.x + 39, self.rect.y + 252))
 
         # Part health overview line
         parts_summary = " | ".join([f"{k[:2]}: {v:.0f}%" for k, v in self.target_car.part_durability.items()][:4])
+        sh_mini = UIIcons.get_icon("shield", size=12, color=UITheme.TEXT_MUTED)
+        surface.blit(sh_mini, (self.rect.x + 22, self.rect.y + 276))
         p_surf = self.font_badge.render(f"Health: {parts_summary}", True, UITheme.TEXT_MUTED)
         surface.blit(p_surf, (self.rect.x + 22, self.rect.y + 276))
+        surface.blit(p_surf, (self.rect.x + 38, self.rect.y + 276))
 
         # Confirm & Cancel buttons
         confirm_btn = pygame.Rect(self.rect.x + 24, self.rect.y + 306, 195, 36)
         pygame.draw.rect(surface, (0, 180, 100), confirm_btn, border_radius=4)
         c_txt = self.font_btn.render("CONFIRM PIT STOP", True, (10, 20, 20))
         surface.blit(c_txt, (confirm_btn.x + (confirm_btn.width - c_txt.get_width()) // 2, confirm_btn.y + 10))
+        UITheme.draw_button(surface, confirm_btn, "CONFIRM PIT STOP", self.font_btn, icon="check", icon_size=15)
 
         cancel_btn = pygame.Rect(self.rect.x + 241, self.rect.y + 306, 195, 36)
         pygame.draw.rect(surface, (160, 40, 40), cancel_btn, border_radius=4)
         can_txt = self.font_btn.render("ABORT / CLOSE", True, (255, 255, 255))
         surface.blit(can_txt, (cancel_btn.x + (cancel_btn.width - can_txt.get_width()) // 2, cancel_btn.y + 10))
+        UITheme.draw_button(surface, cancel_btn, "ABORT / CLOSE", self.font_btn, icon="x", icon_size=15)

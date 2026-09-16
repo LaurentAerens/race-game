@@ -101,6 +101,7 @@ class StartScreen:
         self.font_sub = UITheme.get_font(11, bold=False)
         self.font_section = UITheme.get_font(11, bold=True)
         self.font_card_title = UITheme.get_font(12, bold=True)
+        self.font_kpi_value = UITheme.get_font(17, bold=True)
         self.font_body = UITheme.get_font(10, bold=False)
         self.font_bold = UITheme.get_font(10, bold=True)
         self.font_badge = UITheme.get_font(9, bold=True)
@@ -217,12 +218,14 @@ class StartScreen:
 
                 # Tutorial Checkbox Click
                 tut_box = pygame.Rect(self.width // 2 - 200, self.height - 102, 400, 24)
+                tut_box = pygame.Rect(self.width // 2 - 220, self.height - 104, 440, 24)
                 if tut_box.collidepoint(mx, my):
                     self.enable_tutorial = not self.enable_tutorial
                     return
 
                 # Start Career Button (Bottom Center)
                 btn_start = pygame.Rect(self.width // 2 - 220, self.height - 66, 440, 46)
+                btn_start = pygame.Rect(self.width // 2 - 220, self.height - 74, 440, 44)
                 if btn_start.collidepoint(mx, my):
                     color_hex = COLOR_PALETTE[self.selected_color_idx][0]
                     self.on_start_career(
@@ -312,31 +315,26 @@ class StartScreen:
             )
 
             # 1. Continue Button
+            # 1. Continue Button (if existing career)
             btn_cont = pygame.Rect(self.width // 2 - 180, self.height // 2 - 20, 360, 42)
-            pygame.draw.rect(surface, (0, 180, 100), btn_cont, border_radius=4)
-            c_lbl = self.font_btn.render("CONTINUE CAREER >>", True, (10, 20, 15))
-            surface.blit(c_lbl, (btn_cont.x + (btn_cont.width - c_lbl.get_width()) // 2, btn_cont.y + 12))
+            UITheme.draw_button(surface, btn_cont, "RESUME CAREER", self.font_btn, icon="play", is_active=True)
 
             # 2. Load Career Button
             btn_load = pygame.Rect(self.width // 2 - 180, self.height // 2 + 30, 360, 42)
-            pygame.draw.rect(surface, (26, 38, 54), btn_load, border_radius=4)
-            pygame.draw.rect(surface, (60, 90, 130), btn_load, width=1, border_radius=4)
-            l_lbl = self.font_btn.render("LOAD / SWITCH CAREER", True, (0, 220, 255))
-            surface.blit(l_lbl, (btn_load.x + (btn_load.width - l_lbl.get_width()) // 2, btn_load.y + 12))
+            UITheme.draw_button(surface, btn_load, "LOAD / SWITCH CAREER", self.font_btn, icon="folder")
 
             # 3. Start New Career Button
             btn_new = pygame.Rect(self.width // 2 - 180, self.height // 2 + 80, 360, 42)
-            pygame.draw.rect(surface, (35, 50, 70), btn_new, border_radius=4)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_new, width=1, border_radius=4)
-            n_lbl = self.font_btn.render("START NEW CAREER", True, UITheme.TEXT_WHITE)
-            surface.blit(n_lbl, (btn_new.x + (btn_new.width - n_lbl.get_width()) // 2, btn_new.y + 12))
+            UITheme.draw_button(surface, btn_new, "START NEW CAREER", self.font_btn, icon="sparkles")
 
             # 4. Admin Mode (Track & Database Editor) Button
             btn_admin = pygame.Rect(self.width // 2 - 180, self.height // 2 + 130, 360, 42)
-            pygame.draw.rect(surface, (28, 22, 38), btn_admin, border_radius=4)
-            pygame.draw.rect(surface, (180, 80, 240), btn_admin, width=1, border_radius=4)
-            a_lbl = self.font_btn.render("ADMIN MODE (TRACK & DB EDITOR)", True, (210, 140, 255))
-            surface.blit(a_lbl, (btn_admin.x + (btn_admin.width - a_lbl.get_width()) // 2, btn_admin.y + 12))
+            UITheme.draw_button(surface, btn_admin, "ADMIN MODE (TRACK & DB EDITOR)", self.font_btn, icon="wrench")
+
+            # UI Credits Attribution
+            credit_txt = "Icons by Lucide (lucide.dev) under ISC License"
+            c_surf = self.font_badge.render(credit_txt, True, (80, 95, 115))
+            surface.blit(c_surf, ((self.width - c_surf.get_width()) // 2, self.height - 24))
 
             # Render Load Career Modal if open
             if self.show_load_career_modal:
@@ -549,32 +547,126 @@ class StartScreen:
 
             fin_rect = pygame.Rect(left_x, 324, col_w, 178)
             pygame.draw.rect(surface, (16, 22, 32), fin_rect, border_radius=4)
-            pygame.draw.rect(surface, (0, 220, 255), fin_rect, width=1, border_radius=4)
+            pygame.draw.rect(surface, (38, 52, 70), fin_rect, width=1, border_radius=4)
 
-            surface.blit(
-                self.font_card_title.render("STARTING TREASURY & FINANCIAL RUNWAY:", True, (255, 215, 0)),
-                (fin_rect.x + 10, fin_rect.y + 8),
+            # Card Header with Icon and Tier Badge
+            UITheme.draw_icon(
+                surface, "circle-dollar-sign", (fin_rect.x + 10, fin_rect.y + 8), color=(255, 215, 0), size=14
             )
-
-            cash_str = f"• Baseline Budget: ${base_cash / 1000000:.1f}M | Difficulty Mod: {diff_cash / 1000000:+.1f}M"
-            surface.blit(self.font_body.render(cash_str, True, UITheme.TEXT_WHITE), (fin_rect.x + 10, fin_rect.y + 30))
-
-            fee_str = f"• Engine Seasonal Fee ({selected_supp['name']}): -${engine_fee / 1000000:.2f}M"
-            surface.blit(self.font_body.render(fee_str, True, (255, 120, 120)), (fin_rect.x + 10, fin_rect.y + 50))
-
-            net_str = f"• NET STARTING CAPITAL: ${net_starting_cash / 1000000:.2f}M"
-            surface.blit(self.font_card_title.render(net_str, True, (0, 240, 140)), (fin_rect.x + 10, fin_rect.y + 72))
-
-            upk_str = f"• Base Facility Upkeep: ~${base_monthly_upkeep / 1000:.0f}k / month"
-            surface.blit(self.font_body.render(upk_str, True, (255, 200, 40)), (fin_rect.x + 10, fin_rect.y + 96))
-
-            upk_detail = "  (Includes 7 starter facility branches & active specialized tooling rigs)"
             surface.blit(
-                self.font_badge.render(upk_detail, True, UITheme.TEXT_MUTED), (fin_rect.x + 10, fin_rect.y + 118)
+                self.font_card_title.render("STARTING TREASURY & FINANCIAL RUNWAY", True, (255, 215, 0)),
+                (fin_rect.x + 28, fin_rect.y + 8),
             )
+            tag_tier = self.font_badge.render("[ TIER 3 PROJECTIONS ]", True, (0, 220, 255))
+            surface.blit(tag_tier, (fin_rect.right - 10 - tag_tier.get_width(), fin_rect.y + 9))
 
-            runway_str = f"• Initial Operating Runway: ~{runway_months:.0f} Months (Pre-Prize & Sponsor Cash)"
-            surface.blit(self.font_badge.render(runway_str, True, (0, 220, 255)), (fin_rect.x + 10, fin_rect.y + 140))
+            # Dual KPI Cards Layout
+            pad_x = 6
+            gap = 6
+            card_w = (col_w - 2 * pad_x - gap) // 2
+            card_h = 142
+            cards_y = fin_rect.y + 28
+
+            c1 = pygame.Rect(fin_rect.x + pad_x, cards_y, card_w, card_h)
+            c2 = pygame.Rect(fin_rect.x + pad_x + card_w + gap, cards_y, card_w, card_h)
+
+            # ----------------- Card 1: Starting Capital -----------------
+            pygame.draw.rect(surface, (20, 27, 37), c1, border_radius=4)
+            pygame.draw.rect(surface, (38, 50, 68), c1, width=1, border_radius=4)
+
+            UITheme.draw_icon(surface, "coins", (c1.x + 8, c1.y + 7), color=(0, 240, 140), size=13)
+            surface.blit(self.font_badge.render("NET STARTING CAPITAL", True, (0, 240, 140)), (c1.x + 25, c1.y + 7))
+
+            kpi_val = self.font_kpi_value.render(f"${net_starting_cash / 1000000:.2f}M", True, (0, 240, 140))
+            surface.blit(kpi_val, (c1.x + 8, c1.y + 24))
+
+            tag_sub = self.font_badge.render("Liquid Funds", True, (110, 130, 155))
+            surface.blit(tag_sub, (c1.right - 8 - tag_sub.get_width(), c1.y + 28))
+
+            pygame.draw.line(surface, (30, 40, 55), (c1.x + 6, c1.y + 47), (c1.right - 6, c1.y + 47))
+
+            diff_col = (0, 240, 140) if diff_cash > 0 else ((255, 100, 100) if diff_cash < 0 else UITheme.TEXT_MUTED)
+            diff_str = f"{diff_cash / 1000000:+.1f}M" if diff_cash != 0 else "$0.0M"
+
+            rows_c1 = [
+                (
+                    "circle-dollar-sign",
+                    (0, 220, 255),
+                    "Base Budget",
+                    f"${base_cash / 1000000:.1f}M",
+                    UITheme.TEXT_WHITE,
+                ),
+                ("shield", diff_col, "Difficulty Mod", diff_str, diff_col),
+                ("zap", (255, 120, 120), "Engine Contract", f"-${engine_fee / 1000000:.2f}M", (255, 120, 120)),
+            ]
+
+            for idx, (icon, icon_col, label, val_text, val_col) in enumerate(rows_c1):
+                ry = c1.y + 53 + idx * 29
+                UITheme.draw_stat_item(
+                    surface,
+                    c1.x + 8,
+                    ry,
+                    icon,
+                    label,
+                    self.font_body,
+                    text_color=UITheme.TEXT_MUTED,
+                    icon_color=icon_col,
+                    icon_size=12,
+                )
+                val_s = self.font_bold.render(val_text, True, val_col)
+                surface.blit(val_s, (c1.right - 8 - val_s.get_width(), ry))
+
+            # ----------------- Card 2: Operating Runway -----------------
+            pygame.draw.rect(surface, (20, 27, 37), c2, border_radius=4)
+            pygame.draw.rect(surface, (38, 50, 68), c2, width=1, border_radius=4)
+
+            UITheme.draw_icon(surface, "timer", (c2.x + 8, c2.y + 7), color=(0, 220, 255), size=13)
+            surface.blit(self.font_badge.render("OPERATING RUNWAY", True, (0, 220, 255)), (c2.x + 25, c2.y + 7))
+
+            kpi_rwy = self.font_kpi_value.render(f"~{runway_months:.0f} Months", True, (0, 220, 255))
+            surface.blit(kpi_rwy, (c2.x + 8, c2.y + 24))
+
+            tag_pre = self.font_badge.render("Pre-Sponsors", True, (110, 130, 155))
+            surface.blit(tag_pre, (c2.right - 8 - tag_pre.get_width(), c2.y + 28))
+
+            pygame.draw.line(surface, (30, 40, 55), (c2.x + 6, c2.y + 47), (c2.right - 6, c2.y + 47))
+
+            if runway_months >= 36:
+                status_txt, status_col = "Strong Buffer", (0, 240, 140)
+            elif runway_months >= 20:
+                status_txt, status_col = "Good Buffer", (0, 220, 255)
+            elif runway_months >= 12:
+                status_txt, status_col = "Moderate", (255, 200, 40)
+            else:
+                status_txt, status_col = "Tight Reserve", (255, 100, 100)
+
+            rows_c2 = [
+                (
+                    "trending-down",
+                    (255, 200, 40),
+                    "Monthly Upkeep",
+                    f"~${base_monthly_upkeep / 1000:.0f}k/mo",
+                    (255, 200, 40),
+                ),
+                ("factory", (120, 200, 255), "Starter Scope", "7 Facilities + Rigs", UITheme.TEXT_WHITE),
+                ("award", status_col, "Runway Health", status_txt, status_col),
+            ]
+
+            for idx, (icon, icon_col, label, val_text, val_col) in enumerate(rows_c2):
+                ry = c2.y + 53 + idx * 29
+                UITheme.draw_stat_item(
+                    surface,
+                    c2.x + 8,
+                    ry,
+                    icon,
+                    label,
+                    self.font_body,
+                    text_color=UITheme.TEXT_MUTED,
+                    icon_color=icon_col,
+                    icon_size=12,
+                )
+                val_s = self.font_bold.render(val_text, True, val_col)
+                surface.blit(val_s, (c2.right - 8 - val_s.get_width(), ry))
 
             # =================================================================
             # Right Column: Initial Season 1 Engine Supplier Contract
@@ -613,16 +705,61 @@ class StartScreen:
                     self.font_body.render(supp["desc"], True, (160, 175, 190)), (sc_rect.x + 10, sc_rect.y + 50)
                 )
 
-                # Stats & Cost
-                stat_str = f"Power: {supp['base_power']:.0f} HP | Reliability: {supp['reliability']:.0f}% | Cost: ${supp['cost_season']:,.0f}/yr"
-                surface.blit(self.font_badge.render(stat_str, True, (0, 220, 255)), (sc_rect.x + 10, sc_rect.y + 72))
+                # Stats & Cost with Icons
+                sx = sc_rect.x + 10
+                sy = sc_rect.y + 72
+                sx += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        sx,
+                        sy,
+                        "zap",
+                        f"{supp['base_power']:.0f} HP",
+                        self.font_badge,
+                        text_color=(255, 215, 0),
+                        icon_color=(255, 215, 0),
+                        icon_size=13,
+                    )
+                    + 16
+                )
+                sx += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        sx,
+                        sy,
+                        "shield",
+                        f"{supp['reliability']:.0f}%",
+                        self.font_badge,
+                        text_color=(0, 240, 140),
+                        icon_color=(0, 240, 140),
+                        icon_size=13,
+                    )
+                    + 16
+                )
+                cost_str = (
+                    f"${supp['cost_season'] / 1000000:.2f}M/yr"
+                    if supp["cost_season"] >= 1000000
+                    else f"${supp['cost_season'] / 1000:.0f}k/yr"
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    sx,
+                    sy,
+                    "circle-dollar-sign",
+                    cost_str,
+                    self.font_badge,
+                    text_color=(0, 220, 255),
+                    icon_color=(0, 220, 255),
+                    icon_size=13,
+                )
 
             # Strategic Tip Banner
             tip_rect = pygame.Rect(right_x, 460, col_w, 42)
             pygame.draw.rect(surface, (20, 26, 36), tip_rect, border_radius=3)
             pygame.draw.rect(surface, (45, 60, 80), tip_rect, width=1, border_radius=3)
+            UITheme.draw_icon(surface, "help-circle", (tip_rect.x + 8, tip_rect.y + 6), color=(255, 215, 0), size=12)
             surface.blit(
-                self.font_badge.render("STRATEGIC TIP:", True, (255, 215, 0)), (tip_rect.x + 8, tip_rect.y + 6)
+                self.font_badge.render("STRATEGIC TIP:", True, (255, 215, 0)), (tip_rect.x + 24, tip_rect.y + 6)
             )
             surface.blit(
                 self.font_body.render(
@@ -634,7 +771,7 @@ class StartScreen:
             # =================================================================
             # Interactive Tutorial Toggle Checkbox
             # =================================================================
-            tut_box = pygame.Rect(self.width // 2 - 220, self.height - 102, 440, 24)
+            tut_box = pygame.Rect(self.width // 2 - 220, self.height - 104, 440, 24)
             chk_rect = pygame.Rect(tut_box.x, tut_box.y + 2, 18, 18)
             pygame.draw.rect(surface, (20, 28, 38), chk_rect, border_radius=3)
             pygame.draw.rect(
@@ -655,6 +792,13 @@ class StartScreen:
             # Start Career Button (Bottom Center)
             # =================================================================
             btn_start = pygame.Rect(self.width // 2 - 220, self.height - 66, 440, 46)
+            btn_start = pygame.Rect(self.width // 2 - 220, self.height - 74, 440, 44)
             pygame.draw.rect(surface, (0, 180, 100), btn_start, border_radius=4)
             s_lbl = self.font_btn.render("INITIALIZE CONSTRUCTOR & START CAREER >>", True, (10, 25, 20))
             surface.blit(s_lbl, (btn_start.x + (btn_start.width - s_lbl.get_width()) // 2, btn_start.y + 14))
+            surface.blit(s_lbl, (btn_start.x + (btn_start.width - s_lbl.get_width()) // 2, btn_start.y + 13))
+
+            # UI Credits Attribution
+            credit_txt = "Icons by Lucide (lucide.dev) under ISC License"
+            c_surf = self.font_badge.render(credit_txt, True, (80, 95, 115))
+            surface.blit(c_surf, ((self.width - c_surf.get_width()) // 2, self.height - 22))

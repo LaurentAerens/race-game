@@ -131,13 +131,13 @@ class DatabaseExplorerTab:
 
         # 2. Subtab switcher (Top row at y = 68)
         subtabs = [
-            ("SEASON_ARCHIVE", "🏆 SEASON ARCHIVE"),
-            ("DRIVERS", "👤 DRIVER DOSSIER & ALUMNI"),
-            ("CONSTRUCTORS", "🏎️ CONSTRUCTORS"),
-            ("HALL_OF_FAME", "⭐ HALL OF FAME"),
+            ("SEASON_ARCHIVE", "SEASON ARCHIVE", "calendar"),
+            ("DRIVERS", "DRIVER DOSSIER & ALUMNI", "user"),
+            ("CONSTRUCTORS", "CONSTRUCTORS", "wrench"),
+            ("HALL_OF_FAME", "HALL OF FAME", "trophy"),
         ]
         subtab_w = 200
-        for idx, (st_id, _) in enumerate(subtabs):
+        for idx, (st_id, _, _) in enumerate(subtabs):
             st_rect = pygame.Rect(24 + idx * (subtab_w + 10), 68, subtab_w, 28)
             if st_rect.collidepoint(mx, my):
                 self.previous_subtab = self.active_subtab
@@ -500,22 +500,16 @@ class DatabaseExplorerTab:
     def render(self, surface: pygame.Surface, gm: GameManager):
         # 1. Top Subtab Bar
         subtabs = [
-            ("SEASON_ARCHIVE", "🏆 SEASON ARCHIVE"),
-            ("DRIVERS", "👤 DRIVER DOSSIER & ALUMNI"),
-            ("CONSTRUCTORS", "🏎️ CONSTRUCTORS"),
-            ("HALL_OF_FAME", "⭐ HALL OF FAME"),
+            ("SEASON_ARCHIVE", "SEASON ARCHIVE", "calendar"),
+            ("DRIVERS", "DRIVER DOSSIER & ALUMNI", "user"),
+            ("CONSTRUCTORS", "CONSTRUCTORS", "wrench"),
+            ("HALL_OF_FAME", "HALL OF FAME", "trophy"),
         ]
         subtab_w = 200
-        for idx, (st_id, st_lbl) in enumerate(subtabs):
+        for idx, (st_id, st_lbl, st_icon) in enumerate(subtabs):
             st_rect = pygame.Rect(24 + idx * (subtab_w + 10), 68, subtab_w, 28)
             is_sel = self.active_subtab == st_id
-            pygame.draw.rect(surface, (34, 52, 70) if is_sel else (18, 24, 32), st_rect, border_radius=3)
-            pygame.draw.rect(
-                surface, UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER, st_rect, width=1, border_radius=3
-            )
-
-            lbl = self.font_btn.render(st_lbl, True, UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED)
-            surface.blit(lbl, (st_rect.x + (st_rect.width - lbl.get_width()) // 2, st_rect.y + 6))
+            UITheme.draw_button(surface, st_rect, st_lbl, self.font_btn, is_active=is_sel, icon=st_icon, icon_size=14)
 
         # 2. Render Active Subtab Content
         if self.active_subtab == "SEASON_ARCHIVE":
@@ -581,26 +575,13 @@ class DatabaseExplorerTab:
         is_d = self.archive_mode == "DRIVERS"
         is_r = self.archive_mode == "RACES"
 
-        pygame.draw.rect(surface, (34, 52, 70) if is_c else (18, 24, 32), c_btn, border_radius=2)
-        pygame.draw.rect(
-            surface, UITheme.ACCENT_CYAN if is_c else UITheme.PANEL_BORDER, c_btn, width=1, border_radius=2
+        UITheme.draw_button(
+            surface, c_btn, "CONSTRUCTORS", self.font_badge, is_active=is_c, icon="wrench", icon_size=12
         )
-        lbl_c = self.font_badge.render("CONSTRUCTORS", True, UITheme.TEXT_WHITE if is_c else UITheme.TEXT_MUTED)
-        surface.blit(lbl_c, (c_btn.x + (c_btn.width - lbl_c.get_width()) // 2, c_btn.y + 5))
-
-        pygame.draw.rect(surface, (34, 52, 70) if is_d else (18, 24, 32), d_btn, border_radius=2)
-        pygame.draw.rect(
-            surface, UITheme.ACCENT_CYAN if is_d else UITheme.PANEL_BORDER, d_btn, width=1, border_radius=2
+        UITheme.draw_button(surface, d_btn, "DRIVERS TABLE", self.font_badge, is_active=is_d, icon="user", icon_size=12)
+        UITheme.draw_button(
+            surface, r_btn, "RACES & RESULTS", self.font_badge, is_active=is_r, icon="flag", icon_size=12
         )
-        lbl_d = self.font_badge.render("DRIVERS TABLE", True, UITheme.TEXT_WHITE if is_d else UITheme.TEXT_MUTED)
-        surface.blit(lbl_d, (d_btn.x + (d_btn.width - lbl_d.get_width()) // 2, d_btn.y + 5))
-
-        pygame.draw.rect(surface, (34, 52, 70) if is_r else (18, 24, 32), r_btn, border_radius=2)
-        pygame.draw.rect(
-            surface, UITheme.ACCENT_CYAN if is_r else UITheme.PANEL_BORDER, r_btn, width=1, border_radius=2
-        )
-        lbl_r = self.font_badge.render("🏁 RACES & RESULTS", True, UITheme.TEXT_WHITE if is_r else UITheme.TEXT_MUTED)
-        surface.blit(lbl_r, (r_btn.x + (r_btn.width - lbl_r.get_width()) // 2, r_btn.y + 5))
 
         # Main Table Area
         main_box = pygame.Rect(24, 178, self.width - 48, self.height - 198)
@@ -786,16 +767,14 @@ class DatabaseExplorerTab:
             w_drv = r.get("winner_driver")
             w_team = r.get("winner_team")
             if w_drv:
-                surface.blit(self.font_btn.render(f"🥇 {w_drv}", True, (255, 215, 0)), (r_box.x + 420, r_box.y + 5))
+                UITheme.draw_icon(surface, "trophy", (r_box.x + 420, r_box.y + 6), color=(255, 215, 0), size=14)
+                surface.blit(self.font_btn.render(f"{w_drv}", True, (255, 215, 0)), (r_box.x + 438, r_box.y + 5))
                 surface.blit(
                     self.font_body.render(w_team or "", True, UITheme.TEXT_MUTED), (r_box.x + 680, r_box.y + 6)
                 )
 
                 btn_view = pygame.Rect(self.width - 240, row_y + 3, 100, 22)
-                pygame.draw.rect(surface, (30, 48, 66), btn_view, border_radius=2)
-                pygame.draw.rect(surface, UITheme.ACCENT_CYAN, btn_view, width=1, border_radius=2)
-                lbl_v = self.font_badge.render("RESULTS 🔍", True, UITheme.TEXT_WHITE)
-                surface.blit(lbl_v, (btn_view.x + (btn_view.width - lbl_v.get_width()) // 2, btn_view.y + 4))
+                UITheme.draw_button(surface, btn_view, "RESULTS", self.font_badge, icon="search", icon_size=12)
             else:
                 surface.blit(
                     self.font_body.render("Upcoming Event / In Progress", True, UITheme.TEXT_MUTED),
@@ -806,14 +785,11 @@ class DatabaseExplorerTab:
         # 1. Back button if jumped from another view
         if self.previous_subtab or self.return_hub_tab:
             back_btn = pygame.Rect(self.width - 120, 108, 96, 24)
-            pygame.draw.rect(surface, (40, 52, 68), back_btn, border_radius=2)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN, back_btn, width=1, border_radius=2)
-            lbl = self.font_badge.render("⬅ BACK", True, UITheme.TEXT_WHITE)
-            surface.blit(lbl, (back_btn.x + (back_btn.width - lbl.get_width()) // 2, back_btn.y + 5))
+            UITheme.draw_button(surface, back_btn, "BACK", self.font_badge, icon="fast-forward", icon_size=12)
 
         # 2. Filter Bar (y = 108)
         filters = [
-            ("ALUMNI", "★ MY TEAM ALUMNI"),
+            ("ALUMNI", "MY TEAM ALUMNI"),
             ("ALL", "ALL DRIVERS"),
             ("T1", "TIER 1 (WSF)"),
             ("T2", "TIER 2 (CC)"),
@@ -826,24 +802,8 @@ class DatabaseExplorerTab:
             btn_w = 140 if f_key == "ALUMNI" else 115
             f_rect = pygame.Rect(fx, 108, btn_w, 24)
             is_sel = self.driver_filter == f_key
-            pygame.draw.rect(surface, (34, 52, 70) if is_sel else (18, 24, 32), f_rect, border_radius=2)
-            pygame.draw.rect(
-                surface,
-                (255, 215, 0)
-                if (f_key == "ALUMNI" and is_sel)
-                else (UITheme.ACCENT_CYAN if is_sel else UITheme.PANEL_BORDER),
-                f_rect,
-                width=1,
-                border_radius=2,
-            )
-
-            col = (
-                (255, 215, 0)
-                if (f_key == "ALUMNI" and is_sel)
-                else (UITheme.TEXT_WHITE if is_sel else UITheme.TEXT_MUTED)
-            )
-            lbl = self.font_badge.render(f_lbl, True, col)
-            surface.blit(lbl, (f_rect.x + (f_rect.width - lbl.get_width()) // 2, f_rect.y + 5))
+            icon = "award" if f_key == "ALUMNI" else None
+            UITheme.draw_button(surface, f_rect, f_lbl, self.font_badge, is_active=is_sel, icon=icon, icon_size=12)
             fx += btn_w + 8
 
         # 3. Driver List (Left Panel)
@@ -894,12 +854,15 @@ class DatabaseExplorerTab:
                 )
 
                 if is_alumni:
-                    alumni_badge = pygame.Rect(r_box.x + r_box.width - 78, r_box.y + 12, 70, 18)
+                    alumni_badge = pygame.Rect(r_box.x + r_box.width - 86, r_box.y + 11, 80, 20)
                     pygame.draw.rect(surface, (50, 42, 10), alumni_badge, border_radius=2)
                     pygame.draw.rect(surface, (255, 215, 0), alumni_badge, width=1, border_radius=2)
+                    UITheme.draw_icon(
+                        surface, "award", (alumni_badge.x + 6, alumni_badge.y + 4), color=(255, 215, 0), size=12
+                    )
                     surface.blit(
-                        self.font_badge.render("★ ALUMNI", True, (255, 215, 0)),
-                        (alumni_badge.x + 6, alumni_badge.y + 3),
+                        self.font_badge.render("ALUMNI", True, (255, 215, 0)),
+                        (alumni_badge.x + 22, alumni_badge.y + 3),
                     )
                 else:
                     pts = d.get("points", 0)
@@ -952,10 +915,9 @@ class DatabaseExplorerTab:
 
         if team_id:
             team_btn_rect = pygame.Rect(hdr_rect.x + 60, hdr_rect.y + 25, 230, 20)
-            pygame.draw.rect(surface, (24, 40, 56), team_btn_rect, border_radius=3)
-            pygame.draw.rect(surface, (0, 220, 255), team_btn_rect, width=1, border_radius=3)
-            t_lbl = self.font_badge.render(f"🏎️ {t_name.upper()} ({tier_lbl}) 🔗", True, (0, 220, 255))
-            surface.blit(t_lbl, (team_btn_rect.x + 8, team_btn_rect.y + 3))
+            UITheme.draw_button(
+                surface, team_btn_rect, f"{t_name.upper()} ({tier_lbl})", self.font_badge, icon="wrench", icon_size=12
+            )
 
             meta_str = f"Age: {p.get('age', 25)}  |  Morale: {p.get('morale', 80):.0f}%"
             surface.blit(
@@ -963,8 +925,9 @@ class DatabaseExplorerTab:
                 (team_btn_rect.x + team_btn_rect.width + 12, hdr_rect.y + 28),
             )
         else:
-            team_str = f"🏎️ {t_name} ({tier_lbl})  |  Age: {p.get('age', 25)}  |  Morale: {p.get('morale', 80):.0f}%"
-            surface.blit(self.font_body.render(team_str, True, UITheme.TEXT_MUTED), (hdr_rect.x + 60, hdr_rect.y + 28))
+            team_str = f"{t_name} ({tier_lbl})  |  Age: {p.get('age', 25)}  |  Morale: {p.get('morale', 80):.0f}%"
+            UITheme.draw_icon(surface, "user", (hdr_rect.x + 60, hdr_rect.y + 28), color=UITheme.TEXT_MUTED, size=13)
+            surface.blit(self.font_body.render(team_str, True, UITheme.TEXT_MUTED), (hdr_rect.x + 78, hdr_rect.y + 28))
 
         cur_y = box.y + 58
         is_alumni = p.get("is_team_alumni", False)
@@ -974,9 +937,10 @@ class DatabaseExplorerTab:
             pygame.draw.rect(surface, (36, 32, 12), a_banner, border_radius=3)
             pygame.draw.rect(surface, (255, 215, 0), a_banner, width=1, border_radius=3)
 
+            UITheme.draw_icon(surface, "award", (a_banner.x + 10, a_banner.y + 4), color=(255, 215, 0), size=14)
             surface.blit(
-                self.font_body_bold.render("★ OFFICIAL TEAM ALUMNI", True, (255, 215, 0)),
-                (a_banner.x + 10, a_banner.y + 4),
+                self.font_body_bold.render("OFFICIAL TEAM ALUMNI", True, (255, 215, 0)),
+                (a_banner.x + 28, a_banner.y + 4),
             )
 
             dep_str = {
@@ -993,27 +957,28 @@ class DatabaseExplorerTab:
         # Career Grand Totals Grid
         totals = p.get("career_totals", {})
         stat_cards = [
-            ("CAREER STARTS", str(totals.get("starts", 0))),
-            ("GRAND PRIX WINS", str(totals.get("wins", 0))),
-            ("PODIUM FINISHES", str(totals.get("podiums", 0))),
-            ("TOTAL POINTS", str(totals.get("points", 0))),
-            ("CHAMPIONSHIPS", str(totals.get("titles", 0))),
-            ("BEST FINISH", totals.get("best_finish", "P1")),
+            ("CAREER STARTS", str(totals.get("starts", 0)), "flag"),
+            ("GRAND PRIX WINS", str(totals.get("wins", 0)), "trophy"),
+            ("PODIUM FINISHES", str(totals.get("podiums", 0)), "medal"),
+            ("TOTAL POINTS", str(totals.get("points", 0)), "circle-dollar-sign"),
+            ("CHAMPIONSHIPS", str(totals.get("titles", 0)), "award"),
+            ("BEST FINISH", totals.get("best_finish", "P1"), "award"),
         ]
         card_w = (box.width - 34) // 6
-        for idx, (stat_title, stat_val) in enumerate(stat_cards):
+        for idx, (stat_title, stat_val, stat_icon) in enumerate(stat_cards):
             c_rect = pygame.Rect(box.x + 12 + idx * (card_w + 2), cur_y, card_w, 42)
             pygame.draw.rect(surface, (18, 24, 32), c_rect, border_radius=2)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, c_rect, width=1, border_radius=2)
-
-            t_surf = self.font_badge.render(stat_title, True, UITheme.TEXT_MUTED)
-            surface.blit(t_surf, (c_rect.x + (card_w - t_surf.get_width()) // 2, c_rect.y + 4))
 
             val_col = (
                 (255, 215, 0)
                 if "WIN" in stat_title or "CHAMPION" in stat_title
                 else ((0, 220, 255) if "POINTS" in stat_title else UITheme.TEXT_WHITE)
             )
+            UITheme.draw_icon(surface, stat_icon, (c_rect.x + 6, c_rect.y + 4), color=val_col, size=11)
+            t_surf = self.font_badge.render(stat_title, True, UITheme.TEXT_MUTED)
+            surface.blit(t_surf, (c_rect.x + 20, c_rect.y + 4))
+
             v_surf = self.font_stat.render(stat_val, True, val_col)
             surface.blit(v_surf, (c_rect.x + (card_w - v_surf.get_width()) // 2, c_rect.y + 19))
 
@@ -1026,9 +991,10 @@ class DatabaseExplorerTab:
         pygame.draw.rect(surface, (0, 180, 220), ai_box, width=1, border_radius=3)
 
         arc_label = ai_data.get("trajectory_arc", "MIDFIELD STALWART")
+        UITheme.draw_icon(surface, "brain", (ai_box.x + 10, ai_box.y + 5), color=(0, 220, 255), size=16)
         surface.blit(
-            self.font_btn.render(f"🤖 AI PERFORMANCE REPORT  [{arc_label}]", True, (0, 220, 255)),
-            (ai_box.x + 10, ai_box.y + 5),
+            self.font_btn.render(f"AI PERFORMANCE REPORT  [{arc_label}]", True, (0, 220, 255)),
+            (ai_box.x + 32, ai_box.y + 5),
         )
         surface.blit(
             self.font_body.render(ai_data.get("scout_assessment", ""), True, UITheme.TEXT_WHITE),
@@ -1052,7 +1018,7 @@ class DatabaseExplorerTab:
         pygame.draw.rect(surface, (14, 18, 24), sh_rect)
         surface.blit(self.font_badge.render("YEAR / SEASON", True, UITheme.TEXT_MUTED), (sh_rect.x + 8, sh_rect.y + 3))
         surface.blit(self.font_badge.render("TIER", True, UITheme.TEXT_MUTED), (sh_rect.x + 130, sh_rect.y + 3))
-        surface.blit(self.font_badge.render("CONSTRUCTOR 🔗", True, (0, 220, 255)), (sh_rect.x + 220, sh_rect.y + 3))
+        surface.blit(self.font_badge.render("CONSTRUCTOR", True, (0, 220, 255)), (sh_rect.x + 220, sh_rect.y + 3))
         surface.blit(self.font_badge.render("FINAL POS", True, UITheme.TEXT_MUTED), (sh_rect.x + 420, sh_rect.y + 3))
         surface.blit(self.font_badge.render("STARTS", True, UITheme.TEXT_MUTED), (sh_rect.x + 510, sh_rect.y + 3))
         surface.blit(self.font_badge.render("WINS", True, UITheme.TEXT_MUTED), (sh_rect.x + 590, sh_rect.y + 3))
@@ -1090,10 +1056,12 @@ class DatabaseExplorerTab:
                 sh_team_id = sh.get("team_id")
                 can_click_team = bool(sh_team_id or (sh_team and sh_team not in ("Free Agent", "None")))
                 if can_click_team:
-                    t_surf = self.font_body_bold.render(f"🏎️ {sh_team} 🔗", True, (0, 220, 255))
+                    UITheme.draw_icon(surface, "wrench", (row_box.x + 220, row_box.y + 4), color=(0, 220, 255), size=12)
+                    t_surf = self.font_body_bold.render(f"{sh_team}", True, (0, 220, 255))
+                    surface.blit(t_surf, (row_box.x + 236, row_box.y + 3))
                 else:
                     t_surf = self.font_body.render(sh_team, True, UITheme.TEXT_WHITE)
-                surface.blit(t_surf, (row_box.x + 220, row_box.y + 3))
+                    surface.blit(t_surf, (row_box.x + 220, row_box.y + 3))
 
                 pos = sh.get("championship_position", 10)
                 pos_col = (255, 215, 0) if pos == 1 else ((0, 240, 140) if pos <= 3 else UITheme.TEXT_WHITE)
@@ -1126,10 +1094,7 @@ class DatabaseExplorerTab:
         # 1. Back button if jumped from another view
         if self.previous_subtab:
             back_btn = pygame.Rect(self.width - 120, 108, 96, 24)
-            pygame.draw.rect(surface, (40, 52, 68), back_btn, border_radius=2)
-            pygame.draw.rect(surface, UITheme.ACCENT_CYAN, back_btn, width=1, border_radius=2)
-            lbl = self.font_badge.render("⬅ BACK", True, UITheme.TEXT_WHITE)
-            surface.blit(lbl, (back_btn.x + (back_btn.width - lbl.get_width()) // 2, back_btn.y + 5))
+            UITheme.draw_button(surface, back_btn, "BACK", self.font_badge, icon="fast-forward", icon_size=12)
 
         # 2. Tier Buttons (1 to 5)
         tier_names = {
@@ -1273,21 +1238,54 @@ class DatabaseExplorerTab:
                     ),
                     (c_rect.x + 10, c_rect.y + 20),
                 )
-                surface.blit(
-                    self.font_body.render(
-                        f"Pace: {d.get('pace', 50)}  |  Age: {d.get('age', 25)}  |  {d.get('points', 0)} PTS",
-                        True,
-                        UITheme.TEXT_MUTED,
-                    ),
-                    (c_rect.x + 10, c_rect.y + 38),
+                ds_x = c_rect.x + 10
+                ds_y = c_rect.y + 38
+                gap = 12
+                ds_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        ds_x,
+                        ds_y,
+                        "zap",
+                        f"Pace: {d.get('pace', 50)}",
+                        self.font_body,
+                        text_color=UITheme.TEXT_MUTED,
+                        icon_color=(255, 215, 0),
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                ds_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        ds_x,
+                        ds_y,
+                        "user",
+                        f"Age: {d.get('age', 25)}",
+                        self.font_body,
+                        text_color=UITheme.TEXT_MUTED,
+                        icon_color=UITheme.TEXT_MUTED,
+                        icon_size=11,
+                        gap=3,
+                    )
+                    + gap
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    ds_x,
+                    ds_y,
+                    "trophy",
+                    f"{d.get('points', 0)} PTS",
+                    self.font_body,
+                    text_color=UITheme.TEXT_MUTED,
+                    icon_color=(0, 220, 255),
+                    icon_size=11,
+                    gap=3,
                 )
 
                 view_btn = pygame.Rect(c_rect.x + c_rect.width - 92, c_rect.y + 16, 84, 24)
-                pygame.draw.rect(surface, (30, 48, 66), view_btn, border_radius=2)
-                pygame.draw.rect(surface, UITheme.ACCENT_CYAN, view_btn, width=1, border_radius=2)
-                surface.blit(
-                    self.font_badge.render("DOSSIER 👤", True, UITheme.TEXT_WHITE), (view_btn.x + 10, view_btn.y + 5)
-                )
+                UITheme.draw_button(surface, view_btn, "DOSSIER", self.font_badge, icon="user", icon_size=12)
             else:
                 surface.blit(
                     self.font_badge.render(f"CAR #{d_idx + 1} [SEAT VACANT]", True, UITheme.TEXT_MUTED),
@@ -1298,26 +1296,27 @@ class DatabaseExplorerTab:
 
         # Team Career Totals Cards
         stat_cards = [
-            ("TOTAL RACES", str(t.get("total_starts", 0))),
-            ("RACE WINS", str(t.get("total_wins", 0))),
-            ("PODIUM FINISHES", str(t.get("total_podiums", 0))),
-            ("LIFETIME POINTS", str(t.get("all_time_points", 0))),
-            ("WORLD TITLES", str(t.get("tier1_titles", 0))),
+            ("TOTAL RACES", str(t.get("total_starts", 0)), "flag"),
+            ("RACE WINS", str(t.get("total_wins", 0)), "trophy"),
+            ("PODIUM FINISHES", str(t.get("total_podiums", 0)), "medal"),
+            ("LIFETIME POINTS", str(t.get("all_time_points", 0)), "circle-dollar-sign"),
+            ("WORLD TITLES", str(t.get("tier1_titles", 0)), "award"),
         ]
         card_w5 = (box.width - 32) // 5
-        for idx, (stat_title, stat_val) in enumerate(stat_cards):
+        for idx, (stat_title, stat_val, stat_icon) in enumerate(stat_cards):
             c_rect = pygame.Rect(box.x + 12 + idx * (card_w5 + 2), cur_y, card_w5, 42)
             pygame.draw.rect(surface, (18, 24, 32), c_rect, border_radius=2)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, c_rect, width=1, border_radius=2)
-
-            t_surf = self.font_badge.render(stat_title, True, UITheme.TEXT_MUTED)
-            surface.blit(t_surf, (c_rect.x + (card_w5 - t_surf.get_width()) // 2, c_rect.y + 4))
 
             val_col = (
                 (255, 215, 0)
                 if "WIN" in stat_title or "TITLE" in stat_title
                 else ((0, 220, 255) if "POINTS" in stat_title else UITheme.TEXT_WHITE)
             )
+            UITheme.draw_icon(surface, stat_icon, (c_rect.x + 6, c_rect.y + 4), color=val_col, size=11)
+            t_surf = self.font_badge.render(stat_title, True, UITheme.TEXT_MUTED)
+            surface.blit(t_surf, (c_rect.x + 20, c_rect.y + 4))
+
             v_surf = self.font_stat.render(stat_val, True, val_col)
             surface.blit(v_surf, (c_rect.x + (card_w5 - v_surf.get_width()) // 2, c_rect.y + 19))
 
@@ -1386,7 +1385,8 @@ class DatabaseExplorerTab:
 
         quadrants = [
             (
-                "🥇 ALL-TIME DRIVERS' CHAMPIONSHIPS (CLICK DRIVER)",
+                "ALL-TIME DRIVERS' CHAMPIONSHIPS",
+                "trophy",
                 records.get("top_champions", []),
                 "titles",
                 "TITLES",
@@ -1394,7 +1394,8 @@ class DatabaseExplorerTab:
                 box.y + 12,
             ),
             (
-                "🏎️ ALL-TIME CONSTRUCTORS' TITLES (CLICK CONSTRUCTOR)",
+                "ALL-TIME CONSTRUCTORS' TITLES",
+                "award",
                 records.get("top_constructors", []),
                 "titles",
                 "TITLES",
@@ -1402,7 +1403,8 @@ class DatabaseExplorerTab:
                 box.y + 12,
             ),
             (
-                "🏁 MOST GRAND PRIX WINS (CLICK DRIVER)",
+                "MOST GRAND PRIX WINS",
+                "flag",
                 records.get("top_wins_drivers", []),
                 "total_wins",
                 "WINS",
@@ -1410,7 +1412,8 @@ class DatabaseExplorerTab:
                 box.y + 24 + half_h,
             ),
             (
-                "📊 ALL-TIME CAREER POINTS (CLICK DRIVER)",
+                "ALL-TIME CAREER POINTS",
+                "zap",
                 records.get("top_pts_drivers", []),
                 "total_points",
                 "POINTS",
@@ -1419,14 +1422,17 @@ class DatabaseExplorerTab:
             ),
         ]
 
-        for q_title, q_list, val_key, val_unit, qx, qy in quadrants:
+        for q_title, q_icon, q_list, val_key, val_unit, qx, qy in quadrants:
             q_box = pygame.Rect(qx, qy, half_w, half_h)
             pygame.draw.rect(surface, (18, 24, 32), q_box, border_radius=3)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, q_box, width=1, border_radius=3)
 
             q_hdr = pygame.Rect(q_box.x, q_box.y, q_box.width, 28)
             pygame.draw.rect(surface, UITheme.PANEL_HEADER, q_hdr, border_top_left_radius=3, border_top_right_radius=3)
-            surface.blit(self.font_btn.render(q_title, True, (255, 215, 0)), (q_hdr.x + 10, q_hdr.y + 6))
+            UITheme.draw_icon(surface, q_icon, (q_hdr.x + 10, q_hdr.y + 6), color=(255, 215, 0), size=16)
+            surface.blit(
+                self.font_btn.render(f"{q_title} (CLICK TO VIEW)", True, (255, 215, 0)), (q_hdr.x + 32, q_hdr.y + 6)
+            )
 
             if not q_list:
                 surface.blit(
@@ -1466,13 +1472,12 @@ class DatabaseExplorerTab:
 
         info = self.selected_round_results
         s_num = info.get("season_num", 1)
-        title = f"🏁 S{s_num} TIER {info['tier']} R{info['round']}: {info['track_name'].upper()}"
-        surface.blit(self.font_btn.render(title, True, (255, 215, 0)), (modal_x + 12, modal_y + 9))
+        title = f"S{s_num} TIER {info['tier']} R{info['round']}: {info['track_name'].upper()}"
+        UITheme.draw_icon(surface, "flag", (modal_x + 12, modal_y + 10), color=(255, 215, 0), size=16)
+        surface.blit(self.font_btn.render(title, True, (255, 215, 0)), (modal_x + 34, modal_y + 9))
 
         close_btn = pygame.Rect(modal_x + modal_w - 75, modal_y + 7, 65, 22)
-        pygame.draw.rect(surface, (140, 40, 40), close_btn, border_radius=3)
-        lbl_x = self.font_badge.render("CLOSE", True, (255, 255, 255))
-        surface.blit(lbl_x, (close_btn.x + (close_btn.width - lbl_x.get_width()) // 2, close_btn.y + 4))
+        UITheme.draw_button(surface, close_btn, "CLOSE", self.font_badge, icon="x", icon_size=12)
 
         results = info.get("results", [])
         if not results:
@@ -1504,7 +1509,14 @@ class DatabaseExplorerTab:
 
             pos = r.get("position", idx + 1)
             pos_col = (255, 215, 0) if pos == 1 else ((0, 240, 140) if pos <= 3 else UITheme.TEXT_WHITE)
-            surface.blit(self.font_badge.render(f"P{pos}", True, pos_col), (r_box.x + 8, r_box.y + 5))
+            if pos == 1:
+                UITheme.draw_icon(surface, "trophy", (r_box.x + 6, r_box.y + 6), color=(255, 215, 0), size=13)
+                surface.blit(self.font_badge.render(f"P{pos}", True, pos_col), (r_box.x + 22, r_box.y + 5))
+            elif pos in (2, 3):
+                UITheme.draw_icon(surface, "medal", (r_box.x + 6, r_box.y + 6), color=(0, 240, 140), size=13)
+                surface.blit(self.font_badge.render(f"P{pos}", True, pos_col), (r_box.x + 22, r_box.y + 5))
+            else:
+                surface.blit(self.font_badge.render(f"P{pos}", True, pos_col), (r_box.x + 8, r_box.y + 5))
 
             tag = " [ACADEMY]" if is_acad else (" [YOU]" if is_ply else "")
             d_name = f"{r.get('driver_name', 'Driver')}{tag}"

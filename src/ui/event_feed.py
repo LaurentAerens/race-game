@@ -28,6 +28,8 @@ class EventFeed:
         h_txt = self.font_title.render("RACE RADIO & EVENTS", True, UITheme.TEXT_MUTED)
         surface.blit(h_txt, (self.rect.x + 8, self.rect.y + 4))
 
+        from .icons import UIIcons
+
         # Items
         old_clip = surface.get_clip()
         surface.set_clip(self.rect)
@@ -45,11 +47,22 @@ class EventFeed:
 
                 # Draw colored dot
                 pygame.draw.circle(surface, tag_col, (self.rect.x + 12, curr_y + 8), 3)
+                icon_name = {
+                    "OVERTAKE": "swords",
+                    "FASTEST": "zap",
+                    "START": "flag",
+                    "WIN": "trophy",
+                    "INCIDENT": "triangle-alert",
+                }.get(e_type, "radio")
+
+                ic_surf = UIIcons.get_icon(icon_name, size=11, color=tag_col)
+                surface.blit(ic_surf, (self.rect.x + 8, curr_y + 3))
 
                 # Event text
                 txt = f"[L{item.get('lap', 1)}] {item.get('text', '')}"
                 txt_surf = self.font_item.render(txt, True, UITheme.TEXT_WHITE)
                 surface.blit(txt_surf, (self.rect.x + 22, curr_y + 2))
+                surface.blit(txt_surf, (self.rect.x + 24, curr_y + 2))
 
                 curr_y += 18
                 if curr_y > self.rect.bottom - 16:
