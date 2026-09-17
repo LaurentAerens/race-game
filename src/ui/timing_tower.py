@@ -31,7 +31,7 @@ class TimingTower:
                 offset_y = my - (self.rect.y + 28)
                 if offset_y >= 0:
                     row_idx = offset_y // self.row_height
-                    if 0 <= row_idx < len(sim.cars):
+                    if 0 <= row_idx < min(20, len(sim.cars)):
                         selected_car = sim.cars[row_idx]
                         camera.set_follow_car(selected_car)
                         return True
@@ -48,37 +48,32 @@ class TimingTower:
         # Header columns
         from .icons import UIIcons
 
-        # Header columns with icons
+        # Header columns with icons (single-pass clean render)
         txt_pos = self.font_header.render("POS", True, UITheme.TEXT_MUTED)
         surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
 
         ic_drv = UIIcons.get_icon("user", size=12, color=UITheme.TEXT_MUTED)
-        surface.blit(ic_drv, (self.rect.x + 38, self.rect.y + 7))
+        surface.blit(ic_drv, (self.rect.x + 36, self.rect.y + 7))
         txt_drv = self.font_header.render("DRV", True, UITheme.TEXT_MUTED)
-        surface.blit(txt_drv, (self.rect.x + 53, self.rect.y + 6))
+        surface.blit(txt_drv, (self.rect.x + 52, self.rect.y + 6))
 
         ic_gap = UIIcons.get_icon("timer", size=12, color=UITheme.TEXT_MUTED)
         surface.blit(ic_gap, (self.rect.x + 120, self.rect.y + 7))
         txt_gap = self.font_header.render("GAP", True, UITheme.TEXT_MUTED)
         surface.blit(txt_gap, (self.rect.x + 135, self.rect.y + 6))
 
-        UIIcons.draw_tyre(surface, (self.rect.x + 188, self.rect.y + 7), (160, 170, 185), size=12)
+        UIIcons.draw_tyre(surface, (self.rect.x + 188, self.rect.y + 7), UITheme.TEXT_MUTED, size=12)
         txt_tire = self.font_header.render("TYRE", True, UITheme.TEXT_MUTED)
-        surface.blit(txt_tire, (self.rect.x + 203, self.rect.y + 6))
+        surface.blit(txt_tire, (self.rect.x + 204, self.rect.y + 6))
 
         ic_pit = UIIcons.get_icon("wrench", size=12, color=UITheme.TEXT_MUTED)
         surface.blit(ic_pit, (self.rect.x + 250, self.rect.y + 7))
         txt_pit = self.font_header.render("PIT", True, UITheme.TEXT_MUTED)
         surface.blit(txt_pit, (self.rect.x + 265, self.rect.y + 6))
 
-        surface.blit(txt_pos, (self.rect.x + 8, self.rect.y + 6))
-        surface.blit(txt_drv, (self.rect.x + 42, self.rect.y + 6))
-        surface.blit(txt_gap, (self.rect.x + 130, self.rect.y + 6))
-        surface.blit(txt_tire, (self.rect.x + 195, self.rect.y + 6))
-        surface.blit(txt_pit, (self.rect.x + 252, self.rect.y + 6))
-
         # Rows
         start_y = self.rect.y + 28
+        mx, my = pygame.mouse.get_pos()
         for i, car in enumerate(sim.cars[:20]):
             r_rect = pygame.Rect(
                 self.rect.x + 2, start_y + i * self.row_height, self.rect.width - 4, self.row_height - 2
@@ -86,8 +81,11 @@ class TimingTower:
 
             # Hover / Selected highlight
             is_selected = camera.followed_car == car and camera.mode == "FOLLOW_CAR"
+            is_hover = r_rect.collidepoint(mx, my)
             if is_selected:
-                pygame.draw.rect(surface, (35, 50, 70), r_rect, border_radius=2)
+                pygame.draw.rect(surface, (35, 55, 80), r_rect, border_radius=2)
+            elif is_hover:
+                pygame.draw.rect(surface, (28, 42, 58), r_rect, border_radius=2)
             elif car.driver.is_player:
                 pygame.draw.rect(surface, (20, 38, 48), r_rect, border_radius=2)
 

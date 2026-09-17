@@ -759,12 +759,12 @@ class RaceWeekendScreen:
 
             # Value Label & Target guidance badge
             val_txt = f"{val:.1f}{unit}"
-            surface.blit(self.font_badge.render(val_txt, True, (255, 215, 0)), (setup_rect.x + 400, row_y + 4))
+            surface.blit(self.font_badge.render(val_txt, True, (255, 215, 0)), (setup_rect.x + 396, row_y + 4))
 
             if guidance_ranges and p_key in guidance_ranges:
                 g_min, g_max = guidance_ranges[p_key]
                 target_str = f"[{g_min:.0f}-{g_max:.0f}]"
-                surface.blit(self.font_btn.render(target_str, True, (0, 255, 150)), (setup_rect.x + 440, row_y + 4))
+                surface.blit(self.font_mini.render(target_str, True, (0, 255, 150)), (setup_rect.x + 438, row_y + 5))
 
         # Setup Preset Utility Buttons inside Setup Panel
         btn_save = pygame.Rect(setup_rect.x + 10, setup_rect.y + 222, 105, 28)
@@ -928,11 +928,12 @@ class RaceWeekendScreen:
                     y_cursor += 20
 
         # E. Practice Stint Action Buttons & Time Hop (Bottom Bar)
+        mx, my = pygame.mouse.get_pos()
         btn_short = pygame.Rect(24, self.height - 75, 150, 48)
         btn_sprint = pygame.Rect(182, self.height - 75, 155, 48)
         btn_long = pygame.Rect(345, self.height - 75, 160, 48)
         btn_fast_forward = pygame.Rect(520, self.height - 75, 330, 48)
-        next_btn = pygame.Rect(865, self.height - 75, self.width - 889, 48)
+        next_btn = pygame.Rect(865, self.height - 75, max(210, self.width - 889), 48)
 
         can_run = rem_m > 0.0
         car_on_track = mgr.is_car_on_track(slot)
@@ -943,7 +944,9 @@ class RaceWeekendScreen:
         long_laps = mgr.stint_laps.get("LONG", 22)
 
         # 1. Short Stint button
-        pygame.draw.rect(surface, (0, 150, 85) if can_start_stint else (24, 30, 28), btn_short, border_radius=4)
+        is_sh_hov = can_start_stint and btn_short.collidepoint(mx, my)
+        bg_sh = (0, 180, 100) if is_sh_hov else ((0, 150, 85) if can_start_stint else (24, 30, 28))
+        pygame.draw.rect(surface, bg_sh, btn_short, border_radius=4)
         pygame.draw.rect(
             surface, (0, 240, 140) if can_start_stint else (45, 55, 50), btn_short, width=1, border_radius=4
         )

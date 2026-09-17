@@ -86,12 +86,24 @@ class DashboardTab:
         self._track_cache[circuit_file] = pts
         return pts
 
+    def _truncate_text(self, font: pygame.font.Font, text: str, max_w: int) -> str:
+        """Safely truncates text to fit within max_w pixels with an ellipsis, preventing card spill."""
+        if max_w <= 10:
+            return ""
+        if font.size(text)[0] <= max_w:
+            return text
+        ellipsis = "..."
+        while text and font.size(text + ellipsis)[0] > max_w:
+            text = text[:-1]
+        return text.strip() + ellipsis if text else ellipsis
+
     def get_pipeline_layout(
         self, active_pitches: List[Dict[str, Any]], pending_pitches: List[Dict[str, Any]]
     ) -> Tuple[Optional[pygame.Rect], List[Tuple[pygame.Rect, pygame.Rect, pygame.Rect]]]:
         """Calculates precise, non-overlapping rectangles for active project and pending proposals."""
         pipe_x = 24
-        pipe_y = 300
+        top_h = 215
+        pipe_y = 70 + top_h + 12
         pipe_w = min(540, (self.width - 64) // 2)
 
         cur_y = pipe_y + 34
@@ -481,12 +493,12 @@ class DashboardTab:
 
                 aw_ic = UIIcons.get_icon("award", size=13, color=tier_col)
                 surface.blit(aw_ic, (s_box.x + 10, s_box.y + 8))
+                raw_partner_title = (
+                    f"{sp.get('slot_tier', 'COMMERCIAL')} PARTNER: {sp.get('brand_name', 'Partner')}"
+                )
+                partner_title = self._truncate_text(self.font_card_title, raw_partner_title, s_box.width - 145)
                 surface.blit(
-                    self.font_card_title.render(
-                        f"{sp.get('slot_tier', 'COMMERCIAL')} PARTNER: {sp.get('brand_name', 'Partner')}",
-                        True,
-                        tier_col,
-                    ),
+                    self.font_card_title.render(partner_title, True, tier_col),
                     (s_box.x + 28, s_box.y + 7),
                 )
 
@@ -620,8 +632,26 @@ class DashboardTab:
                 ),
                 (c_rect.x + 8, c_rect.y + 42),
             )
-            UITheme.draw_button(surface, greenlight_btn, "APPROVE", self.font_badge, icon="check", icon_size=11)
-            UITheme.draw_button(surface, discard_btn, "DISCARD", self.font_badge, icon="x", icon_size=11)
+            UITheme.draw_button(
+                surface,
+                greenlight_btn,
+                "APPROVE",
+                self.font_badge,
+                icon="check",
+                icon_size=11,
+                bg_color=(20, 45, 30),
+                border_color=(0, 230, 120),
+            )
+            UITheme.draw_button(
+                surface,
+                discard_btn,
+                "DISCARD",
+                self.font_badge,
+                icon="x",
+                icon_size=11,
+                bg_color=(45, 20, 25),
+                border_color=(240, 80, 80),
+            )
 
         # =====================================================================
         # 4. Bottom-Right: 4-Point Pre-Race Readiness Checklist & Telemetry Inbox
@@ -754,8 +784,9 @@ class DashboardTab:
 
         # Status note bar
         note_y = check_y + 4 * (c_item_h + 6) + 6
+        log_text = self._truncate_text(self.font_mini, f"TELEMETRY LOG: {self.action_message}", stat_rect.width - 24)
         surface.blit(
-            self.font_mini.render(f"TELEMETRY LOG: {self.action_message}", True, (0, 220, 255)),
+            self.font_mini.render(log_text, True, (0, 220, 255)),
             (stat_rect.x + 12, note_y),
         )
 

@@ -15,16 +15,16 @@ class HubHeader:
         self.on_cycle_difficulty = on_cycle_difficulty
         self._init_fonts()
 
-        # Navigation Tabs: (key, label, icon_name)
+        # Navigation Tabs: (key, full_label, short_label, icon_name)
         self.tabs = [
-            ("DASHBOARD", "DASHBOARD", "layout-dashboard"),
-            ("CAR_RND", "CAR R&D", "wrench"),
-            ("FACTORY", "TECH TREE", "network"),
-            ("DRIVERS", "DRIVERS", "user"),
-            ("SPONSORS", "FINANCES", "circle-dollar-sign"),
-            ("WORKFORCE", "PERSONNEL", "users"),
-            ("STANDINGS", "STANDINGS", "trophy"),
-            ("DATABASE", "DATABASE", "database"),
+            ("DASHBOARD", "DASHBOARD", "DASH", "layout-dashboard"),
+            ("CAR_RND", "CAR R&D", "R&D", "wrench"),
+            ("FACTORY", "TECH TREE", "TECH", "network"),
+            ("DRIVERS", "DRIVERS", "DRV", "user"),
+            ("SPONSORS", "FINANCES", "FIN", "circle-dollar-sign"),
+            ("WORKFORCE", "PERSONNEL", "STAFF", "users"),
+            ("STANDINGS", "STANDINGS", "STND", "trophy"),
+            ("DATABASE", "DATABASE", "DB", "database"),
         ]
 
     def _init_fonts(self):
@@ -38,6 +38,16 @@ class HubHeader:
         self.rect = pygame.Rect(0, 0, width, self.height)
         self._init_fonts()
 
+    def get_action_buttons(self) -> Dict[str, pygame.Rect]:
+        """Calculates precise, unified bounding rects for top-right header action buttons."""
+        btn_h = 20
+        y = 3
+        return {
+            "ACTION_TUTORIAL": pygame.Rect(self.width - 340, y, 92, btn_h),
+            "DIFFICULTY": pygame.Rect(self.width - 240, y, 112, btn_h),
+            "MODE_EDITOR": pygame.Rect(self.width - 120, y, 105, btn_h),
+        }
+
     def get_tab_rects(self) -> Dict[str, pygame.Rect]:
         """Dynamically scales tab widths based on screen width to ensure generous padding and zero text spill."""
         num_tabs = len(self.tabs)
@@ -45,32 +55,31 @@ class HubHeader:
         avail_w = self.width - 36
         gap = 6
 
-        # Proportional width calculation (min 130px, max 240px)
+        # Proportional width calculation (clamped min 100px, max 240px)
         calculated_w = (avail_w - (num_tabs - 1) * gap) // num_tabs
-        tab_w = max(130, min(240, calculated_w))
+        tab_w = max(100, min(240, calculated_w))
         tab_h = 26
         y = 26
 
         rects = {}
-        for idx, (t_key, _, _) in enumerate(self.tabs):
+        for idx, (t_key, _, _, _) in enumerate(self.tabs):
             rects[t_key] = pygame.Rect(x_start + idx * (tab_w + gap), y, tab_w, tab_h)
         return rects
 
     def handle_click(self, mx: int, my: int) -> str:
+        btns = self.get_action_buttons()
+
         # Check Tutorial Button Click
-        tut_btn = pygame.Rect(self.width - 340, 4, 92, 18)
-        if tut_btn.collidepoint(mx, my):
+        if btns["ACTION_TUTORIAL"].collidepoint(mx, my):
             return "ACTION_TUTORIAL"
 
         # Check Difficulty Button Click (Top right area)
-        diff_btn = pygame.Rect(self.width - 240, 4, 112, 18)
-        if diff_btn.collidepoint(mx, my):
+        if btns["DIFFICULTY"].collidepoint(mx, my):
             new_diff = self.on_cycle_difficulty()
             return f"DIFF_{new_diff}"
 
         # Check Track Editor Quick Button
-        edit_btn = pygame.Rect(self.width - 120, 4, 105, 18)
-        if edit_btn.collidepoint(mx, my):
+        if btns["MODE_EDITOR"].collidepoint(mx, my):
             return "MODE_EDITOR"
 
         tab_rects = self.get_tab_rects()
@@ -105,36 +114,56 @@ class HubHeader:
         team_surf = self.font_team.render(f"{t_name.upper()}  [{t_tier}]", True, UITheme.TEXT_WHITE)
         surface.blit(team_surf, (32, 5))
 
-        # Financial & Round Stats (Dynamically anchored left of tutorial & difficulty button)
-        # Financial & Round Stats with Icons
+        # Financial & Round Stats (Dynamically anchored left of action buttons)
         cash = financial_data.get("cash", 0.0)
         net_mo = financial_data.get("net_monthly", 0.0)
         staff_cnt = financial_data.get("staff_count", 24)
         stats_x = team_surf.get_width() + 45
 
+        action_btns = self.get_action_buttons()
+        avail_stats_w = action_btns["ACTION_TUTORIAL"].x - stats_x - 10
+        concise_stats = avail_stats_w < 340
+
+        if concise_stats:
+            cash_str = (
+                f"${cash / 1_000_000:.1f}M"
+                if cash >= 1_000_000
+                else (f"${cash / 1_000:.0f}k" if cash >= 1_000 else f"${cash:,.0f}")
+            )
+            is_pos = net_mo >= 0
+            abs_net = abs(net_mo)
+            net_str = (
+                f"{'+' if is_pos else '-'}${abs_net / 1_000:.0f}k/mo"
+                if abs_net >= 1_000
+                else f"{'+' if is_pos else '-'}${abs_net:,.0f}/mo"
+            )
+        else:
+            cash_str = f"${cash:,.0f}"
+            is_pos = net_mo >= 0
+            net_str = f"{'+' if is_pos else '-'}${abs(net_mo):,.0f}/mo"
+
         # 1. Cash Pill
         c_ic = UIIcons.get_icon("circle-dollar-sign", size=13, color=(0, 240, 140))
-        c_txt = self.font_stat.render(f"${cash:,.0f}", True, (0, 240, 140))
+        c_txt = self.font_stat.render(cash_str, True, (0, 240, 140))
         surface.blit(c_ic, (stats_x, 6))
         surface.blit(c_txt, (stats_x + 16, 5))
-        stats_x += 16 + c_txt.get_width() + 16
+        stats_x += 16 + c_txt.get_width() + 14
 
         # 2. Net Monthly Pill
-        is_pos = net_mo >= 0
         net_ic_name = "trending-up" if is_pos else "trending-down"
         net_col = (0, 230, 110) if is_pos else (240, 60, 60)
         n_ic = UIIcons.get_icon(net_ic_name, size=13, color=net_col)
-        n_txt = self.font_stat.render(f"{'+' if is_pos else '-'}${abs(net_mo):,.0f}/mo", True, net_col)
+        n_txt = self.font_stat.render(net_str, True, net_col)
         surface.blit(n_ic, (stats_x, 6))
         surface.blit(n_txt, (stats_x + 16, 5))
-        stats_x += 16 + n_txt.get_width() + 16
+        stats_x += 16 + n_txt.get_width() + 14
 
         # 3. Staff Pill
         s_ic = UIIcons.get_icon("users", size=13, color=UITheme.TEXT_MUTED)
         s_txt = self.font_stat.render(f"{staff_cnt}", True, UITheme.TEXT_MUTED)
         surface.blit(s_ic, (stats_x, 6))
         surface.blit(s_txt, (stats_x + 16, 5))
-        stats_x += 16 + s_txt.get_width() + 16
+        stats_x += 16 + s_txt.get_width() + 14
 
         # 4. Round Pill
         r_ic = UIIcons.get_icon("flag", size=13, color=UITheme.ACCENT_YELLOW)
@@ -142,19 +171,19 @@ class HubHeader:
         surface.blit(r_ic, (stats_x, 6))
         surface.blit(r_txt, (stats_x + 16, 5))
 
-        # Tutorial Button (x = width - 340)
-        tut_btn = pygame.Rect(self.width - 340, 4, 92, 18)
+        # Tutorial Button
+        tut_btn = action_btns["ACTION_TUTORIAL"]
         pygame.draw.rect(surface, (18, 26, 38), tut_btn, border_radius=3)
         pygame.draw.rect(surface, (0, 200, 240), tut_btn, width=1, border_radius=3)
         tut_ic = UIIcons.get_icon("help-circle", size=11, color=(0, 220, 255))
         tut_lbl = self.font_diff.render("TUTORIAL", True, (0, 220, 255))
         tut_w = tut_ic.get_width() + 4 + tut_lbl.get_width()
         tut_start = tut_btn.x + (tut_btn.width - tut_w) // 2
-        surface.blit(tut_ic, (tut_start, tut_btn.y + 3))
-        surface.blit(tut_lbl, (tut_start + tut_ic.get_width() + 4, tut_btn.y + 3))
+        surface.blit(tut_ic, (tut_start, tut_btn.y + 4))
+        surface.blit(tut_lbl, (tut_start + tut_ic.get_width() + 4, tut_btn.y + 4))
 
-        # Difficulty Selector Button (Top right: x = width - 240)
-        diff_btn = pygame.Rect(self.width - 240, 4, 112, 18)
+        # Difficulty Selector Button
+        diff_btn = action_btns["DIFFICULTY"]
         diff_cols = {
             "VERY_EASY": (0, 240, 140),
             "EASY": (0, 200, 255),
@@ -171,23 +200,23 @@ class HubHeader:
         d_surf = self.font_diff.render(diff_label, True, d_col)
         d_w = d_ic.get_width() + 4 + d_surf.get_width()
         d_start = diff_btn.x + (diff_btn.width - d_w) // 2
-        surface.blit(d_ic, (d_start, diff_btn.y + 3))
-        surface.blit(d_surf, (d_start + d_ic.get_width() + 4, diff_btn.y + 2))
+        surface.blit(d_ic, (d_start, diff_btn.y + 4))
+        surface.blit(d_surf, (d_start + d_ic.get_width() + 4, diff_btn.y + 3))
 
-        # Track Editor Mode Button (Top right: x = width - 120)
-        edit_btn = pygame.Rect(self.width - 120, 4, 105, 18)
+        # Track Editor Mode Button
+        edit_btn = action_btns["MODE_EDITOR"]
         pygame.draw.rect(surface, (26, 34, 46), edit_btn, border_radius=2)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, edit_btn, width=1, border_radius=2)
         ed_ic = UIIcons.get_icon("wrench", size=11, color=UITheme.TEXT_WHITE)
         e_surf = self.font_diff.render("TRACK EDITOR", True, UITheme.TEXT_WHITE)
         ed_w = ed_ic.get_width() + 4 + e_surf.get_width()
         ed_start = edit_btn.x + (edit_btn.width - ed_w) // 2
-        surface.blit(ed_ic, (ed_start, edit_btn.y + 3))
-        surface.blit(e_surf, (ed_start + ed_ic.get_width() + 4, edit_btn.y + 2))
+        surface.blit(ed_ic, (ed_start, edit_btn.y + 4))
+        surface.blit(e_surf, (ed_start + ed_ic.get_width() + 4, edit_btn.y + 3))
 
         # Navigation Tabs (Bottom Row)
         tab_rects = self.get_tab_rects()
-        for t_key, label, icon_name in self.tabs:
+        for t_key, full_label, short_label, icon_name in self.tabs:
             r = tab_rects[t_key]
             is_active = t_key == active_tab
             bg_col = (35, 45, 60) if is_active else (20, 24, 32)
@@ -196,7 +225,14 @@ class HubHeader:
             pygame.draw.rect(surface, bg_col, r, border_radius=3)
             pygame.draw.rect(surface, border_col, r, width=1, border_radius=3)
 
+            # Active underglow neon line
+            if is_active:
+                pygame.draw.line(
+                    surface, UITheme.ACCENT_CYAN, (r.x + 4, r.bottom - 2), (r.right - 4, r.bottom - 2), 2
+                )
+
             txt_col = UITheme.TEXT_WHITE if is_active else UITheme.TEXT_MUTED
+            label = short_label if r.width < 125 else full_label
             t_lbl = self.font_tab.render(label, True, txt_col)
             ic_surf = UIIcons.get_icon(icon_name, size=14, color=txt_col)
 

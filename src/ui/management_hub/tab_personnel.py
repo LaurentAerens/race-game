@@ -152,6 +152,19 @@ class PersonnelTab:
             self.scrollbar_track_rect = None
             self.scrollbar_thumb_rect = None
 
+    def _get_subtab_rects(self) -> Dict[str, pygame.Rect]:
+        """Calculates responsive bounding rectangles for the sub-tab bar."""
+        t_x = 24
+        nav_tabs = ["TREE", "RECRUITMENT", "HEADHUNTER", "POLICIES"]
+        avail_w = min(self.width - 48, 800)
+        gap = 4
+        base_w = (avail_w - (len(nav_tabs) - 1) * gap) // len(nav_tabs)
+        tab_w = max(110, base_w)
+        rects = {}
+        for idx, tab_key in enumerate(nav_tabs):
+            rects[tab_key] = pygame.Rect(t_x + idx * (tab_w + gap), 62, tab_w, 26)
+        return rects
+
     def handle_click(self, mx: int, my: int, gm: GameManager, em: Optional[EngineeringManager] = None) -> bool:
         """Processes clicks across sub-tabs, org tree nodes, recruitments, destination modals, and inspector actions."""
         # 1. Clicks inside Destination Picker Modal (if open)
@@ -214,27 +227,12 @@ class PersonnelTab:
             return True
 
         # 2. Sub-Tab Bar
-        tab_tree_rect = pygame.Rect(24, 62, 160, 26)
-        tab_rec_rect = pygame.Rect(188, 62, 175, 26)
-        tab_head_rect = pygame.Rect(367, 62, 175, 26)
-        tab_pol_rect = pygame.Rect(546, 62, 205, 26)
-
-        if tab_tree_rect.collidepoint(mx, my):
-            self.sub_tab = "TREE"
-            self.scroll_y = 0.0
-            return True
-        elif tab_rec_rect.collidepoint(mx, my):
-            self.sub_tab = "RECRUITMENT"
-            self.scroll_y = 0.0
-            return True
-        elif tab_head_rect.collidepoint(mx, my):
-            self.sub_tab = "HEADHUNTER"
-            self.scroll_y = 0.0
-            return True
-        elif tab_pol_rect.collidepoint(mx, my):
-            self.sub_tab = "POLICIES"
-            self.scroll_y = 0.0
-            return True
+        subtab_rects = self._get_subtab_rects()
+        for tab_key, r in subtab_rects.items():
+            if r.collidepoint(mx, my):
+                self.sub_tab = tab_key
+                self.scroll_y = 0.0
+                return True
 
         # 3. Employee Inspector Drawer
         if self.inspected_personnel_id is not None:

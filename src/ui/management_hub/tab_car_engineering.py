@@ -584,6 +584,9 @@ class CarEngineeringTab:
 
         # Regulations Badge
         reg_txt = f"TIER {tier} ({l_name}) R&D REGULATIONS: Custom R&D for [{', '.join(allowed_parts)}]"
+        avail_reg_w = self.width - 340
+        if self.font_badge.size(reg_txt)[0] > avail_reg_w:
+            reg_txt = f"TIER {tier} R&D: [{', '.join(allowed_parts)}]"
         surface.blit(self.font_badge.render(reg_txt, True, (255, 215, 0)), (320, 78))
 
         # 2. Left Column: Chassis Blueprint Panel
@@ -689,6 +692,9 @@ class CarEngineeringTab:
                 pygame.draw.rect(
                     surface, (0, 140, 80), (bar_rect.x, bar_rect.y, int(bar_w * fill_pct), 28), border_radius=3
                 )
+            for tick_i in range(1, 6):
+                tx = bar_rect.x + int(bar_w * (tick_i / 6.0))
+                pygame.draw.line(surface, (45, 55, 70), (tx, bar_rect.y + 2), (tx, bar_rect.bottom - 3), 1)
             pygame.draw.rect(surface, (40, 48, 60), bar_rect, width=1, border_radius=3)
 
             if not is_allowed:
@@ -808,9 +814,10 @@ class CarEngineeringTab:
             for _, s_box, m_btn, sp in layout["spare_buttons"]:
                 pygame.draw.rect(surface, (22, 28, 36), s_box, border_radius=3)
                 sp_name = f"{sp['category'].replace('_', ' ')} (Mk {sp['generation']})"
-                surface.blit(self.font_btn.render(sp_name, True, UITheme.TEXT_WHITE), (s_box.x + 8, s_box.y + 5))
+                name_s = self.font_btn.render(sp_name, True, UITheme.TEXT_WHITE)
+                surface.blit(name_s, (s_box.x + 8, s_box.y + 5))
 
-                sp_x = s_box.x + 130
+                sp_x = max(s_box.x + 140, s_box.x + 16 + name_s.get_width())
                 sp_y = s_box.y + 5
                 sp_x += (
                     UITheme.draw_stat_item(
@@ -855,14 +862,15 @@ class CarEngineeringTab:
                 border_radius=3,
             )
 
-            surface.blit(
-                self.font_card_title.render(supp_name, True, (255, 215, 0) if is_current else UITheme.TEXT_WHITE),
-                (s_rect.x + 10, s_rect.y + 5),
+            supp_surf = self.font_card_title.render(
+                supp_name, True, (255, 215, 0) if is_current else UITheme.TEXT_WHITE
             )
+            surface.blit(supp_surf, (s_rect.x + 10, s_rect.y + 5))
             active_badge = "[ACTIVE SUPPLIER]" if is_current else "[SEASON CONTRACT]"
+            badge_x = max(s_rect.x + 155, s_rect.x + 16 + supp_surf.get_width())
             surface.blit(
                 self.font_badge.render(active_badge, True, (0, 240, 140) if is_current else UITheme.TEXT_MUTED),
-                (s_rect.x + 160, s_rect.y + 7),
+                (badge_x, s_rect.y + 7),
             )
 
             cost_txt = (

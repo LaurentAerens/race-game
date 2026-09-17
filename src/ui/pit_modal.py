@@ -130,8 +130,6 @@ class PitStrategyModal:
             # "CANCEL" button
             cancel_btn = pygame.Rect(self.rect.x + 241, self.rect.y + 306, 195, 36)
             if cancel_btn.collidepoint(mx, my):
-                if self.target_car:
-                    self.target_car.cancel_pit_stop()
                 self.close()
                 return True
 
@@ -141,21 +139,16 @@ class PitStrategyModal:
         if not self.is_open or not self.target_car:
             return
 
-        # Dim background overlay
-        overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 160))
-        surface.blit(overlay, (0, 0))
+        # Dim background overlay using standardized helper
+        UITheme.draw_modal_backdrop(surface, alpha=175)
 
         # Main Modal Box
         UITheme.draw_panel(surface, self.rect, border_radius=6)
 
-        # Title bar
+        # Title bar using standardized card header
         hdr_rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 34)
-        pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=6, border_top_right_radius=6)
-
         title_text = f"PIT STRATEGY - {self.target_car.driver.name} (#{self.target_car.driver.number})"
-        t_surf = self.font_title.render(title_text, True, UITheme.ACCENT_CYAN)
-        surface.blit(t_surf, (self.rect.x + 14, self.rect.y + 8))
+        UITheme.draw_card_header(surface, hdr_rect, title_text, icon="wrench", border_radius=6)
 
         sub_text = "Select weekend tire compound to fit on in-lap:"
         s_surf = self.font_desc.render(sub_text, True, UITheme.TEXT_MUTED)
@@ -163,20 +156,28 @@ class PitStrategyModal:
 
         from .icons import UIIcons
 
+        mx, my = pygame.mouse.get_pos()
+
         # Compound cards
         for idx, c_name in enumerate(self.available_compounds):
             comp = TIRE_COMPOUNDS[c_name]
             b_rect = pygame.Rect(self.rect.x + 18 + idx * 84, self.rect.y + 66, 76, 58)
             is_sel = self.selected_compound == c_name
+            is_hov = b_rect.collidepoint(mx, my)
 
-            bg_col = (45, 55, 75) if is_sel else (26, 30, 38)
-            border_col = comp.color_rgb if is_sel else UITheme.PANEL_BORDER
+            if is_sel:
+                bg_col = (35, 50, 70)
+                border_col = comp.color_rgb
+            elif is_hov:
+                bg_col = (32, 38, 50)
+                border_col = (70, 85, 110)
+            else:
+                bg_col = (22, 26, 34)
+                border_col = UITheme.PANEL_BORDER
 
             pygame.draw.rect(surface, bg_col, b_rect, border_radius=4)
             pygame.draw.rect(surface, border_col, b_rect, width=2 if is_sel else 1, border_radius=4)
 
-            # Pip color
-            pygame.draw.circle(surface, comp.color_rgb, (b_rect.x + 14, b_rect.y + 14), 6)
             # Tyre wheel graphic
             UIIcons.draw_tyre(surface, (b_rect.x + 8, b_rect.y + 8), comp.color_rgb, size=16)
 
@@ -261,23 +262,36 @@ class PitStrategyModal:
         f_surf = self.font_badge.render(forecast_str, True, (255, 215, 0))
         surface.blit(f_surf, (self.rect.x + 39, self.rect.y + 252))
 
-        # Part health overview line
+        # Part health overview line (clean single blit without icon overlap)
         parts_summary = " | ".join([f"{k[:2]}: {v:.0f}%" for k, v in self.target_car.part_durability.items()][:4])
         sh_mini = UIIcons.get_icon("shield", size=12, color=UITheme.TEXT_MUTED)
         surface.blit(sh_mini, (self.rect.x + 22, self.rect.y + 276))
         p_surf = self.font_badge.render(f"Health: {parts_summary}", True, UITheme.TEXT_MUTED)
-        surface.blit(p_surf, (self.rect.x + 22, self.rect.y + 276))
         surface.blit(p_surf, (self.rect.x + 38, self.rect.y + 276))
 
-        # Confirm & Cancel buttons
+        # Confirm & Cancel buttons using clean UITheme.draw_button with hover
         confirm_btn = pygame.Rect(self.rect.x + 24, self.rect.y + 306, 195, 36)
-        pygame.draw.rect(surface, (0, 180, 100), confirm_btn, border_radius=4)
-        c_txt = self.font_btn.render("CONFIRM PIT STOP", True, (10, 20, 20))
-        surface.blit(c_txt, (confirm_btn.x + (confirm_btn.width - c_txt.get_width()) // 2, confirm_btn.y + 10))
-        UITheme.draw_button(surface, confirm_btn, "CONFIRM PIT STOP", self.font_btn, icon="check", icon_size=15)
+        UITheme.draw_button(
+            surface,
+            confirm_btn,
+            "CONFIRM PIT STOP",
+            self.font_btn,
+            icon="check",
+            icon_size=15,
+            bg_color=(18, 60, 36),
+            border_color=UITheme.SUCCESS_GREEN,
+            is_hover=confirm_btn.collidepoint(mx, my),
+        )
 
         cancel_btn = pygame.Rect(self.rect.x + 241, self.rect.y + 306, 195, 36)
-        pygame.draw.rect(surface, (160, 40, 40), cancel_btn, border_radius=4)
-        can_txt = self.font_btn.render("ABORT / CLOSE", True, (255, 255, 255))
-        surface.blit(can_txt, (cancel_btn.x + (cancel_btn.width - can_txt.get_width()) // 2, cancel_btn.y + 10))
-        UITheme.draw_button(surface, cancel_btn, "ABORT / CLOSE", self.font_btn, icon="x", icon_size=15)
+        UITheme.draw_button(
+            surface,
+            cancel_btn,
+            "ABORT / CLOSE",
+            self.font_btn,
+            icon="x",
+            icon_size=15,
+            bg_color=(45, 20, 20),
+            border_color=UITheme.DANGER_RED,
+            is_hover=cancel_btn.collidepoint(mx, my),
+        )

@@ -22,11 +22,17 @@ class EventFeed:
     def render(self, surface: pygame.Surface, sim: Simulation):
         UITheme.draw_panel(surface, self.rect)
 
-        # Header
-        hdr_rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 22)
-        pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr_rect, border_top_left_radius=4, border_top_right_radius=4)
-        h_txt = self.font_title.render("RACE RADIO & EVENTS", True, UITheme.TEXT_MUTED)
-        surface.blit(h_txt, (self.rect.x + 8, self.rect.y + 4))
+        # Standardized Header
+        hdr_rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 24)
+        UITheme.draw_card_header(
+            surface,
+            hdr_rect,
+            "RACE RADIO & EVENTS",
+            icon="radio",
+            icon_color=UITheme.ACCENT_CYAN,
+            title_color=UITheme.TEXT_WHITE,
+            border_radius=4,
+        )
 
         from .icons import UIIcons
 
@@ -34,7 +40,8 @@ class EventFeed:
         old_clip = surface.get_clip()
         surface.set_clip(self.rect)
         try:
-            curr_y = self.rect.y + 26
+            line_h = max(20, int(round(20 * UITheme.UI_SCALE)))
+            curr_y = self.rect.y + 28
             for item in sim.event_log[:6]:
                 e_type = item.get("type", "INFO")
                 tag_col = {
@@ -45,8 +52,6 @@ class EventFeed:
                     "INCIDENT": UITheme.ACCENT_RED,
                 }.get(e_type, UITheme.TEXT_WHITE)
 
-                # Draw colored dot
-                pygame.draw.circle(surface, tag_col, (self.rect.x + 12, curr_y + 8), 3)
                 icon_name = {
                     "OVERTAKE": "swords",
                     "FASTEST": "zap",
@@ -55,16 +60,16 @@ class EventFeed:
                     "INCIDENT": "triangle-alert",
                 }.get(e_type, "radio")
 
-                ic_surf = UIIcons.get_icon(icon_name, size=11, color=tag_col)
-                surface.blit(ic_surf, (self.rect.x + 8, curr_y + 3))
+                # Clean standalone Lucide icon
+                ic_surf = UIIcons.get_icon(icon_name, size=12, color=tag_col)
+                surface.blit(ic_surf, (self.rect.x + 8, curr_y + (line_h - ic_surf.get_height()) // 2))
 
-                # Event text
+                # Event text (clean single-pass blit)
                 txt = f"[L{item.get('lap', 1)}] {item.get('text', '')}"
                 txt_surf = self.font_item.render(txt, True, UITheme.TEXT_WHITE)
-                surface.blit(txt_surf, (self.rect.x + 22, curr_y + 2))
-                surface.blit(txt_surf, (self.rect.x + 24, curr_y + 2))
+                surface.blit(txt_surf, (self.rect.x + 26, curr_y + (line_h - txt_surf.get_height()) // 2))
 
-                curr_y += 18
+                curr_y += line_h
                 if curr_y > self.rect.bottom - 16:
                     break
         finally:

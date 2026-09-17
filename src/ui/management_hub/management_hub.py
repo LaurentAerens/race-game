@@ -202,8 +202,12 @@ class ManagementHub:
             self.roundup_modal.open(summary)
 
     def handle_event(self, event: pygame.event.Event):
+        modal_open = self.season_finale_modal.is_open or self.roundup_modal.is_open
+
         # Mouse Wheel Events
         if event.type == pygame.MOUSEWHEEL:
+            if modal_open:
+                return
             if self.active_tab == "WORKFORCE":
                 self.tab_workforce.handle_scroll(event)
                 return
@@ -215,14 +219,15 @@ class ManagementHub:
                 return
 
         # Mouse Dragging / Scrollbar Dragging
-        if self.active_tab == "FACTORY" and not self.season_finale_modal.is_open:
-            self.tab_factory.handle_mouse_drag(event)
-        elif self.active_tab == "WORKFORCE" and not self.season_finale_modal.is_open:
-            if self.tab_workforce.handle_mouse_drag(event):
-                return
-            if event.type == pygame.MOUSEBUTTONDOWN and (event.button == 4 or event.button == 5):
-                self.tab_workforce.handle_scroll(event)
-                return
+        if not modal_open:
+            if self.active_tab == "FACTORY":
+                self.tab_factory.handle_mouse_drag(event)
+            elif self.active_tab == "WORKFORCE":
+                if self.tab_workforce.handle_mouse_drag(event):
+                    return
+                if event.type == pygame.MOUSEBUTTONDOWN and (event.button == 4 or event.button == 5):
+                    self.tab_workforce.handle_scroll(event)
+                    return
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mx, my = event.pos

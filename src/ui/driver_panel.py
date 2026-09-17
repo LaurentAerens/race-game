@@ -159,58 +159,93 @@ class DriverStrategyPanel:
             strat_x = cx + 152
             box_w = 68
             box_x = cx + card_w - box_w - 8
-            avail_strat_w = box_x - strat_x - 10
-            btn_w = max(42, min(54, (avail_strat_w - 3 * 5) // 4))
+            avail_strat_w = max(180, box_x - strat_x - 10)
+            btn_w = max(40, min(56, (avail_strat_w - 3 * 5) // 4))
+            btn_h = 22
             btn_gap = 5
 
             mode_locked = getattr(car, "is_mode_locked", False)
+            mx, my = pygame.mouse.get_pos()
 
             # Pace Mode Row
             pace_modes = ["CONSERVE", "NORMAL", "PUSH", "ATTACK"]
             for p_idx, p_mode in enumerate(pace_modes):
-                b_rect = pygame.Rect(strat_x + p_idx * (btn_w + btn_gap), cy + 22, btn_w, 20)
+                b_rect = pygame.Rect(strat_x + p_idx * (btn_w + btn_gap), cy + 22, btn_w, btn_h)
                 is_active = car.pace_mode == p_mode
                 is_disabled = mode_locked or (league_tier >= 3 and p_mode in ["CONSERVE", "ATTACK"])
                 label = {"CONSERVE": "CONS", "NORMAL": "NORM", "PUSH": "PUSH", "ATTACK": "ATK"}[p_mode]
                 if is_disabled:
                     label = f"[{label[:3]}]"
-                UITheme.draw_button(surface, b_rect, label, self.font_btn, is_active=is_active, is_disabled=is_disabled)
+                UITheme.draw_button(
+                    surface,
+                    b_rect,
+                    label,
+                    self.font_btn,
+                    is_active=is_active,
+                    is_hover=b_rect.collidepoint(mx, my),
+                    is_disabled=is_disabled,
+                )
 
             # Engine Mix Row
             eng_modes = ["LEAN", "STANDARD", "RICH"]
             for e_idx, e_mode in enumerate(eng_modes):
-                b_rect = pygame.Rect(strat_x + e_idx * (btn_w + btn_gap), cy + 46, btn_w, 20)
+                b_rect = pygame.Rect(strat_x + e_idx * (btn_w + btn_gap), cy + 47, btn_w, btn_h)
                 is_active = car.engine_mode == e_mode
                 is_disabled = mode_locked or (league_tier >= 3 and e_mode in ["LEAN", "RICH"])
                 label = {"LEAN": "LEAN", "STANDARD": "STD", "RICH": "RICH"}[e_mode]
                 if is_disabled:
                     label = f"[{label[:3]}]"
-                UITheme.draw_button(surface, b_rect, label, self.font_btn, is_active=is_active, is_disabled=is_disabled)
+                UITheme.draw_button(
+                    surface,
+                    b_rect,
+                    label,
+                    self.font_btn,
+                    is_active=is_active,
+                    is_hover=b_rect.collidepoint(mx, my),
+                    is_disabled=is_disabled,
+                )
 
             # ERS Mode Row (AUTO, RECHARGE, BALANCED, OVERTAKE)
             ers_modes = ["AUTO", "RECHARGE", "BALANCED", "OVERTAKE"]
             for er_idx, er_mode in enumerate(ers_modes):
-                b_rect = pygame.Rect(strat_x + er_idx * (btn_w + btn_gap), cy + 70, btn_w, 20)
+                b_rect = pygame.Rect(strat_x + er_idx * (btn_w + btn_gap), cy + 72, btn_w, btn_h)
                 is_active = (car.ers_mode == er_mode) and (league_tier < 3)
                 is_disabled = mode_locked or (league_tier >= 3)
                 label = {"AUTO": "AUTO", "RECHARGE": "RCHG", "BALANCED": "BAL", "OVERTAKE": "BOOST"}[er_mode]
                 if is_disabled:
                     label = "----"
-                UITheme.draw_button(surface, b_rect, label, self.font_btn, is_active=is_active, is_disabled=is_disabled)
+                UITheme.draw_button(
+                    surface,
+                    b_rect,
+                    label,
+                    self.font_btn,
+                    is_active=is_active,
+                    is_hover=b_rect.collidepoint(mx, my),
+                    is_disabled=is_disabled,
+                )
 
             # Right BOX Button
-            box_btn = pygame.Rect(box_x, cy + 22, box_w, 68)
-            box_color = (210, 35, 35) if car.box_this_lap else (38, 48, 62)
+            box_btn = pygame.Rect(box_x, cy + 22, box_w, 72)
+            is_box_hov = box_btn.collidepoint(mx, my)
+            if car.box_this_lap:
+                box_color = UITheme.DANGER_RED
+                box_border_col = (255, 255, 255)
+            elif is_box_hov:
+                box_color = UITheme.BTN_HOVER
+                box_border_col = UITheme.ACCENT_CYAN
+            else:
+                box_color = UITheme.BTN_BG
+                box_border_col = UITheme.BTN_BORDER
+
             pygame.draw.rect(surface, box_color, box_btn, border_radius=4)
-            box_border_col = (255, 255, 255) if car.box_this_lap else UITheme.BTN_BORDER
-            pygame.draw.rect(surface, box_border_col, box_btn, width=2 if car.box_this_lap else 1, border_radius=4)
+            pygame.draw.rect(surface, box_border_col, box_btn, width=2 if (car.box_this_lap or is_box_hov) else 1, border_radius=4)
 
             box_ic = UIIcons.get_icon("octagon", size=16, color=UITheme.TEXT_WHITE)
             surface.blit(box_ic, (box_btn.x + (box_btn.width - box_ic.get_width()) // 2, box_btn.y + 8))
             box_txt1 = self.font_btn.render("ARMED" if car.box_this_lap else "BOX", True, UITheme.TEXT_WHITE)
             box_txt2 = self.font_btn.render("CANCEL" if car.box_this_lap else "STRATEGY", True, (240, 240, 240))
-            surface.blit(box_txt1, (box_btn.x + (box_btn.width - box_txt1.get_width()) // 2, box_btn.y + 28))
-            surface.blit(box_txt2, (box_btn.x + (box_btn.width - box_txt2.get_width()) // 2, box_btn.y + 46))
+            surface.blit(box_txt1, (box_btn.x + (box_btn.width - box_txt1.get_width()) // 2, box_btn.y + 30))
+            surface.blit(box_txt2, (box_btn.x + (box_btn.width - box_txt2.get_width()) // 2, box_btn.y + 50))
 
             # Reliability & Part Durability Health Row
             durs = getattr(car, "part_durability", {})

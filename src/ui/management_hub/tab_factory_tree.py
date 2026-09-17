@@ -384,19 +384,35 @@ class FactoryTreeTab:
 
     def get_department_tabs(self) -> List[Tuple[str, str]]:
         """Dynamically discovers all departments present in the DAG + ALL tab."""
-        dept_labels = {
-            "ALL": "ALL DEPARTMENTS",
-            "ENGINEERING": "AERO & R&D",
-            "MANUFACTURING": "MANUFACTURING",
-            "TESTING": "TESTING & RIGS",
-            "POWERTRAIN": "POWERTRAIN",
-            "COMMERCIAL": "COMMERCIAL",
-            "MARKETING": "COMMERCIAL",
-            "HR": "HR & WELFARE",
-            "TRACKSIDE": "TRACKSIDE",
-            "DRIVER_PERF": "DRIVER PERF",
-            "MANAGEMENT": "MANAGEMENT",
-        }
+        concise = (self.width - 48) // 10 < 115
+        if concise:
+            dept_labels = {
+                "ALL": "ALL",
+                "ENGINEERING": "AERO",
+                "MANUFACTURING": "MFG",
+                "TESTING": "TESTS",
+                "POWERTRAIN": "PU",
+                "COMMERCIAL": "COMM",
+                "MARKETING": "COMM",
+                "HR": "HR",
+                "TRACKSIDE": "TRACK",
+                "DRIVER_PERF": "DRV",
+                "MANAGEMENT": "MGMT",
+            }
+        else:
+            dept_labels = {
+                "ALL": "ALL DEPARTMENTS",
+                "ENGINEERING": "AERO & R&D",
+                "MANUFACTURING": "MANUFACTURING",
+                "TESTING": "TESTING & RIGS",
+                "POWERTRAIN": "POWERTRAIN",
+                "COMMERCIAL": "COMMERCIAL",
+                "MARKETING": "COMMERCIAL",
+                "HR": "HR & WELFARE",
+                "TRACKSIDE": "TRACKSIDE",
+                "DRIVER_PERF": "DRIVER PERF",
+                "MANAGEMENT": "MANAGEMENT",
+            }
         unique_depts = []
         for _, data in self.graph.nodes(data=True):
             d = data.get("department", "GENERAL")
@@ -418,7 +434,8 @@ class FactoryTreeTab:
         ]
         sorted_depts = sorted(unique_depts, key=lambda d: pref.index(d) if d in pref else 999)
 
-        tabs = [("ALL", "ALL DEPARTMENTS")]
+        all_lbl = "ALL" if concise else "ALL DEPARTMENTS"
+        tabs = [("ALL", all_lbl)]
         for d in sorted_depts:
             tabs.append((d, dept_labels.get(d, d.replace("_", " ").upper())))
         return tabs
@@ -1905,23 +1922,39 @@ class FactoryTreeTab:
 
         return False
 
+    def handle_scroll(self, event: pygame.event.Event):
+        """Handles modern pygame.MOUSEWHEEL events for zooming or drawer scrolling."""
+        if self.inspected_node_id:
+            # Scroll inside inspector drawer
+            delta = event.y * 35.0
+            self.inspector_scroll_y = max(-650.0, min(0.0, self.inspector_scroll_y + delta))
+        else:
+            # Zoom canvas
+            if event.y > 0:
+                self.zoom = min(1.4, round(self.zoom + 0.05, 2))
+            elif event.y < 0:
+                self.zoom = max(0.65, round(self.zoom - 0.05, 2))
+
     def handle_mouse_drag(self, event: pygame.event.Event):
         """Allows dragging to pan around the graph or wheel scrolling inside the inspector."""
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.inspected_node_id:
-                # Scroll inside inspector drawer
-                if event.button == 4:  # Scroll up
-                    self.inspector_scroll_y = min(0.0, self.inspector_scroll_y + 35.0)
-                elif event.button == 5:  # Scroll down
-                    self.inspector_scroll_y = max(-650.0, self.inspector_scroll_y - 35.0)
-            else:
-                if event.button == 1 and event.pos[1] > 120:
-                    self.is_dragging = True
-                    self.drag_start = event.pos
-                elif event.button == 4:
-                    self.zoom = min(1.4, self.zoom + 0.05)
-                elif event.button == 5:
-                    self.zoom = max(0.65, self.zoom - 0.05)
+                drawer_x = self.width - 550
+                drawer_rect = pygame.Rect(drawer_x, 60, 526, self.height - 75)
+                if drawer_rect.collidepoint(event.pos):
+                    # Scroll inside inspector drawer with buttons 4/5
+                    if event.button == 4:
+                        self.inspector_scroll_y = min(0.0, self.inspector_scroll_y + 35.0)
+                    elif event.button == 5:
+                        self.inspector_scroll_y = max(-650.0, self.inspector_scroll_y - 35.0)
+                    return
+            if event.button == 1 and event.pos[1] > 120:
+                self.is_dragging = True
+                self.drag_start = event.pos
+            elif event.button == 4:
+                self.zoom = min(1.4, round(self.zoom + 0.05, 2))
+            elif event.button == 5:
+                self.zoom = max(0.65, round(self.zoom - 0.05, 2))
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.is_dragging = False
@@ -3225,6 +3258,18 @@ class FactoryTreeTab:
                     )
 
             surface.set_clip(drawer_prev_clip)
+
+            # Draw interactive scrollbar track & thumb for equipment drawer
+            sb_track = pygame.Rect(drawer_x + 526 - 8, 280, 5, max(40, self.height - 75 - 280))
+            pygame.draw.rect(surface, (20, 26, 36), sb_track, border_radius=2)
+            scroll_range = 650.0
+            visible_h = float(max(40, self.height - 355))
+            visible_ratio = max(0.2, min(1.0, visible_h / (visible_h + scroll_range)))
+            thumb_h = max(24, int(sb_track.height * visible_ratio))
+            scroll_pct = -self.inspector_scroll_y / scroll_range
+            thumb_y = sb_track.y + int((sb_track.height - thumb_h) * scroll_pct)
+            thumb_rect = pygame.Rect(sb_track.x, thumb_y, sb_track.width, thumb_h)
+            pygame.draw.rect(surface, UITheme.ACCENT_CYAN, thumb_rect, border_radius=2)
 
         # Bottom Status Message Bar
         stat_bar = pygame.Rect(24, self.height - 36, self.width - 48, 26)

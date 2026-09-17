@@ -7,21 +7,36 @@ import pygame
 class UITheme:
     """F1 / Motorsport Manager Broadcast dark color palette & dynamic font scaling engine."""
 
+    # Surfaces & Backgrounds
     BG_DARK = (15, 17, 22)
     PANEL_BG = (22, 26, 34)
     PANEL_BORDER = (40, 46, 58)
     PANEL_HEADER = (30, 35, 45)
+    SURFACE_CARD = (20, 25, 34)
+    SURFACE_ELEVATED = (28, 35, 48)
+    SURFACE_INPUT = (16, 20, 28)
+    SURFACE_HOVER = (35, 45, 60)
+    BORDER_SUBTLE = (38, 46, 60)
 
+    # Typography / Texts
     TEXT_WHITE = (245, 248, 252)
     TEXT_MUTED = (145, 155, 170)
     TEXT_DARK = (20, 24, 30)
 
+    # Motorsport Accents & Badges
     ACCENT_CYAN = (0, 220, 240)
-    ACCENT_PURPLE = (180, 80, 240)  # Fastest lap purple
+    ACCENT_PURPLE = (180, 80, 240)  # Fastest lap purple / Sector 3
     ACCENT_GREEN = (0, 230, 110)  # Personal best / Sector green
     ACCENT_YELLOW = (255, 205, 30)  # Caution / Sector yellow
     ACCENT_RED = (240, 45, 45)  # Warning / Soft tire
+    ACCENT_GOLD = (255, 215, 0)  # Championship / Title partner
 
+    # Semantic Status
+    SUCCESS_GREEN = (0, 230, 120)
+    WARNING_AMBER = (255, 195, 30)
+    DANGER_RED = (245, 55, 55)
+
+    # Buttons
     BTN_BG = (35, 42, 54)
     BTN_HOVER = (50, 60, 78)
     BTN_ACTIVE = (0, 180, 210)
@@ -72,7 +87,12 @@ class UITheme:
         Returns a crisply rendered, DPI-scaled font supporting full Unicode emojis (⭐, 🔍, 🏎️, etc.).
         Enforces a minimum legible font floor (11pt body / 10pt badge) so small laptop screens remain easily readable.
         """
-        min_size = 11 if bold or base_size >= 11 else 10
+        if base_size <= 9:
+            min_size = 9
+        elif base_size == 10:
+            min_size = 10
+        else:
+            min_size = 11 if bold or base_size >= 11 else 10
         scaled_size = max(min_size, int(round(base_size * cls.UI_SCALE)))
         key = (font_name, scaled_size, bold)
 
@@ -109,6 +129,10 @@ class UITheme:
         return cls.get_font(10, bold=True)
 
     @classmethod
+    def font_mini(cls) -> pygame.font.Font:
+        return cls.get_font(9, bold=True)
+
+    @classmethod
     def font_btn(cls) -> pygame.font.Font:
         return cls.get_font(11, bold=True)
 
@@ -120,6 +144,137 @@ class UITheme:
     def draw_panel(surface: pygame.Surface, rect: pygame.Rect, border_radius: int = 4):
         pygame.draw.rect(surface, UITheme.PANEL_BG, rect, border_radius=border_radius)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, rect, width=1, border_radius=border_radius)
+
+    @staticmethod
+    def draw_card_header(
+        surface: pygame.Surface,
+        rect: pygame.Rect,
+        title: str,
+        font: Optional[pygame.font.Font] = None,
+        icon: Optional[str] = None,
+        icon_color: Optional[Tuple[int, int, int]] = None,
+        title_color: Optional[Tuple[int, int, int]] = None,
+        bg_color: Optional[Tuple[int, int, int]] = None,
+        border_radius: int = 4,
+    ) -> pygame.Rect:
+        """Standardized card/panel header bar with top rounded corners, Lucide icon, and title."""
+        hdr_bg = bg_color or UITheme.PANEL_HEADER
+        pygame.draw.rect(
+            surface,
+            hdr_bg,
+            rect,
+            border_top_left_radius=border_radius,
+            border_top_right_radius=border_radius,
+        )
+        t_col = title_color or UITheme.ACCENT_CYAN
+        f = font or UITheme.font_title()
+
+        from .icons import UIIcons
+
+        text_x = rect.x + 12
+        if icon:
+            i_col = icon_color or t_col
+            ic_size = max(12, rect.height - 14)
+            ic_surf = UIIcons.get_icon(icon, size=ic_size, color=i_col)
+            surface.blit(ic_surf, (text_x, rect.y + (rect.height - ic_surf.get_height()) // 2))
+            text_x += ic_surf.get_width() + 7
+
+        txt_surf = f.render(title, True, t_col)
+        surface.blit(txt_surf, (text_x, rect.y + (rect.height - txt_surf.get_height()) // 2))
+        return rect
+
+    @staticmethod
+    def draw_pill_badge(
+        surface: pygame.Surface,
+        rect: pygame.Rect,
+        text: str,
+        font: Optional[pygame.font.Font] = None,
+        icon: Optional[str] = None,
+        fg_color: Tuple[int, int, int] = (245, 248, 252),
+        bg_color: Tuple[int, int, int] = (20, 26, 36),
+        border_color: Optional[Tuple[int, int, int]] = None,
+        border_radius: int = 3,
+    ) -> pygame.Rect:
+        """Standardized pill badge with optional Lucide icon."""
+        brd_col = border_color or fg_color
+        pygame.draw.rect(surface, bg_color, rect, border_radius=border_radius)
+        pygame.draw.rect(surface, brd_col, rect, width=1, border_radius=border_radius)
+
+        f = font or UITheme.font_badge()
+        from .icons import UIIcons
+
+        if icon:
+            ic_s = max(10, rect.height - 8)
+            ic_surf = UIIcons.get_icon(icon, size=ic_s, color=fg_color)
+            txt_surf = f.render(text, True, fg_color)
+            total_w = ic_surf.get_width() + 4 + txt_surf.get_width()
+            start_x = rect.x + (rect.width - total_w) // 2
+            surface.blit(ic_surf, (start_x, rect.y + (rect.height - ic_surf.get_height()) // 2))
+            surface.blit(txt_surf, (start_x + ic_surf.get_width() + 4, rect.y + (rect.height - txt_surf.get_height()) // 2))
+        else:
+            txt_surf = f.render(text, True, fg_color)
+            surface.blit(txt_surf, (rect.x + (rect.width - txt_surf.get_width()) // 2, rect.y + (rect.height - txt_surf.get_height()) // 2))
+        return rect
+
+    @staticmethod
+    def draw_progress_bar(
+        surface: pygame.Surface,
+        rect: pygame.Rect,
+        pct: float,
+        fill_color: Tuple[int, int, int],
+        bg_color: Tuple[int, int, int] = (14, 18, 24),
+        border_color: Tuple[int, int, int] = (38, 48, 62),
+        border_radius: int = 3,
+        ticks: Optional[int] = None,
+    ):
+        """Standardized progress meter with track, filled portion, border, and optional milestone ticks."""
+        pygame.draw.rect(surface, bg_color, rect, border_radius=border_radius)
+        clamped_pct = max(0.0, min(1.0, pct))
+        fill_w = int((rect.width - 2) * clamped_pct)
+        if fill_w > 0:
+            fill_rect = pygame.Rect(rect.x + 1, rect.y + 1, fill_w, rect.height - 2)
+            pygame.draw.rect(surface, fill_color, fill_rect, border_radius=max(1, border_radius - 1))
+
+        if ticks and ticks > 1:
+            for i in range(1, ticks):
+                tx = rect.x + int(rect.width * (i / ticks))
+                pygame.draw.line(surface, (50, 62, 80), (tx, rect.y), (tx, rect.bottom - 1), 1)
+
+        pygame.draw.rect(surface, border_color, rect, width=1, border_radius=border_radius)
+
+    @staticmethod
+    def draw_modal_backdrop(surface: pygame.Surface, alpha: int = 190):
+        """Standardized dimmed modal backdrop."""
+        w, h = surface.get_size()
+        dim_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        dim_surf.fill((0, 0, 0, alpha))
+        surface.blit(dim_surf, (0, 0))
+
+    @staticmethod
+    def draw_tooltip(
+        surface: pygame.Surface,
+        text: str,
+        pos: Tuple[int, int],
+        font: Optional[pygame.font.Font] = None,
+        fg_color: Tuple[int, int, int] = (245, 248, 252),
+        bg_color: Tuple[int, int, int] = (24, 30, 42),
+        border_color: Tuple[int, int, int] = (60, 75, 100),
+    ):
+        """Draws floating tooltip with shadow and border, automatically clamped to surface boundaries."""
+        f = font or UITheme.font_badge()
+        txt_surf = f.render(text, True, fg_color)
+        pad_x, pad_y = 8, 4
+        tip_w = txt_surf.get_width() + pad_x * 2
+        tip_h = txt_surf.get_height() + pad_y * 2
+
+        mx, my = pos
+        tx = max(4, min(surface.get_width() - tip_w - 4, mx + 12))
+        ty = max(4, min(surface.get_height() - tip_h - 4, my - tip_h - 4 if my > tip_h + 8 else my + 20))
+
+        tip_rect = pygame.Rect(tx, ty, tip_w, tip_h)
+        pygame.draw.rect(surface, bg_color, tip_rect, border_radius=3)
+        pygame.draw.rect(surface, border_color, tip_rect, width=1, border_radius=3)
+        surface.blit(txt_surf, (tx + pad_x, ty + pad_y))
 
     @staticmethod
     def draw_button(
