@@ -174,7 +174,7 @@ class BroadcastHeader:
         speeds = [
             (0.0, "", "pause"),
             (1.0, "", "play"),
-            (2.0, "2x", "fast-forward"),
+            (2.0, "2x", None),
             (4.0, "4x", None),
             (8.0, "8x", None),
         ]

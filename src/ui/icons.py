@@ -117,12 +117,15 @@ class UIIcons:
             return fallback
 
         try:
-            # Vector-sharp resolution injection
-            modified = re.sub(r'width="[^"]*"', f'width="{size}"', svg_text)
-            modified = re.sub(r'height="[^"]*"', f'height="{size}"', modified)
-            modified = re.sub(r'stroke="[^"]*"', 'stroke="white"', modified)
-            stroke_w = max(1.5, size / 11.5)
-            modified = re.sub(r'stroke-width="[^"]*"', f'stroke-width="{stroke_w:.1f}"', modified)
+            # Vector-sharp resolution injection: update root <svg ...> tag dimensions without corrupting inner elements
+            def _replace_root_svg(match):
+                tag = match.group(0)
+                tag = re.sub(r'(?<![-\w])width="[^"]*"', f'width="{size}"', tag)
+                tag = re.sub(r'(?<![-\w])height="[^"]*"', f'height="{size}"', tag)
+                tag = re.sub(r'(?<![-\w])stroke="[^"]*"', 'stroke="white"', tag)
+                return tag
+
+            modified = re.sub(r"<svg\b[^>]*>", _replace_root_svg, svg_text, count=1)
 
             surf = pygame.image.load(io.BytesIO(modified.encode("utf-8")), "icon.svg")
             if pygame.display.get_surface() is not None:

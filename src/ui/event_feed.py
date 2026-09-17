@@ -45,8 +45,6 @@ class EventFeed:
                     "INCIDENT": UITheme.ACCENT_RED,
                 }.get(e_type, UITheme.TEXT_WHITE)
 
-                # Draw colored dot
-                pygame.draw.circle(surface, tag_col, (self.rect.x + 12, curr_y + 8), 3)
                 icon_name = {
                     "OVERTAKE": "swords",
                     "FASTEST": "zap",
@@ -61,7 +59,6 @@ class EventFeed:
                 # Event text
                 txt = f"[L{item.get('lap', 1)}] {item.get('text', '')}"
                 txt_surf = self.font_item.render(txt, True, UITheme.TEXT_WHITE)
-                surface.blit(txt_surf, (self.rect.x + 22, curr_y + 2))
                 surface.blit(txt_surf, (self.rect.x + 24, curr_y + 2))
 
                 curr_y += 18
