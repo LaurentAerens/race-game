@@ -13,6 +13,7 @@ a = Analysis(
     binaries=[],
     datas=[
         (os.path.join(base_dir, 'tracks'), 'tracks'),
+        (os.path.join(base_dir, 'data'), 'data'),
     ],
     hiddenimports=[
         'sqlite3',
@@ -51,6 +52,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='MotorsportTycoon',
+    icon=os.path.join(base_dir, 'data', 'app_icon.ico'),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

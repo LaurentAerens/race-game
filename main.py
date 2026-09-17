@@ -35,6 +35,15 @@ if sys.platform == "win32":
     try:
         import ctypes
 
+        # Set explicit AppUserModelID so Windows taskbar groups and shows the custom window icon
+        # instead of grouping under the generic Python executable icon
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("laurentaerens.motorsporttycoon.game.1.0")
+    except Exception:
+        pass
+
+    try:
+        import ctypes
+
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     except Exception:
         try:
@@ -50,10 +59,12 @@ class RaceGameApp:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("Open-Wheel Motorsport Management Tycoon & Race Simulator")
+        self._set_app_icon()
 
         self.width = 1280
         self.height = 720
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        self._set_windows_taskbar_icon()
         self.clock = pygame.time.Clock()
         self.is_running = True
 
@@ -128,6 +139,54 @@ class RaceGameApp:
 
         # 5. Splash completion
         self._render_splash_screen("Ready!", 1.0)
+
+    def _set_app_icon(self) -> None:
+        """Sets the application icon for the window title/menu bar and cross-platform display."""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        for filename in ("app_icon.png", "app_icon.ico"):
+            icon_path = os.path.join(base_dir, "data", filename)
+            if os.path.exists(icon_path):
+                try:
+                    icon_surf = pygame.image.load(icon_path)
+                    pygame.display.set_icon(icon_surf)
+                    break
+                except Exception:
+                    pass
+
+    def _set_windows_taskbar_icon(self) -> None:
+        """Applies native Win32 window and taskbar icons via WM_SETICON if running on Windows."""
+        if sys.platform != "win32":
+            return
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            ico_path = os.path.join(base_dir, "data", "app_icon.ico")
+            if not os.path.exists(ico_path):
+                return
+
+            wm_info = pygame.display.get_wm_info()
+            hwnd = wm_info.get("window")
+            if not hwnd:
+                return
+
+            import ctypes
+
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x00000010
+            WM_SETICON = 0x0080
+            ICON_SMALL = 0
+            ICON_BIG = 1
+
+            # Small icon (16x16) for top window menu bar / title bar
+            hicon_small = ctypes.windll.user32.LoadImageW(None, ico_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+            if hicon_small:
+                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+
+            # Large icon (32x32) for Windows taskbar and Alt+Tab
+            hicon_big = ctypes.windll.user32.LoadImageW(None, ico_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+            if hicon_big:
+                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+        except Exception:
+            pass
 
     def _render_splash_screen(self, status_text: str, progress: float):
         """Renders an immediate boot progress bar so the game launches with zero black-screen lag."""
@@ -560,6 +619,7 @@ class RaceGameApp:
             if event.type == pygame.VIDEORESIZE:
                 self.width, self.height = event.w, event.h
                 self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                self._set_windows_taskbar_icon()
                 UITheme.auto_detect_scale(self.width, self.height)
                 self.resize_all_components()
                 continue
