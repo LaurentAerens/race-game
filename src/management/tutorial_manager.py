@@ -275,10 +275,17 @@ class TutorialManager:
     and coordination between UI screens and database persistence.
     """
 
-    def __init__(self, db: Any, team_id: int = 21, on_switch_tab: Optional[Callable[[str], None]] = None):
+    def __init__(
+        self,
+        db: Any,
+        team_id: int = 21,
+        on_switch_tab: Optional[Callable[[str], None]] = None,
+        on_step_changed: Optional[Callable[[TutorialStep], None]] = None,
+    ):
         self.db = db
         self.team_id = team_id
         self.on_switch_tab = on_switch_tab
+        self.on_step_changed = on_step_changed
 
         self.current_step_index: int = 0
         self.is_active: bool = False
@@ -349,6 +356,8 @@ class TutorialManager:
             # If new step specifies a tab, auto-switch to it
             if new_step and new_step.required_tab and self.on_switch_tab:
                 self.on_switch_tab(new_step.required_tab)
+            if new_step and self.on_step_changed:
+                self.on_step_changed(new_step)
             self.save_state()
         else:
             # Reached the end!
@@ -363,6 +372,8 @@ class TutorialManager:
             prev_step = self.get_current_step()
             if prev_step and prev_step.required_tab and self.on_switch_tab:
                 self.on_switch_tab(prev_step.required_tab)
+            if prev_step and self.on_step_changed:
+                self.on_step_changed(prev_step)
             self.save_state()
 
     def skip_tutorial(self):
@@ -387,6 +398,8 @@ class TutorialManager:
         first_step = self.get_current_step()
         if first_step and first_step.required_tab and self.on_switch_tab:
             self.on_switch_tab(first_step.required_tab)
+        if first_step and self.on_step_changed:
+            self.on_step_changed(first_step)
         self.save_state()
 
     def notify_action_completed(self, action_type: str):

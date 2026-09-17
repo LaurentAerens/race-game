@@ -83,7 +83,10 @@ class RaceGameApp:
 
         # Guided Tutorial System
         self.tutorial_manager = TutorialManager(
-            self.management_hub.db, team_id=self.management_hub.gm.team_id, on_switch_tab=self.management_hub.switch_tab
+            self.management_hub.db,
+            team_id=self.management_hub.gm.team_id,
+            on_switch_tab=self.management_hub.switch_tab,
+            on_step_changed=self._on_tutorial_step_changed,
         )
         self.tutorial_manager.is_active = False
         self.management_hub.tutorial_manager = self.tutorial_manager
@@ -223,6 +226,93 @@ class RaceGameApp:
         self.tutorial_manager.team_id = self.management_hub.gm.team_id
         self.tutorial_manager.load_state()
         self.mode = "MANAGEMENT"
+
+    def _on_tutorial_step_changed(self, step: Any):
+        """
+        Synchronizes application mode and active UI views when the tutorial
+        step changes (e.g. user pressed Next/Back on the tutorial card).
+        Ensures the user is always looking at the exact screen and session
+        where the tutorial highlight target exists.
+        """
+        if not step:
+            return
+
+        # 1. Mode: MANAGEMENT (Dashboard, Factory, Workforce, Car R&D, Drivers, Sponsors)
+        if step.required_mode == "MANAGEMENT":
+            if self.mode == "RACE":
+                if self.sim:
+                    self.sim.is_paused = True
+                self.mode = "MANAGEMENT"
+            elif self.mode != "MANAGEMENT":
+                self.mode = "MANAGEMENT"
+
+            if step.required_tab:
+                self.management_hub.switch_tab(step.required_tab)
+
+            # Sub-tab conveniences so user is directly facing the relevant interactive action
+            if step.step_id == "PERSONNEL_HIRING":
+                if hasattr(self.management_hub, "tab_workforce"):
+                    self.management_hub.tab_workforce.sub_tab = "RECRUITMENT"
+            elif step.step_id == "DRIVERS_ACADEMY":
+                if hasattr(self.management_hub, "tab_drivers"):
+                    self.management_hub.tab_drivers.active_subtab = "SCOUTS"
+
+        # 2. Mode: WEEKEND (Free Practice, Qualifying)
+        elif step.required_mode == "WEEKEND":
+            if self.mode != "WEEKEND":
+                if (
+                    not self.weekend_manager
+                    or not self.weekend_screen
+                    or getattr(self.weekend_manager, "is_weekend_completed", False)
+                ):
+                    race_event = self.management_hub.gm.get_current_race_event()
+                    self.start_race_weekend(race_event)
+                else:
+                    self.mode = "WEEKEND"
+
+            # Advance session to Qualifying if required
+            if step.step_id == "WEEKEND_QUALIFYING" and self.weekend_manager:
+                while self.weekend_manager.is_practice and not self.weekend_manager.is_weekend_completed:
+                    self.weekend_manager.advance_to_next_session()
+                if self.weekend_screen:
+                    self.weekend_screen.status_message = "Entered Qualifying session for Tutorial."
+
+        # 3. Mode: RACE (Live Pit Wall)
+        elif step.required_mode == "RACE":
+            if self.mode != "RACE":
+                if (
+                    not self.weekend_manager
+                    or not self.weekend_screen
+                    or getattr(self.weekend_manager, "is_weekend_completed", False)
+                ):
+                    race_event = self.management_hub.gm.get_current_race_event()
+                    self.start_race_weekend(race_event)
+
+                if self.weekend_manager:
+                    # If qualifying not simulated yet, simulate it so starting grid is valid
+                    if not self.weekend_manager.qualifying_results and self.weekend_screen:
+                        all_pairs = self.weekend_screen._build_driver_car_pairs()
+                        q_res = self.weekend_manager.simulate_qualifying_session(all_pairs)
+                        self.weekend_manager.record_session_completion(RaceWeekendSession.QUALIFYING, q_res)
+
+                    # Advance past practice and qualifying sessions into sprint or race
+                    while (
+                        self.weekend_manager.is_practice or self.weekend_manager.is_qualifying
+                    ) and not self.weekend_manager.is_weekend_completed:
+                        self.weekend_manager.advance_to_next_session()
+
+                    grid = (
+                        self.weekend_manager.get_starting_grid_for_sprint()
+                        if self.weekend_manager.is_sprint
+                        else self.weekend_manager.get_starting_grid_for_main_race()
+                    )
+                    laps = self.weekend_manager.get_current_session_laps()
+                    sess_name = self.weekend_manager.current_session.value
+                    self.start_live_session_from_weekend(sess_name, laps, grid)
+
+            # Pause sim during tutorial briefing
+            if self.sim:
+                self.sim.is_paused = True
 
     def start_race_weekend(self, race_event: Dict[str, Any]):
         """Transitions from Management Hub into the interactive Race Weekend Hub."""

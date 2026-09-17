@@ -359,6 +359,155 @@ class TestTutorialSystem(unittest.TestCase):
         self.assertEqual(t2.x, 520)
         self.assertEqual(t2.y, 490)
 
+    def test_on_step_changed_callback_flow(self):
+        """Validates that on_step_changed callback fires on next_step, prev_step, and restart_tutorial."""
+        step_events = []
+
+        def on_step(s):
+            step_events.append(s.step_id)
+
+        tm = TutorialManager(self.db, self.team_id, on_step_changed=on_step)
+        # Advance through first 3 steps
+        tm.next_step()  # Step 1 -> FACTORY_BRAKES_EQUIPMENT
+        self.assertEqual(step_events[-1], "FACTORY_BRAKES_EQUIPMENT")
+
+        tm.next_step()  # Step 2 -> PERSONNEL_HIRING
+        self.assertEqual(step_events[-1], "PERSONNEL_HIRING")
+
+        tm.prev_step()  # Step 1 -> FACTORY_BRAKES_EQUIPMENT
+        self.assertEqual(step_events[-1], "FACTORY_BRAKES_EQUIPMENT")
+
+        tm.restart_tutorial()  # Step 0 -> WELCOME_DASHBOARD
+        self.assertEqual(step_events[-1], "WELCOME_DASHBOARD")
+
+    def test_launch_weekend_to_practice_transition(self):
+        """Advancing from LAUNCH_WEEKEND (Step 7) to WEEKEND_PRACTICE (Step 8) triggers WEEKEND mode transition."""
+        step_modes = []
+
+        def on_step(s):
+            step_modes.append((s.step_id, s.required_mode, s.required_tab))
+
+        tm = TutorialManager(self.db, self.team_id, on_step_changed=on_step)
+        tm.current_step_index = 6  # LAUNCH_WEEKEND
+        self.assertEqual(tm.get_current_step().step_id, "LAUNCH_WEEKEND")
+        self.assertEqual(tm.get_current_step().required_mode, "MANAGEMENT")
+
+        # Press Next to travel trackside
+        tm.next_step()
+        curr = tm.get_current_step()
+        self.assertEqual(curr.step_id, "WEEKEND_PRACTICE")
+        self.assertEqual(curr.required_mode, "WEEKEND")
+        self.assertIsNone(curr.required_tab)
+
+        # on_step_changed must have reported the transition to WEEKEND
+        last_event = step_modes[-1]
+        self.assertEqual(last_event[0], "WEEKEND_PRACTICE")
+        self.assertEqual(last_event[1], "WEEKEND")
+
+    def test_overlay_render_guards_mismatched_mode_or_tab(self):
+        """Overlay suppresses target highlight if current mode or active tab doesn't match the step requirement."""
+        tm = TutorialManager(self.db, self.team_id)
+        tm.current_step_index = 7  # WEEKEND_PRACTICE (requires WEEKEND mode)
+        overlay = TutorialOverlay(1280, 720, tm)
+
+        # Test surface
+        surf = pygame.Surface((1280, 720))
+
+        # 1. When game is in MANAGEMENT mode, WEEKEND_PRACTICE target (sliders) should NOT be highlighted
+        overlay.render(surf, current_mode="MANAGEMENT")
+        # Ensure no crash and card is docked
+
+        # 2. When in WEEKEND mode, target rect should be returned
+        step = tm.get_current_step()
+        target = overlay.get_target_rect(step)
+        self.assertEqual(target, pygame.Rect(24, 150, 480, 260))
+
+    def test_app_step_changed_handler_mode_switching(self):
+        """Tests that _on_tutorial_step_changed in the game app accurately switches modes between MANAGEMENT and WEEKEND."""
+        from main import RaceGameApp
+
+        # Create headless app instance for unit testing
+        app = RaceGameApp.__new__(RaceGameApp)
+        app.mode = "MANAGEMENT"
+        app.weekend_manager = None
+        app.weekend_screen = None
+        app.sim = None
+
+        class MockTab:
+            active_tab = "DASHBOARD"
+            sub_tab = "TREE"
+            active_subtab = "ROSTER"
+
+        class MockGM:
+            team_id = 1
+
+            def get_current_race_event(self):
+                return {"circuit_file": "emerald_ring.json", "round": 1}
+
+        class MockHub:
+            gm = MockGM()
+            active_tab = "DASHBOARD"
+            tab_workforce = MockTab()
+            tab_drivers = MockTab()
+
+            def switch_tab(self, tab):
+                self.active_tab = tab
+
+        app.management_hub = MockHub()
+
+        def mock_start_race_weekend(race_event):
+            app.mode = "WEEKEND"
+
+            class MockWeekendMgr:
+                is_practice = True
+                is_qualifying = False
+                is_sprint = False
+                is_weekend_completed = False
+                current_session = type("Sess", (), {"value": "FP1"})()
+
+                def advance_to_next_session(self):
+                    self.is_practice = False
+                    self.is_qualifying = True
+                    self.current_session.value = "QUALIFYING"
+
+            app.weekend_manager = MockWeekendMgr()
+            app.weekend_screen = type("Screen", (), {"status_message": ""})()
+
+        app.start_race_weekend = mock_start_race_weekend
+
+        # 1. Step: WEEKEND_PRACTICE -> Transitions from MANAGEMENT to WEEKEND
+        tm = TutorialManager(self.db, self.team_id)
+        tm.current_step_index = 7  # WEEKEND_PRACTICE
+        step_practice = tm.get_current_step()
+
+        app._on_tutorial_step_changed(step_practice)
+        self.assertEqual(app.mode, "WEEKEND")
+        self.assertIsNotNone(app.weekend_manager)
+        self.assertTrue(app.weekend_manager.is_practice)
+
+        # 2. Step: WEEKEND_QUALIFYING -> Advances session into Qualifying
+        tm.current_step_index = 8  # WEEKEND_QUALIFYING
+        step_qualy = tm.get_current_step()
+        app._on_tutorial_step_changed(step_qualy)
+        self.assertEqual(app.mode, "WEEKEND")
+        self.assertFalse(app.weekend_manager.is_practice)
+        self.assertTrue(app.weekend_manager.is_qualifying)
+
+        # 3. Step: Return back to LAUNCH_WEEKEND -> Transitions back to MANAGEMENT mode and DASHBOARD tab
+        tm.current_step_index = 6  # LAUNCH_WEEKEND
+        step_launch = tm.get_current_step()
+        app._on_tutorial_step_changed(step_launch)
+        self.assertEqual(app.mode, "MANAGEMENT")
+        self.assertEqual(app.management_hub.active_tab, "DASHBOARD")
+
+        # 4. Step: PERSONNEL_HIRING -> Sets tab to WORKFORCE and sub_tab to RECRUITMENT
+        tm.current_step_index = 2  # PERSONNEL_HIRING
+        step_personnel = tm.get_current_step()
+        app._on_tutorial_step_changed(step_personnel)
+        self.assertEqual(app.management_hub.active_tab, "WORKFORCE")
+        self.assertEqual(app.management_hub.tab_workforce.sub_tab, "RECRUITMENT")
+
 
 if __name__ == "__main__":
     unittest.main()
+

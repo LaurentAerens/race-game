@@ -330,7 +330,19 @@ class TutorialOverlay:
             return
 
         # 1. Glowing Target Spotlight
-        target = self.get_target_rect(step)
+        # Guard: Only render target highlight if active screen mode matches step requirement
+        if current_mode and step.required_mode != current_mode:
+            target = None
+        elif (
+            current_mode == "MANAGEMENT"
+            and step.required_tab
+            and self.management_hub
+            and getattr(self.management_hub, "active_tab", None) != step.required_tab
+        ):
+            target = None
+        else:
+            target = self.get_target_rect(step)
+
         if target:
             # Pulsing alpha border
             pulse = (math.sin(self.pulse_timer) + 1.0) * 0.5  # 0.0 to 1.0
