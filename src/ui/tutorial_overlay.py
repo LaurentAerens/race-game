@@ -50,6 +50,7 @@ class TutorialOverlay:
         self.font_title = UITheme.get_font(13, bold=True)
         self.font_body = UITheme.get_font(10, bold=False)
         self.font_reward = UITheme.get_font(10, bold=True)
+        self.font_badge = UITheme.get_font(9, bold=True)
         self.font_btn = UITheme.get_font(10, bold=True)
 
     def resize(self, width: int, height: int):
@@ -507,11 +508,18 @@ class TutorialOverlay:
         pygame.draw.line(surface, (35, 45, 65), (hdr_rect.x, hdr_rect.bottom), (hdr_rect.right, hdr_rect.bottom), 1)
 
         # Advisor Badge & Name
+        # Advisor Badge & Name
         role_surf = self.font_role.render(f"[{step.speaker_role}]", True, (0, 230, 255))
         surface.blit(role_surf, (card.x + 14, card.y + 10))
 
         name_surf = self.font_name.render(step.speaker_name, True, UITheme.TEXT_WHITE)
         surface.blit(name_surf, (card.x + 20 + role_surf.get_width(), card.y + 9))
+
+        # [i] Info Hover Button (Briefing & Lore)
+        mx, my = pygame.mouse.get_pos()
+        info_btn = pygame.Rect(card.x + 24 + role_surf.get_width() + name_surf.get_width(), card.y + 8, 20, 20)
+        is_info_hover = info_btn.collidepoint(mx, my)
+        UITheme.draw_info_icon(surface, info_btn, is_hover=is_info_hover)
 
         # Step Meter (e.g. "Step 3 / 11")
         step_txt = f"Step {self.manager.current_step_index + 1} of {self.manager.get_total_steps()}"
@@ -519,79 +527,133 @@ class TutorialOverlay:
         surface.blit(step_surf, (card.right - step_surf.get_width() - 14, card.y + 11))
 
         # Title
-        title_surf = self.font_title.render(step.title, True, (255, 255, 255))
+        title_surf = self.font_title.render(step.title, True, (255, 215, 0))
         surface.blit(title_surf, (card.x + 16, card.y + 44))
 
-        # Body Text with word wrap
-        body_text = step.body
+        # Dynamic Context-Aware Objective
+        obj_text = step.get_objective()
         if (
             step.step_id == "FACTORY_BRAKES_EQUIPMENT"
             and self.management_hub
             and hasattr(self.management_hub, "tab_factory")
         ):
             if getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes":
-                body_text = (
-                    "Brakes Workshop opened!\n\n"
-                    "Inspect the specialized equipment items in the drawer on the right (Stress Rigs, Carbon Lathes, etc.).\n\n"
-                    "Click 'BUY' or 'UPGRADE' on any item to equip our facility. The Board grant will reimburse 100% of the cost (+$800,000) as a completion bonus!"
-                )
+                obj_text = "Click 'BUY' or 'UPGRADE' on any equipment item in the drawer (100% Board grant subsidy)."
         elif (
             step.step_id == "PERSONNEL_HIRING" and self.management_hub and hasattr(self.management_hub, "tab_workforce")
         ):
             tw = self.management_hub.tab_workforce
             if getattr(tw, "destination_picker_data", None) is not None:
-                body_text = (
-                    "Room Destination Selector open!\n\n"
-                    "Choose an unlocked facility room with an open desk (such as Workshop or Brakes) and click 'ASSIGN HERE'.\n\n"
-                    "Your new team member will begin contributing to your weekly performance output immediately!"
-                )
+                obj_text = "Choose an unlocked facility room with an open desk and click 'ASSIGN HERE'."
             elif getattr(tw, "sub_tab", "") == "RECRUITMENT":
-                body_text = (
-                    "Recruitment & Tryouts queue active!\n\n"
-                    "Here you can see inbound applicants and 6-month intern tryouts. Inspect their specialties and salaries.\n\n"
-                    "Click 'INBOUND / CHOOSE ROOM' (or 'HIRE') on the top candidate to onboard them. The Board grant will cover their onboarding!"
-                )
+                obj_text = "Click 'INBOUND / CHOOSE ROOM' (or 'HIRE') on a candidate to onboard them."
         elif step.step_id == "CAR_RND_FRONT_WING" and self.management_hub and hasattr(self.management_hub, "tab_car"):
             tc = self.management_hub.tab_car
             if getattr(tc, "selected_part_category", "") == "FRONT_WING":
-                body_text = (
-                    "Front Wing selected on the chassis blueprint!\n\n"
-                    "Review the Continuous Evolution Knowledge accumulated by your cars in the deck below.\n\n"
-                    "Click 'BUILD NEXT GEN' to manufacture our Mk II specification. The Board will sponsor this prototype build with a +$125,000 grant!"
-                )
+                obj_text = "Click 'BUILD NEXT GEN' to manufacture our Mk II specification (+ $125k Board subsidy)."
             else:
-                body_text = (
-                    "Welcome to Car Engineering!\n\n"
-                    "Our interactive top-down blueprint displays component wear, reliability, and R&D evolution.\n\n"
-                    "Click the FRONT WING hotspot on the blueprint to inspect its continuous knowledge and prototype development."
-                )
+                obj_text = "Click the FRONT WING hotspot on the chassis blueprint to inspect its R&D development."
         elif step.step_id == "DRIVERS_ACADEMY" and self.management_hub and hasattr(self.management_hub, "tab_drivers"):
             td = self.management_hub.tab_drivers
             if getattr(td, "active_subtab", "") == "SCOUTS":
-                body_text = (
-                    "Scouting Prospects active!\n\n"
-                    "Here you can find raw youth talents seeking developmental backing. Select a feeder seat tier (e.g. Tier 5 Karting) and click 'SIGN PROSPECT'.\n\n"
-                    "The Board will fund a +$30,000 youth development scholarship upon signing!"
-                )
+                obj_text = "Select a feeder seat tier (e.g. Tier 5 Karting) and click 'SIGN PROSPECT'."
 
+        # Objective Box
+        obj_box = pygame.Rect(card.x + 14, card.y + 68, card.width - 28, 52)
+        pygame.draw.rect(surface, (20, 28, 40), obj_box, border_radius=4)
+        pygame.draw.rect(surface, (0, 220, 255), obj_box, width=1, border_radius=4)
+        UITheme.draw_icon(surface, "target", (obj_box.x + 10, obj_box.y + 14), color=(0, 240, 255), size=18)
+        surface.blit(self.font_title.render("DIRECTIVE:", True, (0, 240, 255)), (obj_box.x + 34, obj_box.y + 6))
         self._render_wrapped_text(
             surface,
-            body_text,
-            card.x + 16,
-            card.y + 68,
-            card.width - 32,
+            obj_text,
+            obj_box.x + 34,
+            obj_box.y + 24,
+            obj_box.width - 40,
             self.font_body,
-            (210, 220, 235),
-            line_spacing=16,
+            UITheme.TEXT_WHITE,
+            line_spacing=14,
         )
+
+        # Quick Context Chips Row
+        step_chips = {
+            "WELCOME_DASHBOARD": [
+                ("calendar", "Calendar Planning", (0, 220, 255)),
+                ("award", "Tier 3 Cup", (255, 215, 0)),
+                ("flag", "Round 1 Prep", (0, 240, 140)),
+            ],
+            "FACTORY_BRAKES_EQUIPMENT": [
+                ("disc", "Carbon Brakes", (255, 180, 50)),
+                ("wrench", "Precision Dynos", (0, 220, 255)),
+                ("coins", "+$800k Subsidy", (0, 240, 140)),
+            ],
+            "PERSONNEL_HIRING": [
+                ("users", "Specialist Staff", (0, 220, 255)),
+                ("award", "Dept Heads", (255, 215, 0)),
+                ("circle-dollar-sign", "+$15k Stipend", (0, 240, 140)),
+            ],
+            "CAR_RND_FRONT_WING": [
+                ("wind", "Front Wing Mk II", (0, 220, 255)),
+                ("zap", "+Perf & Rel", (255, 215, 0)),
+                ("coins", "+$125k Subsidy", (0, 240, 140)),
+            ],
+            "DRIVERS_ACADEMY": [
+                ("graduation-cap", "Youth Academy", (0, 220, 255)),
+                ("award", "Feeder Seats", (255, 215, 0)),
+                ("coins", "+$30k Scholarship", (0, 240, 140)),
+            ],
+            "SPONSORS_COMMERCIAL": [
+                ("circle-dollar-sign", "Weekly Retainers", (0, 240, 140)),
+                ("target", "Finish Bonuses", (255, 215, 0)),
+                ("award", "+$25k Signing", (0, 220, 255)),
+            ],
+            "LAUNCH_WEEKEND": [
+                ("flag", "Trackside Haulers", (0, 240, 140)),
+                ("gauge", "Free Practice", (0, 220, 255)),
+                ("zap", "Sprint Race", (255, 215, 0)),
+            ],
+            "WEEKEND_PRACTICE": [
+                ("sliders", "Setup Sliders", (0, 220, 255)),
+                ("timer", "5-Lap Stints", (255, 215, 0)),
+                ("award", "Setup Confidence", (0, 240, 140)),
+            ],
+            "WEEKEND_QUALIFYING": [
+                ("timer", "3-Lap Shootout", (0, 220, 255)),
+                ("flag", "Starting Grid", (255, 215, 0)),
+                ("zap", "Single-Lap Bravery", (0, 240, 140)),
+            ],
+            "LIVE_RACE_PITWALL": [
+                ("gauge", "Pace Control", (0, 240, 140)),
+                ("disc", "Tire Management", (255, 180, 50)),
+                ("wrench", "Box Strategy", (0, 220, 255)),
+            ],
+            "RACE_DEBRIEF": [
+                ("award", "Championship Pts", (255, 215, 0)),
+                ("circle-dollar-sign", "Prize Money", (0, 240, 140)),
+                ("network", "Factory R&D", (0, 220, 255)),
+            ],
+        }
+        chips = step_chips.get(
+            step.step_id, [("zap", "Key Milestone", (0, 220, 255)), ("award", "Progression", (255, 215, 0))]
+        )
+        chip_w = (card.width - 28 - (len(chips) - 1) * 6) // len(chips)
+        for c_idx, (c_ic, c_lbl, c_col) in enumerate(chips):
+            cx = card.x + 14 + c_idx * (chip_w + 6)
+            c_rect = pygame.Rect(cx, card.y + 126, chip_w, 24)
+            pygame.draw.rect(surface, (18, 24, 34), c_rect, border_radius=3)
+            pygame.draw.rect(surface, (38, 48, 62), c_rect, width=1, border_radius=3)
+            UITheme.draw_icon(surface, c_ic, (c_rect.x + 6, c_rect.y + 5), color=c_col, size=12)
+            disp_lbl = self.font_badge.render(c_lbl, True, c_col)
+            surface.blit(disp_lbl, (c_rect.x + 22, c_rect.y + 5))
 
         # Reward Banner (if any)
         if step.reward_note:
-            reward_rect = pygame.Rect(card.x + 16, card.bottom - 74, card.width - 32, 24)
-            pygame.draw.rect(surface, (20, 45, 30), reward_rect, border_radius=3)
+            reward_rect = pygame.Rect(card.x + 14, card.bottom - 74, card.width - 28, 26)
+            pygame.draw.rect(surface, (18, 38, 28), reward_rect, border_radius=3)
             pygame.draw.rect(surface, (0, 220, 120), reward_rect, width=1, border_radius=3)
+            UITheme.draw_icon(surface, "award", (reward_rect.x + 8, reward_rect.y + 6), color=(0, 240, 140), size=14)
             rew_surf = self.font_reward.render(step.reward_note, True, (0, 255, 140))
-            surface.blit(rew_surf, (reward_rect.x + 8, reward_rect.y + 4))
+            surface.blit(rew_surf, (reward_rect.x + 26, reward_rect.y + 5))
 
         # Bottom Button Row (Synchronized with handle_event)
         btn_skip, btn_back, btn_next = self._get_card_buttons(card)
@@ -614,6 +676,17 @@ class TutorialOverlay:
         pygame.draw.rect(surface, (0, 240, 150), btn_next, width=1, border_radius=3)
         nx_lbl = self.font_btn.render(step.action_label, True, (10, 24, 18))
         surface.blit(nx_lbl, (btn_next.x + (btn_next.width - nx_lbl.get_width()) // 2, btn_next.y + 8))
+
+        # Floating Info Tooltip if info button is hovered
+        if is_info_hover:
+            UITheme.draw_tooltip(
+                surface,
+                step.get_lore(),
+                (info_btn.centerx, info_btn.bottom + 4),
+                title="ADVISOR BRIEFING & LORE",
+                icon="help-circle",
+                max_width=360,
+            )
 
     def _render_wrapped_text(
         self,

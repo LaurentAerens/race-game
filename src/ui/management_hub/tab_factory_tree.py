@@ -2091,6 +2091,7 @@ class FactoryTreeTab:
 
         # Detect hovered node for interactive edge highlighting
         mx, my = pygame.mouse.get_pos()
+        pending_tooltip: Optional[Tuple[str, str, Tuple[int, int], str]] = None
         hovered_node = None
         if canvas_rect.collidepoint(mx, my):
             for node_id, (gx, gy) in self.node_positions.items():
@@ -2500,18 +2501,35 @@ class FactoryTreeTab:
             surface.blit(self.font_btn.render("-", True, UITheme.TEXT_WHITE), (d_minus.x + 8, d_minus.y + 1))
             surface.blit(self.font_btn.render("+", True, UITheme.TEXT_WHITE), (d_plus.x + 7, d_plus.y + 1))
 
-            upk_detail = f"Min Op Demand: ${fin_status['min_operational_cost']:,.0f}/mo (Maint: ${fin_status['facility_upkeep']:,.0f} | Eq: ${fin_status['equipment_upkeep']:,.0f} | Wages: ${fin_status['staff_salaries']:,.0f})"
-            UITheme.draw_stat_item(
+            cost_str = f"Min Op Demand: ${fin_status['min_operational_cost']:,.0f}/mo"
+            cost_w = UITheme.draw_stat_item(
                 surface,
                 fin_rect.x + 10,
                 fin_rect.y + 22,
                 "trending-down",
-                upk_detail,
+                cost_str,
                 self.font_body,
                 text_color=UITheme.TEXT_MUTED,
                 icon_color=(255, 140, 40),
                 icon_size=12,
             )
+            fin_info_rect = pygame.Rect(fin_rect.x + 10 + cost_w + 8, fin_rect.y + 20, 16, 16)
+            is_fin_hov = fin_info_rect.collidepoint(mx, my) and drawer_rect.collidepoint(mx, my)
+            UITheme.draw_info_icon(surface, fin_info_rect, is_hover=is_fin_hov)
+            if is_fin_hov:
+                fin_lore = (
+                    f"Minimum monthly operating cost required for 100% facility efficiency:\n\n"
+                    f"• Facility Base Upkeep: ${fin_status['facility_upkeep']:,.0f}/mo\n"
+                    f"• Installed Equipment Upkeep: ${fin_status['equipment_upkeep']:,.0f}/mo\n"
+                    f"• Department Staff Wages: ${fin_status['staff_salaries']:,.0f}/mo\n\n"
+                    f"Operating below minimum demand reduces team development output and reliability."
+                )
+                pending_tooltip = (
+                    "OPERATIONAL EXPENSES BREAKDOWN",
+                    fin_lore,
+                    (mx + 10, my + 10),
+                    "coins",
+                )
 
             # Department Savings Account row & Sweep button
             savings_amt = fin_status.get("savings_balance", 0.0)
@@ -2724,12 +2742,21 @@ class FactoryTreeTab:
                         lvl_str = f"Lv {eq['current_level']}/{eq['max_level']}"
                     else:
                         lvl_str = "UNINSTALLED"
-                    surface.blit(
-                        self.font_card_title.render(
-                            eq["name"], True, UITheme.TEXT_WHITE if not is_locked else (120, 130, 140)
-                        ),
-                        (item_rect.x + 8, item_rect.y + 6),
+                    name_surf = self.font_card_title.render(
+                        eq["name"], True, UITheme.TEXT_WHITE if not is_locked else (120, 130, 140)
                     )
+                    surface.blit(name_surf, (item_rect.x + 8, item_rect.y + 6))
+
+                    info_rect = pygame.Rect(item_rect.x + 8 + name_surf.get_width() + 6, item_rect.y + 5, 16, 16)
+                    is_info_hov = info_rect.collidepoint(mx, my) and eq_canvas.collidepoint(mx, my)
+                    UITheme.draw_info_icon(surface, info_rect, is_hover=is_info_hov)
+                    if is_info_hov:
+                        pending_tooltip = (
+                            f"{eq['name'].upper()} SPECIFICATION",
+                            eq["description"],
+                            (mx + 10, my + 10),
+                            "info",
+                        )
 
                     lvl_badge = self.font_badge.render(
                         f"[{lvl_str}]", True, (255, 215, 0) if is_active else (140, 140, 140)
@@ -2738,11 +2765,44 @@ class FactoryTreeTab:
                         lvl_badge, (item_rect.x + item_rect.width - lvl_badge.get_width() - 8, item_rect.y + 6)
                     )
 
-                    # Description
-                    surface.blit(
-                        self.font_body.render(eq["description"], True, UITheme.TEXT_MUTED),
-                        (item_rect.x + 8, item_rect.y + 22),
-                    )
+                    # Status Indicator Chip (replaces dense text block)
+                    if is_active:
+                        UITheme.draw_stat_item(
+                            surface,
+                            item_rect.x + 8,
+                            item_rect.y + 24,
+                            "check-circle",
+                            "ONLINE & CALIBRATED",
+                            self.font_badge,
+                            text_color=(0, 240, 140),
+                            icon_color=(0, 240, 140),
+                            icon_size=11,
+                        )
+                    elif is_locked:
+                        req_t = eq.get("unlocked_at_facility_tier", 1)
+                        UITheme.draw_stat_item(
+                            surface,
+                            item_rect.x + 8,
+                            item_rect.y + 24,
+                            "lock",
+                            f"REQUIRES FACILITY TIER {req_t}",
+                            self.font_badge,
+                            text_color=(240, 100, 100),
+                            icon_color=(240, 100, 100),
+                            icon_size=11,
+                        )
+                    else:
+                        UITheme.draw_stat_item(
+                            surface,
+                            item_rect.x + 8,
+                            item_rect.y + 24,
+                            "wrench",
+                            "AVAILABLE FOR INSTALLATION",
+                            self.font_badge,
+                            text_color=(160, 170, 180),
+                            icon_color=(160, 170, 180),
+                            icon_size=11,
+                        )
 
                     # Current Impact and Next Upgrade Impact
                     p_lvl = float(eq.get("perf_bonus_per_level") or 0.0)
@@ -3280,3 +3340,15 @@ class FactoryTreeTab:
             self.font_badge.render(f"FACTORY LOG: {self.status_message}", True, UITheme.ACCENT_CYAN),
             (stat_bar.x + 10, stat_bar.y + 6),
         )
+
+        if pending_tooltip:
+            t_title, t_text, t_pos, t_icon = pending_tooltip
+            UITheme.draw_tooltip(
+                surface,
+                t_text,
+                t_pos,
+                title=t_title,
+                icon=t_icon,
+                font=self.font_badge,
+                max_width=360,
+            )

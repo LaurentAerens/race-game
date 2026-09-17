@@ -24,6 +24,17 @@ class TutorialStep:
     interactive_action: Optional[str] = (
         None  # 'BUY_BRAKES_EQUIPMENT', 'HIRE_STAFF', 'BUILD_FRONT_WING', 'ENROLL_DRIVER', 'SIGN_SPONSOR'
     )
+    objective: str = ""
+    lore_briefing: str = ""
+
+    def get_objective(self) -> str:
+        if self.objective:
+            return self.objective
+        lines = [s.strip() for s in self.body.split("\n") if s.strip()]
+        return lines[-1] if lines else self.title
+
+    def get_lore(self) -> str:
+        return self.lore_briefing or self.body
 
 
 TUTORIAL_STEPS: List[TutorialStep] = [
@@ -44,6 +55,12 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "active sponsor targets, monthly cash flow, and innovation proposals.\n\n"
             "Let's take a hands-on tour of your factory and prepare our cars for Round 1!"
         ),
+        objective="Inspect upcoming Round 1 at Emerald Ring on your Grand Prix calendar.",
+        lore_briefing=(
+            "Welcome to the team! As our new Team Principal, you are in charge of steering our operations "
+            "in the National Open Cup (Tier 3). On this Dashboard, you can track upcoming Grand Prix events, "
+            "active sponsor targets, monthly cash flow, and innovation proposals."
+        ),
         target_element_key="tab_dashboard_gp",
         action_label="Tour Factory >>",
     ),
@@ -63,6 +80,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "and pit stop efficiency. In particular, notice our Brakes Workshop ('eng_brakes').\n\n"
             "Click into the Brakes node, inspect its specialized equipment, and purchase or upgrade an item. "
             "The Board will subsidize the purchase as an initial equipment grant!"
+        ),
+        objective="Open the Brakes node ('eng_brakes') and purchase any specialized equipment.",
+        lore_briefing=(
+            "Facilities upgrade team R&D output, manufacturing tolerances, and pit stop speed. "
+            "The Brakes Workshop specializes in high decel bite and stability for heavy braking circuits."
         ),
         target_element_key="tab_factory_node",
         action_label="Next: Personnel >>",
@@ -87,6 +109,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Switch to the Recruitment sub-tab to inspect inbound applicants. Hire a candidate to "
             "strengthen our department roster. The Board has authorized an onboarding stipend!"
         ),
+        objective="Switch to Recruitment and hire a qualified candidate for our open department desk.",
+        lore_briefing=(
+            "A world-class racing team is powered by elite engineers and craftsmen! "
+            "Appoint Category Directors, Department Heads, and assign specialist engineers to desks to boost development."
+        ),
         target_element_key="tab_personnel_recruitment",
         action_label="Next: Car R&D >>",
         reward_note="🎁 Reward: +$15,000 Board Grant (Recruitment Allowance)",
@@ -109,6 +136,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "for custom constructor development! As your cars complete laps, Continuous Evolution Knowledge builds up.\n\n"
             "We've seeded initial aero data for Car #1. Click 'BUILD NEXT GEN' on the Front Wing to manufacture "
             "our Mk II specification. The Board will sponsor this prototype build!"
+        ),
+        objective="Select Front Wing on the chassis and click 'BUILD NEXT GEN' to produce Mk II.",
+        lore_briefing=(
+            "In Tier 3, engines and suspensions are spec-regulated, but BRAKES and FRONT WINGS are open "
+            "for custom constructor development! As your cars complete laps, Continuous Evolution Knowledge builds up."
         ),
         target_element_key="car_rnd_front_wing",
         action_label="Next: Drivers >>",
@@ -133,6 +165,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "In the Academy / Scouts sub-tab, you can sign promising youth talents into Tier 5 Karting feeder seats "
             "to develop tomorrow's champions. The Board will fund a youth scholarship!"
         ),
+        objective="Open the Scouts sub-tab and enroll a youth talent into a Tier 5 Karting seat.",
+        lore_briefing=(
+            "Drivers possess distinct driving styles and attribute matrices. Setting Training Focus shapes their growth. "
+            "Young drivers placed into feeder seats develop skills weekly and sign with an 80% homegrown salary discount."
+        ),
         target_element_key="drivers_academy_scouts",
         action_label="Next: Sponsors >>",
         reward_note="🎁 Reward: +$30,000 Board Grant (Youth Scholarship)",
@@ -156,6 +193,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Review incoming offers and sign a corporate contract to secure guaranteed weekly retainers "
             "and race-day performance bonuses. High finishes elevate your team's Sponsor Appeal!"
         ),
+        objective="Review incoming commercial offers and sign a contract to secure weekly cash flow.",
+        lore_briefing=(
+            "Motorsport is expensive — facility upkeeps, engine leases, and wages require positive cash flow! "
+            "Sign corporate contracts to secure guaranteed weekly retainers and race-day finish bonuses."
+        ),
         target_element_key="sponsors_offers",
         action_label="Next: Race Weekend >>",
         reward_note="🎁 Reward: +$25,000 Board Grant (Commercial Signing Bonus)",
@@ -178,6 +220,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "When you're ready to head trackside, click 'START RACE WEEKEND >>' to travel to the circuit.\n\n"
             "We'll see you on the pit wall!"
         ),
+        objective="Click 'START RACE WEEKEND >>' on the dashboard to travel to the circuit.",
+        lore_briefing=(
+            "Our factory is humming, the Mk II front wing is installed, and the haulers are loaded for Round 1! "
+            "Heading trackside initiates the interactive Free Practice, Qualifying, and Sprint race sessions."
+        ),
         target_element_key="btn_start_race",
         action_label="Go Trackside >>",
     ),
@@ -198,6 +245,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Choose a Practice Plan (Balanced, Fast Lap, Sprint Stints, Long Runs) and click 'RUN PRACTICE RUN' "
             "to complete 5 laps. Driver feedback builds Setup Confidence, boosting pace across the weekend!"
         ),
+        objective="Adjust setup sliders, pick a Practice Plan, and click 'RUN PRACTICE RUN' for telemetry.",
+        lore_briefing=(
+            "Tier 3 race weekends run: FP1 -> FP2 -> Qualifying -> Sprint. "
+            "Dialing in setup sliders and running practice stints builds Setup Confidence, boosting lap pace across the weekend."
+        ),
         target_element_key="weekend_practice_sliders",
         action_label="Next: Qualifying >>",
     ),
@@ -216,6 +268,11 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Practice is done! Qualifying is a 3-lap shootout where single-lap speed, driver bravery, and "
             "setup confidence determine the starting grid for the Sprint race.\n\n"
             "Click 'SIMULATE QUALIFYING' to run the shootout and see where our cars start on the grid!"
+        ),
+        objective="Click 'SIMULATE QUALIFYING' to run the shootout and lock in grid positions.",
+        lore_briefing=(
+            "Qualifying is a 3-lap shootout where single-lap speed, driver bravery, and "
+            "setup confidence determine starting grid positions for the Sprint race."
         ),
         target_element_key="weekend_qualifying_btn",
         action_label="Next: Sprint Strategy >>",
@@ -240,6 +297,13 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "• Controls: Space = Pause, 1-4 = Sim Speed, Tab/C = Follow Car.\n\n"
             "Click 'Start Racing! >>' to unleash the cars and guide them to the chequered flag!"
         ),
+        objective="Manage driver pace (Normal/Push), monitor tyre wear, and click 'Start Racing!'.",
+        lore_briefing=(
+            "Live Pit Wall Command:\n"
+            "• Strategy Panel: Toggle PACE between NORMAL and PUSH. Watch tyre deg and component health.\n"
+            "• Fuel: Starts at 50 kg. No refueling during pit stops!\n"
+            "• Pit Stops: Click 'BOX' to queue fresh tyres or emergency repairs."
+        ),
         target_element_key="race_driver_panel",
         action_label="Start Racing! >>",
     ),
@@ -260,6 +324,12 @@ TUTORIAL_STEPS: List[TutorialStep] = [
             "Continue upgrading facilities, engineering new parts, balancing cash flow, and chase the "
             "Tier 3 Championship for promotion to Tier 2!\n\n"
             "You can reopen this tutorial at any time by clicking '? TUTORIAL' in the top header bar."
+        ),
+        objective="Review race classifications, driver points, and prize payouts, then complete tutorial.",
+        lore_briefing=(
+            "Outstanding drive! You have completed your maiden race weekend as Team Principal. "
+            "Championship points have been awarded, prize money distributed, and driver experience earned. "
+            "Reopen this tutorial at any time by clicking '? TUTORIAL' in the top header bar."
         ),
         target_element_key="hub_header_tutorial_btn",
         action_label="Complete Tutorial & Continue Career",

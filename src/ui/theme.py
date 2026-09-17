@@ -259,30 +259,113 @@ class UITheme:
         surface.blit(dim_surf, (0, 0))
 
     @staticmethod
+    def draw_info_icon(
+        surface: pygame.Surface,
+        rect: pygame.Rect,
+        is_hover: bool = False,
+        icon: str = "help-circle",
+        color: Optional[Tuple[int, int, int]] = None,
+        bg_color: Optional[Tuple[int, int, int]] = None,
+        border_color: Optional[Tuple[int, int, int]] = None,
+    ):
+        """Draws an interactive info/help button with hover glow feedback."""
+        resolved_col = color or (UITheme.ACCENT_CYAN if is_hover else (140, 160, 185))
+        resolved_bg = bg_color or ((30, 45, 65) if is_hover else (20, 26, 36))
+        resolved_border = border_color or (UITheme.ACCENT_CYAN if is_hover else (45, 55, 72))
+
+        pygame.draw.rect(surface, resolved_bg, rect, border_radius=3)
+        pygame.draw.rect(surface, resolved_border, rect, width=1, border_radius=3)
+        ic_size = max(10, min(rect.width, rect.height) - 6)
+        ix = rect.x + (rect.width - ic_size) // 2
+        iy = rect.y + (rect.height - ic_size) // 2
+        UITheme.draw_icon(surface, icon, (ix, iy), color=resolved_col, size=ic_size)
+
+    @staticmethod
     def draw_tooltip(
         surface: pygame.Surface,
         text: str,
         pos: Tuple[int, int],
         font: Optional[pygame.font.Font] = None,
+        title: Optional[str] = None,
+        icon: Optional[str] = None,
         fg_color: Tuple[int, int, int] = (245, 248, 252),
-        bg_color: Tuple[int, int, int] = (24, 30, 42),
-        border_color: Tuple[int, int, int] = (60, 75, 100),
+        bg_color: Tuple[int, int, int] = (20, 26, 36),
+        border_color: Tuple[int, int, int] = (0, 220, 255),
+        title_color: Tuple[int, int, int] = (0, 220, 255),
+        max_width: int = 340,
     ):
-        """Draws floating tooltip with shadow and border, automatically clamped to surface boundaries."""
-        f = font or UITheme.font_badge()
-        txt_surf = f.render(text, True, fg_color)
-        pad_x, pad_y = 8, 4
-        tip_w = txt_surf.get_width() + pad_x * 2
-        tip_h = txt_surf.get_height() + pad_y * 2
+        """Draws floating multiline tooltip with optional header, icon, and boundary clamping."""
+        f_body = font or UITheme.font_badge()
+        f_title = UITheme.font_card_title()
+        pad_x, pad_y = 10, 8
+
+        # 1. Word-wrap body text
+        wrapped_lines: List[str] = []
+        raw_lines = text.split("\n")
+        avail_body_w = max(120, max_width - pad_x * 2)
+
+        for r_line in raw_lines:
+            words = r_line.split(" ")
+            if not words or not r_line.strip():
+                wrapped_lines.append("")
+                continue
+            cur_line = ""
+            for w in words:
+                test_line = f"{cur_line} {w}".strip() if cur_line else w
+                if f_body.size(test_line)[0] <= avail_body_w:
+                    cur_line = test_line
+                else:
+                    if cur_line:
+                        wrapped_lines.append(cur_line)
+                    cur_line = w
+            if cur_line:
+                wrapped_lines.append(cur_line)
+
+        # 2. Compute bounding size
+        line_h = f_body.get_linesize()
+        body_w = max([f_body.size(l)[0] for l in wrapped_lines] + [80]) if wrapped_lines else 80
+        body_h = len(wrapped_lines) * line_h
+
+        header_h = 0
+        header_w = 0
+        if title:
+            t_surf_w = f_title.size(title)[0]
+            header_w = t_surf_w + (20 if icon else 0)
+            header_h = f_title.get_linesize() + 6
+
+        tip_w = max(body_w, header_w) + pad_x * 2
+        tip_h = header_h + body_h + pad_y * 2
 
         mx, my = pos
         tx = max(4, min(surface.get_width() - tip_w - 4, mx + 12))
         ty = max(4, min(surface.get_height() - tip_h - 4, my - tip_h - 4 if my > tip_h + 8 else my + 20))
 
+        # Drop shadow
+        shadow_rect = pygame.Rect(tx + 2, ty + 2, tip_w, tip_h)
+        shadow_surf = pygame.Surface((tip_w, tip_h), pygame.SRCALPHA)
+        shadow_surf.fill((0, 0, 0, 90))
+        surface.blit(shadow_surf, (tx + 2, ty + 2))
+
+        # Tooltip body box
         tip_rect = pygame.Rect(tx, ty, tip_w, tip_h)
-        pygame.draw.rect(surface, bg_color, tip_rect, border_radius=3)
-        pygame.draw.rect(surface, border_color, tip_rect, width=1, border_radius=3)
-        surface.blit(txt_surf, (tx + pad_x, ty + pad_y))
+        pygame.draw.rect(surface, bg_color, tip_rect, border_radius=4)
+        pygame.draw.rect(surface, border_color, tip_rect, width=1, border_radius=4)
+
+        cur_y = ty + pad_y
+        if title:
+            hx = tx + pad_x
+            if icon:
+                UITheme.draw_icon(surface, icon, (hx, cur_y + 1), color=title_color, size=13)
+                hx += 18
+            surface.blit(f_title.render(title, True, title_color), (hx, cur_y))
+            cur_y += f_title.get_linesize() + 4
+            pygame.draw.line(surface, (45, 58, 75), (tx + pad_x, cur_y - 2), (tx + tip_w - pad_x, cur_y - 2), 1)
+            cur_y += 2
+
+        for l in wrapped_lines:
+            if l:
+                surface.blit(f_body.render(l, True, fg_color), (tx + pad_x, cur_y))
+            cur_y += line_h
 
     @staticmethod
     def draw_button(

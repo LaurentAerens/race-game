@@ -5,7 +5,7 @@ Targeted Spot Hiring & Inbound Tryouts, Department Destination Selector Modal, E
 Headhunter Paddock (rival poaching), and Employee Details Inspector.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import pygame
 
@@ -553,6 +553,8 @@ class PersonnelTab:
         principal_name: str = "Alex Mercer",
     ):
         """Renders the Personnel Hub with Hierarchy Tree, Recruitment, Destination Modal, and Staff Drawer."""
+        mx, my = pygame.mouse.get_pos()
+        pending_tooltip: Optional[Tuple[str, str, Tuple[int, int], str]] = None
         content_w = self.width - (450 if self.inspected_personnel_id else 48)
 
         # Draw Nav
@@ -1384,17 +1386,46 @@ class PersonnelTab:
                 )
 
                 t_color = (255, 255, 255) if is_unlocked else (100, 110, 125)
-                surface.blit(self.font_card_title.render(title, True, t_color), (card_r.x + 12, card_r.y + 8))
+                title_surf = self.font_card_title.render(title, True, t_color)
+                surface.blit(title_surf, (card_r.x + 12, card_r.y + 8))
 
-                req_txt = (
-                    f"Status: Unlocked | {desc}"
-                    if is_unlocked
-                    else f"🔒 LOCKED (Requires {req_fac.replace('_', ' ').title()} Tier {req_tier}) | {desc}"
-                )
-                surface.blit(
-                    self.font_badge.render(req_txt, True, (0, 220, 255) if is_unlocked else (180, 80, 80)),
-                    (card_r.x + 12, card_r.y + 32),
-                )
+                info_rect = pygame.Rect(card_r.x + 12 + title_surf.get_width() + 8, card_r.y + 7, 16, 16)
+                is_info_hov = info_rect.collidepoint(mx, my) and pol_canvas.collidepoint(mx, my)
+                UITheme.draw_info_icon(surface, info_rect, is_hover=is_info_hov)
+                if is_info_hov:
+                    fac_display = req_fac.replace("_", " ").title()
+                    pending_tooltip = (
+                        f"{title.upper()} POLICY",
+                        f"HR Directive Operational Behavior:\n\n{desc}\n\nFacility Requirement: {fac_display} (Tier {req_tier})",
+                        (mx + 10, my + 10),
+                        "sliders",
+                    )
+
+                if is_unlocked:
+                    UITheme.draw_stat_item(
+                        surface,
+                        card_r.x + 12,
+                        card_r.y + 32,
+                        "check-circle",
+                        "POLICY DIRECTIVE UNLOCKED & ACTIVE",
+                        self.font_badge,
+                        text_color=(0, 240, 140),
+                        icon_color=(0, 240, 140),
+                        icon_size=11,
+                    )
+                else:
+                    fac_name = req_fac.replace("_", " ").upper()
+                    UITheme.draw_stat_item(
+                        surface,
+                        card_r.x + 12,
+                        card_r.y + 32,
+                        "lock",
+                        f"REQUIRES {fac_name} (TIER {req_tier})",
+                        self.font_badge,
+                        text_color=(240, 90, 90),
+                        icon_color=(240, 90, 90),
+                        icon_size=11,
+                    )
 
                 if key == "min_intern_potential":
                     if is_unlocked:
@@ -1632,3 +1663,15 @@ class PersonnelTab:
             self.font_badge.render(f"PERSONNEL HR: {self.status_message}", True, UITheme.ACCENT_CYAN),
             (stat_bar.x + 10, stat_bar.y + 6),
         )
+
+        if pending_tooltip:
+            t_title, t_text, t_pos, t_icon = pending_tooltip
+            UITheme.draw_tooltip(
+                surface,
+                t_text,
+                t_pos,
+                title=t_title,
+                icon=t_icon,
+                font=self.font_badge,
+                max_width=360,
+            )

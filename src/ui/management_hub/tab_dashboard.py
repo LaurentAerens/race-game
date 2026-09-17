@@ -337,6 +337,9 @@ class DashboardTab:
         )
 
     def render(self, surface: pygame.Surface, gm: GameManager, im: InnovationManager, rnd_cost_mult: float = 1.0):
+        mx, my = pygame.mouse.get_pos()
+        pending_tooltip: Optional[Tuple[str, str, Tuple[int, int], str]] = None
+
         # Layout columns
         col_w = min(540, (self.width - 64) // 2)
         right_x = 24 + col_w + 16
@@ -430,29 +433,66 @@ class DashboardTab:
             hq_box = pygame.Rect(gp_rect.x + 10, gp_rect.y + 86, gp_rect.width - 20, 114)
             pygame.draw.rect(surface, (18, 24, 32), hq_box, border_radius=3)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, hq_box, width=1, border_radius=3)
-            surface.blit(
-                self.font_badge.render("HQ FOCUS & SIMULATION MILESTONES:", True, UITheme.TEXT_MUTED),
-                (hq_box.x + 10, hq_box.y + 8),
+
+            UITheme.draw_stat_item(
+                surface,
+                hq_box.x + 10,
+                hq_box.y + 8,
+                "activity",
+                "HQ TELEMETRY & OPERATIONS",
+                self.font_card_title,
+                text_color=(255, 215, 0),
+                icon_color=(255, 215, 0),
+                icon_size=13,
             )
-            surface.blit(
-                self.font_body.render(
-                    "• R&D engineering teams progressing active breakthrough pitches.", True, UITheme.TEXT_WHITE
-                ),
-                (hq_box.x + 10, hq_box.y + 28),
+
+            hq_info_btn = pygame.Rect(hq_box.right - 26, hq_box.y + 7, 16, 16)
+            is_hq_hov = hq_info_btn.collidepoint(mx, my)
+            UITheme.draw_info_icon(surface, hq_info_btn, is_hover=is_hq_hov)
+            if is_hq_hov:
+                pending_tooltip = (
+                    "BYE-WEEK HQ OPERATIONS",
+                    "When your primary series is off this week:\n\n"
+                    "• R&D engineering teams continue breakthrough innovation pitches.\n"
+                    "• Junior academy prospects gain racecraft experience in feeder tiers.\n"
+                    "• Team facilities run maintenance, collecting sponsor income and paying upkeep.\n\n"
+                    "Click ADVANCE WEEK to simulate all ongoing activity.",
+                    (mx + 10, my + 10),
+                    "activity",
+                )
+
+            UITheme.draw_stat_item(
+                surface,
+                hq_box.x + 10,
+                hq_box.y + 32,
+                "zap",
+                "R&D INNOVATION: Engineering teams active on breakthrough pipeline",
+                self.font_body,
+                text_color=UITheme.TEXT_WHITE,
+                icon_color=(255, 215, 0),
+                icon_size=12,
             )
-            surface.blit(
-                self.font_body.render(
-                    "• Junior academy prospects gaining racecraft experience in lower tiers.", True, (0, 220, 255)
-                ),
-                (hq_box.x + 10, hq_box.y + 48),
+            UITheme.draw_stat_item(
+                surface,
+                hq_box.x + 10,
+                hq_box.y + 54,
+                "graduation-cap",
+                "ACADEMY RACING: Junior prospects gaining racecraft in feeder tiers",
+                self.font_body,
+                text_color=(0, 220, 255),
+                icon_color=(0, 220, 255),
+                icon_size=12,
             )
-            surface.blit(
-                self.font_badge.render(
-                    "Advance calendar week to simulate active leagues and collect financial revenue.",
-                    True,
-                    (0, 240, 140),
-                ),
-                (hq_box.x + 10, hq_box.y + 74),
+            UITheme.draw_stat_item(
+                surface,
+                hq_box.x + 10,
+                hq_box.y + 76,
+                "circle-dollar-sign",
+                "CASH FLOW: Upkeep & sponsor revenue accrue on calendar advance",
+                self.font_body,
+                text_color=(0, 240, 140),
+                icon_color=(0, 240, 140),
+                icon_size=12,
             )
 
         # =====================================================================
@@ -521,21 +561,49 @@ class DashboardTab:
                 r_surf = self.font_mini.render(f"{r_left} RACES LEFT", True, UITheme.TEXT_MUTED)
                 surface.blit(r_surf, (rem_pill.x + (rem_pill.width - r_surf.get_width()) // 2, rem_pill.y + 3))
             else:
-                pygame.draw.rect(surface, (45, 52, 65), s_box, width=1, border_radius=3)
+                pygame.draw.rect(surface, (16, 20, 28), s_box, border_radius=3)
+                pygame.draw.rect(surface, (45, 55, 70), s_box, width=1, border_radius=3)
                 lbl = "PRIMARY TITLE SPONSOR" if s_idx == 0 else "SECONDARY COMMERCIAL SPONSOR"
-                surface.blit(
-                    self.font_card_title.render(f"{lbl}: VACANT SLOT", True, UITheme.TEXT_MUTED),
-                    (s_box.x + 10, s_box.y + 8),
+                name_surf = self.font_card_title.render(f"{lbl}: VACANT", True, (140, 155, 175))
+                surface.blit(name_surf, (s_box.x + 10, s_box.y + 8))
+
+                sp_info_btn = pygame.Rect(s_box.x + 10 + name_surf.get_width() + 8, s_box.y + 7, 16, 16)
+                is_sp_hov = sp_info_btn.collidepoint(mx, my)
+                UITheme.draw_info_icon(surface, sp_info_btn, is_hover=is_sp_hov)
+                if is_sp_hov:
+                    pending_tooltip = (
+                        "COMMERCIAL SPONSORSHIP",
+                        "Vacant commercial slot available. Signing a corporate partner provides:\n\n"
+                        "• Guaranteed fixed payment per race weekend\n"
+                        "• Milestone bonus for achieving target finishing positions\n"
+                        "• Team commercial marketability boost\n\n"
+                        "Switch to the SPONSORS tab to negotiate active bids.",
+                        (mx + 10, my + 10),
+                        "target",
+                    )
+
+                UITheme.draw_stat_item(
+                    surface,
+                    s_box.x + 10,
+                    s_box.y + 36,
+                    "briefcase",
+                    "SLOT OPEN FOR CORPORATE BIDDING",
+                    self.font_badge,
+                    text_color=(0, 220, 255),
+                    icon_color=(0, 220, 255),
+                    icon_size=12,
                 )
-                surface.blit(
-                    self.font_body.render("Commercial slot open for corporate negotiation.", True, UITheme.TEXT_MUTED),
-                    (s_box.x + 10, s_box.y + 28),
-                )
-                surface.blit(
-                    self.font_badge.render(
-                        "Visit SPONSORS tab to review corporate partnership offers.", True, (0, 220, 255)
-                    ),
-                    (s_box.x + 10, s_box.y + 48),
+
+                offer_pill = pygame.Rect(s_box.right - 145, s_box.y + 34, 135, 20)
+                UITheme.draw_pill_badge(
+                    surface,
+                    offer_pill,
+                    "SPONSORS TAB ->",
+                    font=self.font_mini,
+                    icon="arrow-right",
+                    fg_color=(255, 215, 0),
+                    bg_color=(28, 38, 52),
+                    border_color=(60, 80, 110),
                 )
 
         # =====================================================================
@@ -812,3 +880,15 @@ class DashboardTab:
             icon="calendar",
             icon_size=15,
         )
+
+        if pending_tooltip:
+            t_title, t_text, t_pos, t_icon = pending_tooltip
+            UITheme.draw_tooltip(
+                surface,
+                t_text,
+                t_pos,
+                title=t_title,
+                icon=t_icon,
+                font=self.font_badge,
+                max_width=360,
+            )

@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import pygame
 
@@ -23,6 +23,7 @@ class SponsorsTab:
         self.font_body = UITheme.get_font(11, bold=False)
         self.font_badge = UITheme.get_font(10, bold=True)
         self.font_btn = UITheme.get_font(11, bold=True)
+        self.font_mini = UITheme.get_font(9, bold=True)
 
     def resize(self, width: int, height: int):
         self.width = width
@@ -55,6 +56,9 @@ class SponsorsTab:
         return False
 
     def render(self, surface: pygame.Surface, gm: GameManager, sm: SponsorManager):
+        mx, my = pygame.mouse.get_pos()
+        pending_tooltip: Optional[Tuple[str, str, Tuple[int, int], str]] = None
+
         sm.check_and_generate_offers(gm.team_id, is_progression=False)
         appeal_data = sm.calculate_sponsor_appeal(gm.team_id)
         active = sm.get_active_sponsors(gm.team_id)
@@ -67,11 +71,47 @@ class SponsorsTab:
 
         # Title & Breakdown on Left
         UITheme.draw_icon(surface, "award", (app_rect.x + 12, app_rect.y + 6), color=(255, 215, 0), size=16)
-        surface.blit(
-            self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0)), (app_rect.x + 34, app_rect.y + 6)
-        )
-        breakdown_str = f"Tier: +{appeal_data['tier_pts']:.0f}pts | Form: +{appeal_data['form_pts']:.0f}pts | History: +{appeal_data['history_pts']:.0f}pts | Drivers: +{appeal_data['driver_pts']:.0f}pts | HQ: +{appeal_data['facility_pts']:.0f}pts"
-        surface.blit(self.font_body.render(breakdown_str, True, UITheme.TEXT_MUTED), (app_rect.x + 12, app_rect.y + 26))
+        title_surf = self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0))
+        surface.blit(title_surf, (app_rect.x + 34, app_rect.y + 6))
+
+        info_rect = pygame.Rect(app_rect.x + 34 + title_surf.get_width() + 8, app_rect.y + 5, 16, 16)
+        is_info_hov = info_rect.collidepoint(mx, my)
+        UITheme.draw_info_icon(surface, info_rect, is_hover=is_info_hov)
+        if is_info_hov:
+            score_val = appeal_data["total_appeal"]
+            appeal_lore = (
+                f"Global Commercial Appeal Score: {score_val}/100\n\n"
+                f"Higher appeal attracts lucrative corporate sponsors and higher milestone bonuses.\n\n"
+                f"• League Tier Base Weight: +{appeal_data['tier_pts']:.0f} pts\n"
+                f"• Recent Championship Form: +{appeal_data['form_pts']:.0f} pts\n"
+                f"• Historic Legacy & Wins: +{appeal_data['history_pts']:.0f} pts\n"
+                f"• Driver Fame & Marketability: +{appeal_data['driver_pts']:.0f} pts\n"
+                f"• HQ & Hospitality Facilities: +{appeal_data['facility_pts']:.0f} pts"
+            )
+            pending_tooltip = ("SPONSOR APPEAL CALCULATION", appeal_lore, (mx + 10, my + 10), "award")
+
+        # Visual stat chips row (replaces dense text line)
+        chip_x = app_rect.x + 12
+        chips = [
+            ("award", f"Tier +{appeal_data['tier_pts']:.0f}", (255, 215, 0)),
+            ("trending-up", f"Form +{appeal_data['form_pts']:.0f}", (0, 240, 140)),
+            ("clock", f"History +{appeal_data['history_pts']:.0f}", (0, 220, 255)),
+            ("user", f"Drivers +{appeal_data['driver_pts']:.0f}", (180, 140, 255)),
+            ("factory", f"HQ +{appeal_data['facility_pts']:.0f}", (255, 180, 60)),
+        ]
+        for ic, lbl, col in chips:
+            cw = UITheme.draw_stat_item(
+                surface,
+                chip_x,
+                app_rect.y + 26,
+                ic,
+                lbl,
+                self.font_mini,
+                text_color=col,
+                icon_color=col,
+                icon_size=11,
+            )
+            chip_x += cw + 12
 
         # Score & Visual Progress Bar on Top Right
         score_val = appeal_data["total_appeal"]
@@ -321,3 +361,15 @@ class SponsorsTab:
         )
         msg_surf = self.font_body.render(self.status_message, True, UITheme.TEXT_WHITE)
         surface.blit(msg_surf, (stat_bar.x + 30, stat_bar.y + 6))
+
+        if pending_tooltip:
+            t_title, t_text, t_pos, t_icon = pending_tooltip
+            UITheme.draw_tooltip(
+                surface,
+                t_text,
+                t_pos,
+                title=t_title,
+                icon=t_icon,
+                font=self.font_badge,
+                max_width=360,
+            )

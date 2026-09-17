@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 import pygame
 
@@ -101,6 +101,9 @@ class WeeklyRoundupModal:
         if not self.is_open:
             return
 
+        mx, my = pygame.mouse.get_pos()
+        pending_tooltip: Optional[Tuple[str, str, Tuple[int, int], str]] = None
+
         # Dim Background Overlay
         dim_surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         dim_surf.fill((0, 0, 0, 195))
@@ -185,7 +188,7 @@ class WeeklyRoundupModal:
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, content_rect, width=1, border_radius=4)
 
         if is_season_start:
-            self._render_season_opener(surface, content_rect)
+            pending_tooltip = self._render_season_opener(surface, content_rect, mx, my)
         elif self.selected_tier_tab == "HIGHLIGHTS":
             self._render_highlights(surface, content_rect)
         else:
@@ -202,10 +205,24 @@ class WeeklyRoundupModal:
         d_txt = self.font_btn.render(btn_label, True, (10, 25, 20))
         surface.blit(d_txt, (dismiss_btn.x + (dismiss_btn.width - d_txt.get_width()) // 2, dismiss_btn.y + 9))
 
-    def _render_season_opener(self, surface: pygame.Surface, rect: pygame.Rect):
-        """Renders an informative state explaining that the championship season is starting and Round 1 is upcoming."""
+        if pending_tooltip:
+            t_title, t_text, t_pos, t_icon = pending_tooltip
+            UITheme.draw_tooltip(
+                surface,
+                t_text,
+                t_pos,
+                title=t_title,
+                icon=t_icon,
+                font=self.font_badge,
+                max_width=360,
+            )
+
+    def _render_season_opener(
+        self, surface: pygame.Surface, rect: pygame.Rect, mx: int, my: int
+    ) -> Optional[Tuple[str, str, Tuple[int, int], str]]:
+        """Renders an informative visual state explaining season kickoff and upcoming Round 1."""
         card_w = rect.width - 40
-        card_h = 240
+        card_h = min(280, rect.height - 30)
         card_x = rect.x + 20
         card_y = rect.y + (rect.height - card_h) // 2
 
@@ -213,29 +230,84 @@ class WeeklyRoundupModal:
         pygame.draw.rect(surface, (22, 30, 42), card_rect, border_radius=6)
         pygame.draw.rect(surface, UITheme.ACCENT_CYAN, card_rect, width=1, border_radius=6)
 
-        # Title
-        t_surf = self.font_card_title.render("🚦 THE NEW SEASON HAS JUST BEGUN", True, (255, 215, 0))
-        surface.blit(t_surf, (card_x + 24, card_y + 22))
+        # Title & Info Button
+        title_txt = "🚦 THE NEW MOTORSPORT SEASON IS UNDERWAY"
+        t_surf = self.font_card_title.render(title_txt, True, (255, 215, 0))
+        surface.blit(t_surf, (card_x + 24, card_y + 16))
 
-        # Explanations
-        lines = [
-            "Championship Round 1 has not taken place yet across the 5 motorsport tiers.",
-            "",
-            "Once you begin the Race Weekend or advance the calendar week:",
-            "  • All 5 open-wheel championship series will simulate their active rounds",
-            "  • Driver & team points, podiums, and race classifications will be recorded",
-            "  • Academy driver performances will be highlighted here in the debrief",
-            "",
-            "Click 'START RACE WEEKEND' on the dashboard to hit the track for Round 1!",
-        ]
-        for idx, line in enumerate(lines):
-            col = (
-                (0, 220, 255)
-                if line.startswith("Click")
-                else (UITheme.TEXT_WHITE if line.strip().startswith("•") else UITheme.TEXT_MUTED)
+        info_rect = pygame.Rect(card_x + 24 + t_surf.get_width() + 8, card_y + 15, 16, 16)
+        is_info_hov = info_rect.collidepoint(mx, my)
+        UITheme.draw_info_icon(surface, info_rect, is_hover=is_info_hov)
+
+        tip = None
+        if is_info_hov:
+            season_lore = (
+                "Championship Season Simulation Rules:\n\n"
+                "• All 5 open-wheel motorsport tiers simulate active races as weeks advance.\n"
+                "• Official championship standings, points, podiums, and DNFs are recorded.\n"
+                "• Signed academy drivers competing in feeder series are debriefed weekly.\n"
+                "• Commercial partners pay guaranteed fixed income and target finish bonuses.\n\n"
+                "Click START RACE WEEKEND on the dashboard to qualify and race!"
             )
-            font = self.font_card_title if line.startswith("Click") else self.font_body
-            surface.blit(font.render(line, True, col), (card_x + 24, card_y + 54 + idx * 21))
+            tip = ("SEASON OPENER DEBRIEF", season_lore, (mx + 10, my + 10), "flag")
+
+        # 3 Visual Feature Cards
+        features = [
+            (
+                "flag",
+                "5 ACTIVE MOTORSPORT TIERS",
+                "Open-wheel formulas competing concurrently from Karting up to World Super Formula",
+                (0, 220, 255),
+            ),
+            (
+                "trophy",
+                "POINTS & STANDINGS SYSTEM",
+                "Driver & Team championships tracked across all racing divisions after each round",
+                (255, 215, 0),
+            ),
+            (
+                "graduation-cap",
+                "ACADEMY DRIVER TELEMETRY",
+                "Weekly debriefs spotlighting junior development driver racecraft and pace",
+                (0, 240, 140),
+            ),
+        ]
+
+        f_y = card_y + 44
+        f_h = 50
+        for icon_name, f_title, f_desc, color in features:
+            f_box = pygame.Rect(card_x + 20, f_y, card_w - 40, f_h)
+            pygame.draw.rect(surface, (16, 22, 32), f_box, border_radius=4)
+            pygame.draw.rect(surface, (40, 52, 70), f_box, width=1, border_radius=4)
+
+            UITheme.draw_stat_item(
+                surface,
+                f_box.x + 12,
+                f_box.y + 8,
+                icon_name,
+                f_title,
+                self.font_card_title,
+                text_color=color,
+                icon_color=color,
+                icon_size=14,
+            )
+            surface.blit(self.font_body.render(f_desc, True, UITheme.TEXT_MUTED), (f_box.x + 12, f_box.y + 28))
+            f_y += f_h + 8
+
+        # Prompt Banner at bottom
+        UITheme.draw_stat_item(
+            surface,
+            card_x + 24,
+            card_y + card_h - 28,
+            "play",
+            "Click 'START RACE WEEKEND' on the dashboard to hit the track for Round 1!",
+            self.font_badge,
+            text_color=(0, 240, 140),
+            icon_color=(0, 240, 140),
+            icon_size=12,
+        )
+
+        return tip
 
     def _render_highlights(self, surface: pygame.Surface, rect: pygame.Rect):
         """Renders Academy Driver Spotlight & Top Series Winners."""
