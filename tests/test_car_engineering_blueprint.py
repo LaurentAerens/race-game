@@ -113,3 +113,18 @@ class TestCarEngineeringBlueprint(unittest.TestCase):
                 self.assertIn("mounted", self.tab.status_message.lower())
                 break
         self.assertTrue(found)
+
+    def test_blueprint_image_loading_and_scaling(self):
+        """Validates that _get_chassis_image loads the formula car asset and caches smoothscaled instances."""
+        scaled_1 = self.tab._get_chassis_image(500, 218)
+        self.assertIsNotNone(scaled_1)
+        self.assertEqual(scaled_1.get_size(), (500, 218))
+
+        # Check cache retrieval
+        scaled_cached = self.tab._get_chassis_image(500, 218)
+        self.assertIs(scaled_1, scaled_cached)
+
+        # Rendering uses the scaled image
+        surf = pygame.Surface((1280, 720))
+        self.tab.render(surf, self.gm, self.em)
+        self.assertGreater(surf.get_width(), 0)

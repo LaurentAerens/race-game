@@ -94,11 +94,14 @@ class DriverStrategyPanel:
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, c_rect, width=1, border_radius=4)
 
             # Driver title, Position & Technique Tag
-            style_label = car.driver.driving_style.replace("_", " ")
+            driver_style = getattr(car.driver, "driving_style", "BALANCED") if hasattr(car, "driver") else "BALANCED"
+            style_label = str(driver_style).replace("_", " ")
             flag_tag = " [FLAG LOCKED]" if getattr(car, "is_mode_locked", False) else ""
             title_col = (255, 204, 0) if getattr(car, "is_mode_locked", False) else UITheme.ACCENT_CYAN
+            driver_num = getattr(car.driver, "number", car.id) if hasattr(car, "driver") else car.id
+            driver_name = getattr(car.driver, "name", f"Car #{car.id}") if hasattr(car, "driver") else f"Car #{car.id}"
             t_surf = self.font_title.render(
-                f"P{car.position:02d} #{car.driver.number} {car.driver.name} [{style_label}]{flag_tag}", True, title_col
+                f"P{car.position:02d} #{driver_num} {driver_name} [{style_label}]{flag_tag}", True, title_col
             )
             surface.blit(t_surf, (cx + 8, cy + 4))
 

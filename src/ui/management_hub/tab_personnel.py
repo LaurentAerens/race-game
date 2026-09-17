@@ -23,7 +23,7 @@ class PersonnelTab:
         self.height = screen_height
 
         self.sub_tab: str = "TREE"  # 'TREE', 'RECRUITMENT', 'HEADHUNTER', 'POLICIES'
-        self.selected_category: str = "ALL"  # 'ALL', 'ENGINEERING', 'COMMERCIAL', etc.
+        self.selected_category: str = "ENGINEERING"  # Focused department on Executive Org Deck
         self.inspected_personnel_id: Optional[int] = None
         self.inspected_applicant_id: Optional[int] = None
 
@@ -289,27 +289,48 @@ class PersonnelTab:
                 return True
 
         # 4. Tree Tab Clicks
+        # 4. Tree Tab Clicks (Split-Screen Executive Org Deck)
         if self.sub_tab == "TREE":
-            cats = ["ALL", "ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
+            depts = ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
             content_w = self.width - (470 if self.inspected_personnel_id else 48)
-            cat_tab_w = max(75, (content_w - 16) // len(cats))
-            for idx, c_name in enumerate(cats):
-                c_rect = pygame.Rect(28 + idx * cat_tab_w, 94, cat_tab_w - 4, 22)
-                if c_rect.collidepoint(mx, my):
-                    self.selected_category = c_name
+            content_rect = pygame.Rect(24, 90, content_w, self.height - 132)
+
+            left_x = content_rect.x + 8
+            left_y = content_rect.y + 42
+            left_w = 260
+            left_h = content_rect.bottom - left_y - 6
+            left_rect = pygame.Rect(left_x, left_y, left_w, left_h)
+
+            card_h = max(42, (left_h - (len(depts) - 1) * 6 - 8) // len(depts))
+            for idx, d_name in enumerate(depts):
+                card_y = left_y + 4 + idx * (card_h + 6)
+                card_r = pygame.Rect(left_x + 4, card_y, left_w - 8, card_h)
+                if card_r.collidepoint(mx, my):
+                    self.selected_category = d_name
                     self.scroll_y = 0.0
                     return True
 
-            tree_canvas = pygame.Rect(24, 122, content_w, self.height - 165)
-            if tree_canvas.collidepoint(mx, my):
-                card_y = tree_canvas.y + self.scroll_y + 56
-                visible_cats = (
-                    [self.selected_category]
-                    if self.selected_category != "ALL"
-                    else ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
-                )
+            right_x = left_rect.right + 8
+            right_w = content_rect.right - right_x - 8
+            right_canvas = pygame.Rect(right_x, left_y, right_w, left_h)
 
+            if right_canvas.collidepoint(mx, my):
+                active_dept = self.selected_category if self.selected_category in depts else "ENGINEERING"
                 directors = gm.staff_manager.get_category_directors(gm.team_id)
+                dir_obj = directors.get(active_dept)
+
+                curr_y = right_canvas.y + self.scroll_y + 6
+                dir_box = pygame.Rect(right_canvas.x + 6, curr_y, right_canvas.width - 12, 48)
+
+                if dir_box.collidepoint(mx, my):
+                    if dir_obj:
+                        self.inspected_personnel_id = dir_obj["id"]
+                    else:
+                        self.set_hiring_target("", role="DIRECTOR", slot_desc=f"{active_dept} Director")
+                    return True
+
+                curr_y += 56
+
                 with gm.db.get_connection() as conn:
                     cur = conn.cursor()
                     cur.execute(
@@ -317,75 +338,61 @@ class PersonnelTab:
                         (gm.team_id,),
                     )
                     unlocked_facs = {r[0]: r[1] for r in cur.fetchall()}
-                    cur.execute("SELECT id, department, name FROM facility_nodes;")
-                    all_fac_nodes = cur.fetchall()
+                    cur.execute("SELECT id, department, name FROM facility_nodes WHERE department = ?;", (active_dept,))
+                    fac_nodes = cur.fetchall()
 
-                nodes_by_dept = {}
-                for f_id, f_dept, f_name in all_fac_nodes:
-                    nodes_by_dept.setdefault(f_dept, []).append((f_id, f_name))
+                for f_id, _, f_name in fac_nodes:
+                    if f_id not in unlocked_facs:
+                        continue
+                    f_tier = unlocked_facs[f_id]
+                    p_data = gm.staff_manager.get_facility_personnel(gm.team_id, f_id, f_tier)
 
-                for cat in visible_cats:
-                    dir_obj = directors.get(cat)
-                    dir_rect = pygame.Rect(tree_canvas.x + 8, card_y, tree_canvas.width - 16, 44)
+                    grid_items = []
+                    for s_idx, s in enumerate(p_data["staff"]):
+                        grid_items.append(("STAFF", s_idx, s))
+                    for v_idx in range(p_data["vacant_staff_slots"]):
+                        grid_items.append(("VACANT", v_idx, None))
+                    grid_items.append(("INTERN", 0, p_data.get("intern")))
 
-                    if dir_rect.collidepoint(mx, my):
-                        if dir_obj:
-                            self.inspected_personnel_id = dir_obj["id"]
+                    num_rows = (len(grid_items) + 1) // 2
+                    room_h = 32 + 30 + num_rows * 40 + 8
+                    room_box = pygame.Rect(right_canvas.x + 6, curr_y, right_canvas.width - 12, room_h)
+
+                    if room_box.collidepoint(mx, my):
+                        # Head slot click
+                        h_slot = pygame.Rect(room_box.x + 8, room_box.y + 28, room_box.width - 16, 24)
+                        if h_slot.collidepoint(mx, my):
+                            if p_data["head"]:
+                                self.inspected_personnel_id = p_data["head"]["id"]
+                            else:
+                                self.set_hiring_target(f_id, role="HEAD", slot_desc=f"Head of {f_name}")
                             return True
-                        else:
-                            self.set_hiring_target("", role="DIRECTOR", slot_desc=f"{cat} Director")
-                            return True
 
-                    card_y += 50
+                        # Grid chips click
+                        grid_col_w = (room_box.width - 24) // 2
+                        for g_idx, item in enumerate(grid_items):
+                            row = g_idx // 2
+                            col = g_idx % 2
+                            chip_x = room_box.x + 8 + col * (grid_col_w + 8)
+                            chip_y = room_box.y + 56 + row * 40
+                            chip_r = pygame.Rect(chip_x, chip_y, grid_col_w, 36)
 
-                    fac_nodes = nodes_by_dept.get(cat, [])
-                    for f_id, f_name in fac_nodes:
-                        if f_id not in unlocked_facs:
-                            continue
-                        f_tier = unlocked_facs[f_id]
-                        p_data = gm.staff_manager.get_facility_personnel(gm.team_id, f_id, f_tier)
-
-                        fac_h = 42 + 28 + len(p_data["staff"]) * 26 + p_data["vacant_staff_slots"] * 26 + 28
-                        fac_box = pygame.Rect(tree_canvas.x + 20, card_y, tree_canvas.width - 32, fac_h)
-
-                        if fac_box.collidepoint(mx, my):
-                            # Head slot click
-                            h_rect = pygame.Rect(fac_box.x + 8, fac_box.y + 24, fac_box.width - 16, 22)
-                            if h_rect.collidepoint(mx, my):
-                                if p_data["head"]:
-                                    self.inspected_personnel_id = p_data["head"]["id"]
-                                else:
-                                    self.set_hiring_target(f_id, role="HEAD", slot_desc=f"Head of {f_name}")
-                                return True
-
-                            # Specialist Staff desk clicks
-                            staff_y = fac_box.y + 48
-                            for s in p_data["staff"]:
-                                s_r = pygame.Rect(fac_box.x + 8, staff_y, fac_box.width - 16, 24)
-                                if s_r.collidepoint(mx, my):
-                                    self.inspected_personnel_id = s["id"]
-                                    return True
-                                staff_y += 26
-
-                            # Vacant desk clicks -> target recruitment
-                            for v_idx in range(p_data["vacant_staff_slots"]):
-                                v_r = pygame.Rect(fac_box.x + 8, staff_y, fac_box.width - 16, 24)
-                                if v_r.collidepoint(mx, my):
-                                    desk_num = len(p_data["staff"]) + v_idx + 1
+                            if chip_r.collidepoint(mx, my):
+                                itype = item[0]
+                                if itype == "STAFF":
+                                    self.inspected_personnel_id = item[2]["id"]
+                                elif itype == "VACANT":
+                                    desk_num = len(p_data["staff"]) + item[1] + 1
                                     self.set_hiring_target(f_id, role="STAFF", slot_desc=f"Desk #{desk_num}")
-                                    return True
-                                staff_y += 26
-
-                            # Intern desk click
-                            i_r = pygame.Rect(fac_box.x + 8, staff_y, fac_box.width - 16, 24)
-                            if i_r.collidepoint(mx, my):
-                                if p_data["intern"]:
-                                    self.inspected_personnel_id = p_data["intern"]["id"]
-                                else:
-                                    self.set_hiring_target(f_id, role="INTERN", slot_desc="6-Month Intern Tryout")
+                                elif itype == "INTERN":
+                                    intern = item[2]
+                                    if intern:
+                                        self.inspected_personnel_id = intern["id"]
+                                    else:
+                                        self.set_hiring_target(f_id, role="INTERN", slot_desc="6-Month Intern Tryout")
                                 return True
 
-                        card_y += fac_h + 12
+                    curr_y += room_h + 10
 
                 return True
 
@@ -586,47 +593,23 @@ class PersonnelTab:
         pygame.draw.rect(surface, (35, 45, 60), content_rect, width=1, border_radius=3)
 
         # =====================================================================
-        # SUB-TAB A: PERSONNEL TREE
+        # SUB-TAB A: PERSONNEL ORG DECK (SPLIT SCREEN)
         # =====================================================================
         if self.sub_tab == "TREE":
-            cats = ["ALL", "ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
-            cat_tab_w = max(75, (content_w - 16) // len(cats))
-            for idx, c_name in enumerate(cats):
-                c_rect = pygame.Rect(28 + idx * cat_tab_w, 94, cat_tab_w - 4, 22)
-                is_sel = self.selected_category == c_name
-                pygame.draw.rect(surface, (30, 48, 70) if is_sel else (18, 24, 32), c_rect, border_radius=2)
-                c_txt = self.font_badge.render(c_name, True, (0, 220, 255) if is_sel else (130, 140, 150))
-                surface.blit(c_txt, (c_rect.x + (c_rect.width - c_txt.get_width()) // 2, c_rect.y + 4))
-
-            tree_canvas = pygame.Rect(content_rect.x + 4, 120, content_rect.width - 8, content_rect.height - 34)
-            prev_clip = surface.get_clip()
-            surface.set_clip(tree_canvas)
-
-            curr_y = tree_canvas.y + self.scroll_y + 6
-
-            # CEO Card
-            ceo_rect = pygame.Rect(tree_canvas.x + 8, curr_y, tree_canvas.width - 16, 48)
-            pygame.draw.rect(surface, (24, 34, 52), ceo_rect, border_radius=4)
-            pygame.draw.rect(surface, (255, 215, 0), ceo_rect, width=2, border_radius=4)
-            UITheme.draw_icon(surface, "award", (ceo_rect.x + 12, ceo_rect.y + 8), color=(255, 215, 0), size=18)
-            surface.blit(
-                self.font_title.render(f"{principal_name}", True, (255, 215, 0)), (ceo_rect.x + 36, ceo_rect.y + 6)
-            )
-            surface.blit(
-                self.font_body.render(
-                    "Chief Executive Officer & Team Principal | Supreme Management Authority", True, (200, 220, 240)
-                ),
-                (ceo_rect.x + 36, ceo_rect.y + 26),
-            )
-
-            curr_y += 56
+            depts = ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
+            dept_icons = {
+                "ENGINEERING": "wrench",
+                "MANUFACTURING": "factory",
+                "TESTING": "gauge",
+                "POWERTRAIN": "cpu",
+                "COMMERCIAL": "circle-dollar-sign",
+                "HR": "users",
+                "TRACKSIDE": "flag",
+            }
+            if self.selected_category not in depts:
+                self.selected_category = "ENGINEERING"
 
             directors = gm.staff_manager.get_category_directors(gm.team_id)
-            visible_cats = (
-                [self.selected_category]
-                if self.selected_category != "ALL"
-                else ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
-            )
 
             with gm.db.get_connection() as conn:
                 cur = conn.cursor()
@@ -637,203 +620,368 @@ class PersonnelTab:
                 unlocked_facs = {r[0]: r[1] for r in cur.fetchall()}
                 cur.execute("SELECT id, department, name FROM facility_nodes;")
                 all_fac_nodes = cur.fetchall()
+                cur.execute("SELECT COUNT(*), SUM(salary_monthly) FROM personnel WHERE team_id = ?;", (gm.team_id,))
+                p_tot_row = cur.fetchone()
+                total_staff_db = (p_tot_row[0] or 0) if p_tot_row else 0
+                total_payroll_db = float(p_tot_row[1] or 0.0) if p_tot_row else 0.0
 
             nodes_by_dept = {}
             for f_id, f_dept, f_name in all_fac_nodes:
                 nodes_by_dept.setdefault(f_dept, []).append((f_id, f_name))
 
-            for cat in visible_cats:
-                dir_obj = directors.get(cat)
-                dir_card = pygame.Rect(tree_canvas.x + 8, curr_y, tree_canvas.width - 16, 44)
+            # Calculate total capacity and active directors
+            total_capacity = 0
+            dept_stats = {}
+            total_perf_yield = 0.0
+            for d_name in depts:
+                d_facs = nodes_by_dept.get(d_name, [])
+                d_staff = 0
+                d_vacant = 0
+                d_perf = 0.0
+                for f_id, f_name in d_facs:
+                    if f_id in unlocked_facs:
+                        f_tier = unlocked_facs[f_id]
+                        p_data = gm.staff_manager.get_facility_personnel(gm.team_id, f_id, f_tier)
+                        d_staff += len(p_data["staff"])
+                        d_vacant += p_data["vacant_staff_slots"]
+                        p_out = gm.staff_manager.calculate_facility_staff_output(
+                            gm.team_id, f_id, f_tier, dev_gain_mult
+                        )
+                        d_perf += p_out.get("final_perf", 0.0)
+                d_cap = d_staff + d_vacant
+                total_capacity += d_cap
+                total_perf_yield += d_perf
+                dept_stats[d_name] = {"staff": d_staff, "vacant": d_vacant, "cap": d_cap, "perf": d_perf}
 
+            active_directors_count = sum(1 for d in directors.values() if d is not None)
+
+            # 1. Top Executive Workforce Summary Bar
+            exec_bar = pygame.Rect(content_rect.x + 8, content_rect.y + 6, content_rect.width - 16, 30)
+            pygame.draw.rect(surface, (16, 22, 32), exec_bar, border_radius=3)
+            pygame.draw.rect(surface, (35, 48, 65), exec_bar, width=1, border_radius=3)
+
+            pct_staff = (total_staff_db / max(1, total_capacity)) * 100.0 if total_capacity > 0 else 0.0
+            UITheme.draw_stat_item(
+                surface,
+                exec_bar.x + 12,
+                exec_bar.y + 7,
+                "users",
+                f"STAFF: {total_staff_db}/{total_capacity} Desks ({pct_staff:.0f}%)",
+                self.font_badge,
+                text_color=(0, 240, 220),
+                icon_color=(0, 240, 220),
+                icon_size=13,
+            )
+            UITheme.draw_stat_item(
+                surface,
+                exec_bar.x + 230,
+                exec_bar.y + 7,
+                "circle-dollar-sign",
+                f"PAYROLL: ${total_payroll_db:,.0f}/mo",
+                self.font_badge,
+                text_color=(255, 180, 50),
+                icon_color=(255, 180, 50),
+                icon_size=13,
+            )
+            UITheme.draw_stat_item(
+                surface,
+                exec_bar.x + 440,
+                exec_bar.y + 7,
+                "award",
+                f"DIRECTORS: {active_directors_count}/7 Appointed",
+                self.font_badge,
+                text_color=(255, 215, 0),
+                icon_color=(255, 215, 0),
+                icon_size=13,
+            )
+            UITheme.draw_stat_item(
+                surface,
+                exec_bar.x + 650,
+                exec_bar.y + 7,
+                "zap",
+                f"STAFF YIELD: +{total_perf_yield:.2f} Perf/wk",
+                self.font_badge,
+                text_color=(0, 255, 160),
+                icon_color=(0, 255, 160),
+                icon_size=13,
+            )
+
+            # 2. Left Column: Department Org Directory
+            left_w = 260
+            left_x = content_rect.x + 8
+            left_y = exec_bar.bottom + 6
+            left_h = content_rect.bottom - left_y - 6
+            left_rect = pygame.Rect(left_x, left_y, left_w, left_h)
+            pygame.draw.rect(surface, (14, 18, 25), left_rect, border_radius=3)
+            pygame.draw.rect(surface, (32, 42, 56), left_rect, width=1, border_radius=3)
+
+            card_h = max(42, (left_h - (len(depts) - 1) * 6 - 8) // len(depts))
+            for idx, d_name in enumerate(depts):
+                card_y = left_y + 4 + idx * (card_h + 6)
+                card_r = pygame.Rect(left_x + 4, card_y, left_w - 8, card_h)
+                is_sel = self.selected_category == d_name
+                d_icon = dept_icons.get(d_name, "network")
+                dir_obj = directors.get(d_name)
+                st = dept_stats.get(d_name, {"staff": 0, "cap": 0, "perf": 0.0})
+
+                bg_c = (26, 38, 54) if is_sel else (18, 24, 34)
+                b_c = (0, 220, 255) if is_sel else (38, 50, 68)
+                pygame.draw.rect(surface, bg_c, card_r, border_radius=3)
+                pygame.draw.rect(surface, b_c, card_r, width=2 if is_sel else 1, border_radius=3)
+
+                # Icon & Title
+                UITheme.draw_icon(
+                    surface,
+                    d_icon,
+                    (card_r.x + 6, card_r.y + 6),
+                    color=(0, 220, 255) if is_sel else (150, 165, 180),
+                    size=14,
+                )
+                surface.blit(
+                    self.font_card_title.render(d_name, True, (0, 220, 255) if is_sel else UITheme.TEXT_WHITE),
+                    (card_r.x + 24, card_r.y + 5),
+                )
+
+                # Director status or vacancy alert
                 if dir_obj:
-                    pygame.draw.rect(surface, (20, 28, 40), dir_card, border_radius=3)
-                    pygame.draw.rect(surface, (0, 220, 255), dir_card, width=1, border_radius=3)
-                    UITheme.draw_icon(
-                        surface, "briefcase", (dir_card.x + 10, dir_card.y + 8), color=(0, 220, 255), size=16
-                    )
-                    dir_title = (
-                        f"{cat} DIRECTOR: {dir_obj['name']} (Age {dir_obj['age']}) | Spec: {dir_obj.get('specialty')}"
-                    )
+                    d_txt = f"Dir: {dir_obj['name']} (Lvl {dir_obj.get('stat_leadership', 50):.0f})"
+                    surface.blit(self.font_mini.render(d_txt, True, (0, 255, 160)), (card_r.x + 24, card_r.y + 22))
+                else:
                     surface.blit(
-                        self.font_card_title.render(dir_title, True, (0, 220, 255)), (dir_card.x + 32, dir_card.y + 6)
+                        self.font_mini.render("VACANT DIRECTOR [APPOINT]", True, (255, 110, 110)),
+                        (card_r.x + 24, card_r.y + 22),
                     )
-                    ds_x = dir_card.x + 32
-                    ds_y = dir_card.y + 24
-                    gap = 14
-                    ds_x += (
-                        UITheme.draw_stat_item(
-                            surface,
-                            ds_x,
-                            ds_y,
-                            "award",
-                            f"Leadership: {dir_obj.get('stat_leadership', 50):.0f}",
-                            self.font_body,
-                            text_color=(180, 200, 220),
-                            icon_color=(255, 160, 200),
-                            icon_size=12,
-                            gap=3,
-                        )
-                        + gap
-                    )
-                    ds_x += (
-                        UITheme.draw_stat_item(
-                            surface,
-                            ds_x,
-                            ds_y,
-                            "wrench",
-                            f"Core: {dir_obj.get('stat_engineering', 50):.0f}",
-                            self.font_body,
-                            text_color=(180, 200, 220),
-                            icon_color=(0, 220, 255),
-                            icon_size=12,
-                            gap=3,
-                        )
-                        + gap
-                    )
+
+                # Desks & Perf
+                desk_str = f"{st['staff']}/{st['cap']} Desks"
+                d_surf = self.font_mini.render(desk_str, True, (180, 200, 220))
+                surface.blit(d_surf, (card_r.right - d_surf.get_width() - 6, card_r.y + 6))
+                if st["perf"] > 0:
+                    p_surf = self.font_mini.render(f"+{st['perf']:.1f} P", True, (0, 240, 140))
+                    surface.blit(p_surf, (card_r.right - p_surf.get_width() - 6, card_r.y + 22))
+
+            # 3. Right Column: Department Operations & Room Desks (Focused View)
+            right_x = left_rect.right + 8
+            right_w = content_rect.right - right_x - 8
+            right_canvas = pygame.Rect(right_x, left_y, right_w, left_h)
+            pygame.draw.rect(surface, (12, 16, 22), right_canvas, border_radius=3)
+            pygame.draw.rect(surface, (32, 42, 56), right_canvas, width=1, border_radius=3)
+
+            prev_clip = surface.get_clip()
+            surface.set_clip(right_canvas)
+
+            curr_y = right_canvas.y + self.scroll_y + 6
+            active_dept = self.selected_category
+            dir_obj = directors.get(active_dept)
+
+            # Department Director Profile Card
+            dir_box = pygame.Rect(right_canvas.x + 6, curr_y, right_canvas.width - 12, 48)
+            if dir_obj:
+                pygame.draw.rect(surface, (20, 28, 40), dir_box, border_radius=3)
+                pygame.draw.rect(surface, (0, 220, 255), dir_box, width=1, border_radius=3)
+                UITheme.draw_icon(surface, "briefcase", (dir_box.x + 8, dir_box.y + 8), color=(0, 220, 255), size=16)
+                dir_title = f"{active_dept} DIRECTOR: {dir_obj['name']} (Age {dir_obj['age']}) | Spec: {dir_obj.get('specialty', 'GENERAL')}"
+                surface.blit(
+                    self.font_card_title.render(dir_title, True, (0, 220, 255)), (dir_box.x + 30, dir_box.y + 6)
+                )
+                # Stats
+                ds_x = dir_box.x + 30
+                ds_y = dir_box.y + 26
+                ds_x += (
                     UITheme.draw_stat_item(
                         surface,
                         ds_x,
                         ds_y,
-                        "circle-dollar-sign",
-                        f"${dir_obj.get('salary_monthly', 12000):,.0f}/mo",
+                        "award",
+                        f"Leadership: {dir_obj.get('stat_leadership', 50):.0f}",
                         self.font_body,
                         text_color=(180, 200, 220),
-                        icon_color=(255, 200, 40),
+                        icon_color=(255, 160, 200),
                         icon_size=12,
                         gap=3,
                     )
+                    + 12
+                )
+                ds_x += (
+                    UITheme.draw_stat_item(
+                        surface,
+                        ds_x,
+                        ds_y,
+                        "wrench",
+                        f"Core: {dir_obj.get('stat_engineering', 50):.0f}",
+                        self.font_body,
+                        text_color=(180, 200, 220),
+                        icon_color=(0, 220, 255),
+                        icon_size=12,
+                        gap=3,
+                    )
+                    + 12
+                )
+                UITheme.draw_stat_item(
+                    surface,
+                    ds_x,
+                    ds_y,
+                    "circle-dollar-sign",
+                    f"${dir_obj.get('salary_monthly', 12000):,.0f}/mo",
+                    self.font_body,
+                    text_color=(180, 200, 220),
+                    icon_color=(255, 200, 40),
+                    icon_size=12,
+                    gap=3,
+                )
+                # Action button
+                dt_btn = pygame.Rect(dir_box.right - 90, dir_box.y + 12, 80, 24)
+                UITheme.draw_button(surface, dt_btn, "DETAILS", self.font_btn, icon="user", icon_size=11)
+            else:
+                pygame.draw.rect(surface, (32, 20, 24), dir_box, border_radius=3)
+                pygame.draw.rect(surface, (220, 70, 70), dir_box, width=1, border_radius=3)
+                UITheme.draw_icon(
+                    surface, "triangle-alert", (dir_box.x + 8, dir_box.y + 8), color=(255, 90, 90), size=16
+                )
+                surface.blit(
+                    self.font_card_title.render(f"{active_dept} DIRECTOR: VACANT POST", True, (255, 90, 90)),
+                    (dir_box.x + 30, dir_box.y + 6),
+                )
+                surface.blit(
+                    self.font_body.render("Click [+ APPOINT] to recruit or promote a Director.", True, (190, 150, 150)),
+                    (dir_box.x + 30, dir_box.y + 26),
+                )
+                ap_btn = pygame.Rect(dir_box.right - 105, dir_box.y + 12, 95, 24)
+                UITheme.draw_button(
+                    surface, ap_btn, "+ APPOINT", self.font_btn, bg_color=(180, 40, 40), icon="users", icon_size=11
+                )
+
+            curr_y += 56
+
+            # Facility Rooms in this Department
+            fac_nodes = nodes_by_dept.get(active_dept, [])
+            for f_id, f_name in fac_nodes:
+                if f_id not in unlocked_facs:
+                    continue
+                f_tier = unlocked_facs[f_id]
+                p_data = gm.staff_manager.get_facility_personnel(gm.team_id, f_id, f_tier)
+                p_out = gm.staff_manager.calculate_facility_staff_output(gm.team_id, f_id, f_tier, dev_gain_mult)
+
+                # Construct grid items
+                grid_items = []
+                for s_idx, s in enumerate(p_data["staff"]):
+                    grid_items.append(("STAFF", s_idx, s))
+                for v_idx in range(p_data["vacant_staff_slots"]):
+                    grid_items.append(("VACANT", v_idx, None))
+                grid_items.append(("INTERN", 0, p_data.get("intern")))
+
+                num_rows = (len(grid_items) + 1) // 2
+                room_h = 32 + 30 + num_rows * 40 + 8
+                room_box = pygame.Rect(right_canvas.x + 6, curr_y, right_canvas.width - 12, room_h)
+
+                pygame.draw.rect(surface, (16, 22, 32), room_box, border_radius=3)
+                pygame.draw.rect(surface, (45, 58, 75), room_box, width=1, border_radius=3)
+
+                # Room Header
+                UITheme.draw_icon(surface, "factory", (room_box.x + 8, room_box.y + 7), color=(255, 215, 0), size=15)
+                r_title = f"{f_name} (Tier {f_tier})"
+                surface.blit(
+                    self.font_card_title.render(r_title, True, (255, 215, 0)), (room_box.x + 28, room_box.y + 6)
+                )
+                spec_str = f"Specialty: {p_data['target_specialty']} [+50% MATCH]"
+                surface.blit(self.font_badge.render(spec_str, True, (0, 240, 220)), (room_box.x + 230, room_box.y + 7))
+                out_str = f"Output: +{p_out['final_perf']:.2f} Perf"
+                o_surf = self.font_badge.render(out_str, True, (0, 255, 160))
+                surface.blit(o_surf, (room_box.right - o_surf.get_width() - 8, room_box.y + 7))
+
+                # Dept Head Slot
+                head = p_data["head"]
+                h_slot = pygame.Rect(room_box.x + 8, room_box.y + 28, room_box.width - 16, 24)
+                if head:
+                    pygame.draw.rect(surface, (20, 32, 45), h_slot, border_radius=2)
+                    is_match = head.get("specialty") == p_data["target_specialty"]
+                    h_col = (0, 240, 140) if is_match else (220, 220, 220)
+                    UITheme.draw_icon(surface, "award", (h_slot.x + 6, h_slot.y + 4), color=h_col, size=14)
+                    h_txt = f"Head: {head['name']} (Age {head['age']} | {head.get('specialty')} {'[MATCH +50%]' if is_match else ''}) | {p_out['head_mult']:.2f}x Multiplier"
+                    surface.blit(self.font_body.render(h_txt, True, h_col), (h_slot.x + 24, h_slot.y + 4))
                 else:
-                    pygame.draw.rect(surface, (28, 20, 24), dir_card, border_radius=3)
-                    pygame.draw.rect(surface, (220, 70, 70), dir_card, width=1, border_radius=3)
+                    pygame.draw.rect(surface, (36, 24, 24), h_slot, border_radius=2)
+                    pygame.draw.rect(surface, (180, 70, 70), h_slot, width=1, border_radius=2)
                     UITheme.draw_icon(
-                        surface, "triangle-alert", (dir_card.x + 10, dir_card.y + 8), color=(255, 90, 90), size=16
+                        surface, "triangle-alert", (h_slot.x + 6, h_slot.y + 4), color=(255, 120, 120), size=14
                     )
                     surface.blit(
-                        self.font_card_title.render(f"{cat} DIRECTOR: VACANT POST", True, (255, 90, 90)),
-                        (dir_card.x + 32, dir_card.y + 6),
-                    )
-                    surface.blit(
-                        self.font_body.render("Click to recruit or appoint Director.", True, (190, 150, 150)),
-                        (dir_card.x + 32, dir_card.y + 24),
+                        self.font_body.render(
+                            "Dept Head: VACANT - Click to Appoint / Recruit Head", True, (255, 120, 120)
+                        ),
+                        (h_slot.x + 24, h_slot.y + 4),
                     )
 
-                curr_y += 50
+                # 2-Column Desk Grid
+                grid_col_w = (room_box.width - 24) // 2
+                for g_idx, item in enumerate(grid_items):
+                    row = g_idx // 2
+                    col = g_idx % 2
+                    chip_x = room_box.x + 8 + col * (grid_col_w + 8)
+                    chip_y = room_box.y + 56 + row * 40
+                    chip_r = pygame.Rect(chip_x, chip_y, grid_col_w, 36)
 
-                fac_nodes = nodes_by_dept.get(cat, [])
-                for f_id, f_name in fac_nodes:
-                    if f_id not in unlocked_facs:
-                        continue
-                    f_tier = unlocked_facs[f_id]
-                    p_data = gm.staff_manager.get_facility_personnel(gm.team_id, f_id, f_tier)
-                    p_out = gm.staff_manager.calculate_facility_staff_output(gm.team_id, f_id, f_tier, dev_gain_mult)
-
-                    fac_h = 42 + 28 + len(p_data["staff"]) * 26 + p_data["vacant_staff_slots"] * 26 + 28
-                    fac_box = pygame.Rect(tree_canvas.x + 20, curr_y, tree_canvas.width - 32, fac_h)
-                    pygame.draw.rect(surface, (16, 22, 30), fac_box, border_radius=3)
-                    pygame.draw.rect(surface, (45, 58, 75), fac_box, width=1, border_radius=3)
-
-                    # Room Header
-                    UITheme.draw_icon(surface, "factory", (fac_box.x + 8, fac_box.y + 6), color=(255, 215, 0), size=16)
-                    r_hdr = f"{f_name} (Tier {f_tier}) | Specialty: {p_data['target_specialty']} | Staff Output: +{p_out['final_perf']:.2f} Perf"
-                    surface.blit(
-                        self.font_card_title.render(r_hdr, True, (255, 215, 0)), (fac_box.x + 28, fac_box.y + 6)
-                    )
-
-                    # Head Slot
-                    head = p_data["head"]
-                    h_slot_y = fac_box.y + 24
-                    h_slot_r = pygame.Rect(fac_box.x + 8, h_slot_y, fac_box.width - 16, 22)
-                    if head:
-                        pygame.draw.rect(surface, (20, 32, 45), h_slot_r, border_radius=2)
-                        is_h_match = head.get("specialty") == p_data["target_specialty"]
-                        h_col = (0, 240, 140) if is_h_match else (220, 220, 220)
-                        UITheme.draw_icon(surface, "award", (h_slot_r.x + 6, h_slot_r.y + 3), color=h_col, size=14)
-                        h_str = f"Dept Head: {head['name']} (Age {head['age']} | {head.get('specialty')} {'[MATCH +50%]' if is_h_match else ''}) | {p_out['head_mult']:.2f}x Multiplier"
+                    itype = item[0]
+                    if itype == "STAFF":
+                        s = item[2]
+                        pygame.draw.rect(surface, (18, 26, 36), chip_r, border_radius=3)
+                        pygame.draw.rect(surface, (40, 52, 68), chip_r, width=1, border_radius=3)
+                        is_match = s.get("specialty") == p_data["target_specialty"]
+                        s_col = (0, 220, 255) if is_match else UITheme.TEXT_WHITE
+                        UITheme.draw_icon(surface, "user", (chip_r.x + 6, chip_r.y + 6), color=s_col, size=13)
+                        s_line1 = f"{s['name']} (Age {s['age']})"
+                        surface.blit(self.font_badge.render(s_line1, True, s_col), (chip_r.x + 24, chip_r.y + 4))
+                        s_line2 = f"{s.get('specialty')} | ${s.get('salary_monthly', 8000):,.0f}/mo"
                         surface.blit(
-                            self.font_body.render(h_str, True, h_col),
-                            (h_slot_r.x + 24, h_slot_r.y + 3),
+                            self.font_mini.render(s_line2, True, (150, 170, 190)), (chip_r.x + 24, chip_r.y + 19)
                         )
-                    else:
-                        pygame.draw.rect(surface, (36, 24, 24), h_slot_r, border_radius=2)
-                        pygame.draw.rect(surface, (180, 70, 70), h_slot_r, width=1, border_radius=2)
-                        UITheme.draw_icon(
-                            surface, "triangle-alert", (h_slot_r.x + 6, h_slot_r.y + 3), color=(255, 120, 120), size=14
-                        )
-                        surface.blit(
-                            self.font_body.render(
-                                "Dept Head: VACANT - Click to Appoint / Recruit Head", True, (255, 120, 120)
-                            ),
-                            (h_slot_r.x + 24, h_slot_r.y + 3),
-                        )
-
-                    # Specialist Staff Desks
-                    s_y = fac_box.y + 48
-                    for s_idx, s in enumerate(p_data["staff"]):
-                        s_r = pygame.Rect(fac_box.x + 8, s_y, fac_box.width - 16, 24)
-                        pygame.draw.rect(surface, (18, 26, 36), s_r, border_radius=2)
-                        is_s_match = s.get("specialty") == p_data["target_specialty"]
-                        s_col = (0, 220, 255) if is_s_match else UITheme.TEXT_WHITE
-                        UITheme.draw_icon(surface, "user", (s_r.x + 6, s_r.y + 4), color=s_col, size=14)
-                        s_txt = f"Desk #{s_idx + 1}: {s['name']} (Age {s['age']} | {s.get('specialty')} {'[MATCH +50%]' if is_s_match else ''}) - ${s.get('salary_monthly', 8000):,.0f}/mo"
-                        surface.blit(
-                            self.font_body.render(s_txt, True, s_col),
-                            (s_r.x + 24, s_r.y + 4),
-                        )
-                        s_y += 26
-
-                    # Open Desks
-                    for v_idx in range(p_data["vacant_staff_slots"]):
-                        v_r = pygame.Rect(fac_box.x + 8, s_y, fac_box.width - 16, 24)
-                        pygame.draw.rect(surface, (14, 24, 32), v_r, border_radius=2)
-                        pygame.draw.rect(surface, (0, 140, 180), v_r, width=1, border_radius=2)
-                        UITheme.draw_icon(surface, "users", (v_r.x + 6, v_r.y + 4), color=(0, 220, 255), size=14)
+                    elif itype == "VACANT":
+                        v_idx = item[1]
                         desk_num = len(p_data["staff"]) + v_idx + 1
+                        pygame.draw.rect(surface, (14, 24, 34), chip_r, border_radius=3)
+                        pygame.draw.rect(surface, (0, 160, 200), chip_r, width=1, border_radius=3)
+                        UITheme.draw_icon(surface, "users", (chip_r.x + 6, chip_r.y + 10), color=(0, 220, 255), size=14)
                         surface.blit(
-                            self.font_body.render(
-                                f"OPEN DESK #{desk_num} - Click to Hire Specialist into this Room",
-                                True,
-                                (0, 220, 255),
-                            ),
-                            (v_r.x + 24, v_r.y + 4),
+                            self.font_badge.render(f"OPEN DESK #{desk_num}", True, (0, 220, 255)),
+                            (chip_r.x + 24, chip_r.y + 10),
                         )
-                        s_y += 26
+                        r_btn = pygame.Rect(chip_r.right - 80, chip_r.y + 6, 74, 24)
+                        UITheme.draw_button(surface, r_btn, "+ RECRUIT", self.font_mini, bg_color=(0, 120, 160))
+                    elif itype == "INTERN":
+                        intern = item[2]
+                        if intern:
+                            pygame.draw.rect(surface, (26, 20, 36), chip_r, border_radius=3)
+                            pygame.draw.rect(surface, (140, 90, 200), chip_r, width=1, border_radius=3)
+                            UITheme.draw_icon(
+                                surface, "graduation-cap", (chip_r.x + 6, chip_r.y + 6), color=(180, 140, 255), size=14
+                            )
+                            i_l1 = f"Intern: {intern['name']}"
+                            surface.blit(
+                                self.font_badge.render(i_l1, True, (180, 140, 255)), (chip_r.x + 24, chip_r.y + 4)
+                            )
+                            i_l2 = f"Tryout Mo {intern.get('intern_months_completed', 0)}/6"
+                            surface.blit(
+                                self.font_mini.render(i_l2, True, (180, 150, 220)), (chip_r.x + 24, chip_r.y + 19)
+                            )
+                        else:
+                            pygame.draw.rect(surface, (20, 18, 28), chip_r, border_radius=3)
+                            pygame.draw.rect(surface, (100, 60, 150), chip_r, width=1, border_radius=3)
+                            UITheme.draw_icon(
+                                surface, "graduation-cap", (chip_r.x + 6, chip_r.y + 10), color=(180, 140, 255), size=14
+                            )
+                            surface.blit(
+                                self.font_badge.render("OPEN INTERN DESK", True, (180, 140, 255)),
+                                (chip_r.x + 24, chip_r.y + 10),
+                            )
+                            a_btn = pygame.Rect(chip_r.right - 75, chip_r.y + 6, 70, 24)
+                            UITheme.draw_button(surface, a_btn, "+ ASSIGN", self.font_mini, bg_color=(100, 60, 150))
 
-                    # Intern Desk
-                    intern = p_data["intern"]
-                    i_r = pygame.Rect(fac_box.x + 8, s_y, fac_box.width - 16, 24)
-                    if intern:
-                        pygame.draw.rect(surface, (26, 20, 36), i_r, border_radius=2)
-                        UITheme.draw_icon(
-                            surface, "graduation-cap", (i_r.x + 6, i_r.y + 4), color=(180, 140, 255), size=14
-                        )
-                        surface.blit(
-                            self.font_body.render(
-                                f"Intern Desk: {intern['name']} (Month {intern.get('intern_months_completed', 0)}/6 Tryout)",
-                                True,
-                                (180, 140, 255),
-                            ),
-                            (i_r.x + 24, i_r.y + 4),
-                        )
-                    else:
-                        pygame.draw.rect(surface, (20, 18, 28), i_r, border_radius=2)
-                        pygame.draw.rect(surface, (120, 70, 180), i_r, width=1, border_radius=2)
-                        UITheme.draw_icon(
-                            surface, "graduation-cap", (i_r.x + 6, i_r.y + 4), color=(180, 140, 255), size=14
-                        )
-                        surface.blit(
-                            self.font_body.render(
-                                "OPEN INTERN DESK - Click to Assign 6-Month Tryout", True, (180, 140, 255)
-                            ),
-                            (i_r.x + 24, i_r.y + 4),
-                        )
+                curr_y += room_h + 10
 
-                    curr_y += fac_h + 12
-
-            total_h = curr_y - (tree_canvas.y + self.scroll_y)
-            self.max_scroll = max(0.0, total_h - tree_canvas.height + 20)
+            total_h = curr_y - (right_canvas.y + self.scroll_y)
+            self.max_scroll = max(0.0, total_h - right_canvas.height + 20)
             surface.set_clip(prev_clip)
-            self._draw_scrollbar(surface, tree_canvas)
+            self._draw_scrollbar(surface, right_canvas)
 
         # =====================================================================
         # SUB-TAB B: RECRUITMENT & INBOUND INTERNS

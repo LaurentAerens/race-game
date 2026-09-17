@@ -793,7 +793,7 @@ ALL_FACILITY_NODES = [
         "ENGINEERING",
         "Wind Tunnel",
         "Advanced overarching aerodynamic testing for all aero surfaces (5 Parts)",
-        "eng_wings_rear",
+        "eng_aero_model_shop",
         1,
         3,
         38000000,

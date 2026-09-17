@@ -208,12 +208,6 @@ class FactoryTreeTab:
             if n.get("parent_id") and n["parent_id"] in node_dict:
                 self.graph.add_edge(n["parent_id"], n["id"])
 
-        # Add multi-parent dependencies (e.g. Wind Tunnel)
-        if "eng_wings_front" in self.graph and "eng_windtunnel" in self.graph:
-            self.graph.add_edge("eng_wings_front", "eng_windtunnel")
-        if "eng_aero_model_shop" in self.graph and "eng_windtunnel" in self.graph:
-            self.graph.add_edge("eng_aero_model_shop", "eng_windtunnel")
-
         # 2. Group nodes by Department
         dept_order_pref = [
             "ENGINEERING",
@@ -318,7 +312,7 @@ class FactoryTreeTab:
         color: Tuple[int, int, int],
         width: int,
     ):
-        """Draws a sleek anti-aliased cubic Bézier curve between two node connection ports with port pin dots."""
+        """Draws a sleek anti-aliased cubic Bézier curve with directional flow arrows entering child ports."""
         x1, y1 = p1
         x2, y2 = p2
 
@@ -340,10 +334,32 @@ class FactoryTreeTab:
 
         pygame.draw.lines(surface, color, False, pts, width)
 
-        # Port connector pin dots
+        # Source connection port dot
         dot_r = max(2, int(3.5 * self.zoom))
         pygame.draw.circle(surface, color, (int(x1), int(y1)), dot_r)
-        pygame.draw.circle(surface, color, (int(x2), int(y2)), dot_r)
+
+        # Directional Arrowhead entering target node
+        arrow_len = max(7.0, 9.0 * self.zoom)
+        arrow_half_w = max(4.0, 6.0 * self.zoom)
+        arrow_pts = [
+            (int(x2), int(y2)),
+            (int(x2 - arrow_len), int(y2 - arrow_half_w)),
+            (int(x2 - arrow_len * 0.7), int(y2)),
+            (int(x2 - arrow_len), int(y2 + arrow_half_w)),
+        ]
+        pygame.draw.polygon(surface, color, arrow_pts)
+
+        # Midpoint directional flow marker on longer spans
+        if len(pts) > 12 and abs(x2 - x1) > 120 * self.zoom:
+            mid_idx = len(pts) // 2
+            mx_pt, my_pt = pts[mid_idx]
+            m_arrow = [
+                (int(mx_pt + 3 * self.zoom), int(my_pt)),
+                (int(mx_pt - 4 * self.zoom), int(my_pt - 4 * self.zoom)),
+                (int(mx_pt - 2 * self.zoom), int(my_pt)),
+                (int(mx_pt - 4 * self.zoom), int(my_pt + 4 * self.zoom)),
+            ]
+            pygame.draw.polygon(surface, color, m_arrow)
 
     def _dept_matches(self, node_dept: str, selected_dept: str) -> bool:
         """Checks if a node's department matches the filter, supporting aliases like COMMERCIAL/MARKETING."""
@@ -355,16 +371,6 @@ class FactoryTreeTab:
 
     def _can_build_node(self, node_id: str, facilities: Dict[str, Any]) -> Tuple[bool, str]:
         """Checks if all prerequisite parent facilities are unlocked and built."""
-        if node_id == "eng_windtunnel":
-            # Wind Tunnel requires an OR prerequisite: Front Aero OR Rear Aero OR Aero Model Shop
-            has_wt_parent = any(
-                facilities.get(p, {}).get("is_unlocked") and (facilities.get(p, {}).get("current_tier") or 0) >= 1
-                for p in ("eng_wings_front", "eng_wings_rear", "eng_aero_model_shop")
-            )
-            if not has_wt_parent:
-                return False, "Requires Front Aero, Rear Aero, or Aero Model Shop"
-            return True, ""
-
         fac = facilities.get(node_id, {})
         parent_id = fac.get("parent_id") or (
             self.graph.nodes.get(node_id, {}).get("parent_id") if node_id in self.graph else None
@@ -1785,8 +1791,34 @@ class FactoryTreeTab:
                 return True
 
         # =====================================================================
-        # C. Zoom & Reset View Buttons
+        # C. Zoom & Reset View Buttons (HUD Floating Controls)
         # =====================================================================
+        canvas_bottom = self.height - 40
+        hud_right = (self.width - 550 - 12) if self.inspected_node_id else (self.width - 24 - 12)
+        hud_y = canvas_bottom - 28
+        hud_rect = pygame.Rect(hud_right - 164, hud_y, 164, 22)
+
+        if hud_rect.collidepoint(mx, my):
+            btn_hud_out = pygame.Rect(hud_rect.x + 3, hud_rect.y + 2, 22, 18)
+            btn_hud_100 = pygame.Rect(hud_rect.x + 28, hud_rect.y + 2, 42, 18)
+            btn_hud_in = pygame.Rect(hud_rect.x + 73, hud_rect.y + 2, 22, 18)
+            btn_hud_fit = pygame.Rect(hud_rect.x + 98, hud_rect.y + 2, 63, 18)
+
+            if btn_hud_out.collidepoint(mx, my):
+                self.zoom = max(0.65, round(self.zoom - 0.1, 2))
+                return True
+            if btn_hud_100.collidepoint(mx, my):
+                self.zoom = 1.0
+                return True
+            if btn_hud_in.collidepoint(mx, my):
+                self.zoom = min(1.4, round(self.zoom + 0.1, 2))
+                return True
+            if btn_hud_fit.collidepoint(mx, my):
+                self.pan_x = 40.0
+                self.pan_y = 130.0
+                self.zoom = 1.0
+                return True
+
         btn_reset = pygame.Rect(self.width - 120, 96, 96, 22)
         if btn_reset.collidepoint(mx, my):
             self.pan_x = 40.0
@@ -1958,22 +1990,91 @@ class FactoryTreeTab:
                 icon_size=12,
             )
 
-        # Reset View Button
-        btn_reset = pygame.Rect(self.width - 120, 96, 96, 22)
-        UITheme.draw_button(surface, btn_reset, "RESET VIEW", self.font_badge, icon="camera", icon_size=11)
+        facilities = {f["id"]: f for f in gm.db.get_team_facilities(gm.team_id)}
 
-        # Canvas Clip Area
-        canvas_rect = pygame.Rect(24, 94, self.width - 48, self.height - 136)
+        # Executive Factory Summary Bar (Docked at y=92, height=28)
+        unlocked_count = sum(1 for f in facilities.values() if f.get("is_unlocked"))
+        total_facilities = max(1, len(facilities))
+        total_upkeep = sum(
+            (f.get("base_upkeep", 0) * (f.get("current_tier") or 1))
+            for f in facilities.values()
+            if f.get("is_unlocked")
+        )
+        total_budgets = sum((f.get("monthly_sub_budget") or 0.0) for f in facilities.values() if f.get("is_unlocked"))
+
+        exec_rect = pygame.Rect(24, 92, self.width - 48, 28)
+        pygame.draw.rect(surface, (16, 22, 32), exec_rect, border_radius=3)
+        pygame.draw.rect(surface, (35, 48, 65), exec_rect, width=1, border_radius=3)
+
+        # Unlocked Facilities KPI
+        pct_unlocked = (unlocked_count / total_facilities) * 100.0
+        UITheme.draw_stat_item(
+            surface,
+            exec_rect.x + 12,
+            exec_rect.y + 6,
+            "factory",
+            f"FACILITIES: {unlocked_count}/{total_facilities} ({pct_unlocked:.0f}%)",
+            self.font_badge,
+            text_color=(0, 240, 220),
+            icon_color=(0, 240, 220),
+            icon_size=13,
+        )
+
+        # Total Monthly Upkeep
+        UITheme.draw_stat_item(
+            surface,
+            exec_rect.x + 225,
+            exec_rect.y + 6,
+            "trending-down",
+            f"UPKEEP: ${total_upkeep * upkeep_mult:,.0f}/mo",
+            self.font_badge,
+            text_color=(255, 180, 50),
+            icon_color=(255, 180, 50),
+            icon_size=13,
+        )
+
+        # Sub-Budgets Total
+        UITheme.draw_stat_item(
+            surface,
+            exec_rect.x + 440,
+            exec_rect.y + 6,
+            "circle-dollar-sign",
+            f"SUB-BUDGETS: ${total_budgets:,.0f}/mo",
+            self.font_badge,
+            text_color=(180, 220, 255),
+            icon_color=(0, 200, 255),
+            icon_size=13,
+        )
+
+        # Help hint on the right
+        hint_str = "Hover/click nodes to trace dependencies ►"
+        h_surf = self.font_body.render(hint_str, True, (130, 150, 170))
+        surface.blit(h_surf, (exec_rect.right - h_surf.get_width() - 12, exec_rect.y + 7))
+
+        # Canvas Clip Area (starting below executive bar)
+        canvas_rect = pygame.Rect(24, 124, self.width - 48, self.height - 164)
         pygame.draw.rect(surface, (12, 16, 22), canvas_rect)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, canvas_rect, width=1)
+
+        # Detect hovered node for interactive edge highlighting
+        mx, my = pygame.mouse.get_pos()
+        hovered_node = None
+        if canvas_rect.collidepoint(mx, my):
+            for node_id, (gx, gy) in self.node_positions.items():
+                sx = self.pan_x + gx * self.zoom
+                sy = self.pan_y + gy * self.zoom
+                sw = 250 * self.zoom
+                sh = 106 * self.zoom
+                if pygame.Rect(sx, sy, sw, sh).collidepoint(mx, my):
+                    hovered_node = node_id
+                    break
+        focused_node = self.inspected_node_id or hovered_node
 
         # Set Clip
         prev_clip = surface.get_clip()
         surface.set_clip(canvas_rect)
 
-        facilities = {f["id"]: f for f in gm.db.get_team_facilities(gm.team_id)}
-
-        # 2. Draw NetworkX Dependency Edges (Connecting Lines)
+        # 2. Draw NetworkX Dependency Edges (Connecting Lines with directional arrows and focus tracing)
         for u, v in self.graph.edges():
             u_f = facilities.get(u)
             v_f = facilities.get(v)
@@ -1994,13 +2095,30 @@ class FactoryTreeTab:
             x2 = self.pan_x + p2[0] * self.zoom
             y2 = self.pan_y + (p2[1] + 53) * self.zoom
 
-            is_active = bool(u_f.get("is_unlocked", False) and v_f.get("is_unlocked", False))
-            if is_active:
-                line_col = (0, 240, 220)  # Vibrant cyan for active power/data links
-                line_w = max(2, int(3 * self.zoom))
+            is_parent_edge = focused_node is not None and v == focused_node
+            is_child_edge = focused_node is not None and u == focused_node
+
+            if focused_node is not None:
+                if is_parent_edge:
+                    # Parent prerequisite edge entering focused node
+                    line_col = (255, 205, 40) if not u_f.get("is_unlocked") else (0, 240, 140)
+                    line_w = max(3, int(4 * self.zoom))
+                elif is_child_edge:
+                    # Child unlock edge flowing out of focused node
+                    line_col = (0, 240, 255)
+                    line_w = max(3, int(4 * self.zoom))
+                else:
+                    # Dim unrelated edges so the dependency path stands out clearly
+                    line_col = (28, 36, 48)
+                    line_w = max(1, int(1.2 * self.zoom))
             else:
-                line_col = (185, 200, 220)  # Crisp bright silver-white for inactive tree branches
-                line_w = max(2, int(2 * self.zoom))
+                is_active = bool(u_f.get("is_unlocked", False) and v_f.get("is_unlocked", False))
+                if is_active:
+                    line_col = (0, 220, 220)
+                    line_w = max(2, int(2.5 * self.zoom))
+                else:
+                    line_col = (110, 130, 155)
+                    line_w = max(2, int(1.8 * self.zoom))
 
             self._draw_bezier_edge(surface, (x1, y1), (x2, y2), line_col, line_w)
 
@@ -2085,11 +2203,23 @@ class FactoryTreeTab:
             influenced_parts = self.get_facility_influenced_parts(node_id)
 
             if is_unlocked:
-                tier_str = f"TIER {cur_tier}/{max_tier}"
-                surface.blit(
-                    self.font_badge.render(f"[{tier_str}]", True, (255, 215, 0)),
-                    (sx + sw - 56 * self.zoom, sy + 6 * self.zoom),
-                )
+                # Row 1 Right: Visual Tier Indicator Pips (Gold Diamonds)
+                pip_size = max(5, int(7 * self.zoom))
+                pip_gap = max(3, int(3.5 * self.zoom))
+                total_pips_w = max_tier * pip_size + (max_tier - 1) * pip_gap
+                px_start = sx + sw - 8 * self.zoom - total_pips_w
+                py_center = sy + 13 * self.zoom
+
+                for t_idx in range(max_tier):
+                    px = px_start + t_idx * (pip_size + pip_gap)
+                    is_filled = t_idx < cur_tier
+                    p_rect = pygame.Rect(int(px), int(py_center - pip_size / 2), pip_size, pip_size)
+                    if is_filled:
+                        pygame.draw.rect(surface, (255, 215, 0), p_rect, border_radius=1)
+                        pygame.draw.rect(surface, (255, 240, 140), p_rect, width=1, border_radius=1)
+                    else:
+                        pygame.draw.rect(surface, (22, 28, 38), p_rect, border_radius=1)
+                        pygame.draw.rect(surface, (60, 75, 95), p_rect, width=1, border_radius=1)
 
                 # Row 2: Unique Facility Benefit Output (Unobstructed full row, truncated to fit card)
                 disp_benefit = self._truncate_text(self.font_badge, b_info["benefit_str"], sw - 18 * self.zoom)
@@ -2257,6 +2387,23 @@ class FactoryTreeTab:
 
         # Restore Canvas Clip
         surface.set_clip(prev_clip)
+
+        # Floating Camera HUD in bottom-right of canvas
+        hud_right = (self.width - 550 - 12) if self.inspected_node_id else (canvas_rect.right - 12)
+        hud_y = canvas_rect.bottom - 28
+        hud_rect = pygame.Rect(hud_right - 164, hud_y, 164, 22)
+        pygame.draw.rect(surface, (18, 24, 34), hud_rect, border_radius=3)
+        pygame.draw.rect(surface, (45, 60, 80), hud_rect, width=1, border_radius=3)
+
+        btn_hud_out = pygame.Rect(hud_rect.x + 3, hud_rect.y + 2, 22, 18)
+        btn_hud_100 = pygame.Rect(hud_rect.x + 28, hud_rect.y + 2, 42, 18)
+        btn_hud_in = pygame.Rect(hud_rect.x + 73, hud_rect.y + 2, 22, 18)
+        btn_hud_fit = pygame.Rect(hud_rect.x + 98, hud_rect.y + 2, 63, 18)
+
+        UITheme.draw_button(surface, btn_hud_out, "-", self.font_badge, bg_color=(28, 36, 48))
+        UITheme.draw_button(surface, btn_hud_100, f"{int(self.zoom * 100)}%", self.font_mini, bg_color=(28, 36, 48))
+        UITheme.draw_button(surface, btn_hud_in, "+", self.font_badge, bg_color=(28, 36, 48))
+        UITheme.draw_button(surface, btn_hud_fit, "RESET", self.font_mini, bg_color=(35, 48, 65))
 
         # =====================================================================
         # 4. Render Department Equipment Inspector Drawer (Right Side)

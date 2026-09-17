@@ -555,7 +555,7 @@ class RaceWeekendScreen:
         pygame.draw.circle(surface, (0, 240, 140), (sf_sx, sf_sy), 3)
 
         # Speed trap marker at 75% track length
-        st_pos = circuit.get_position(circuit.total_length * 0.75)
+        st_pos = circuit.get_position(circuit.length * 0.75)
         st_sx, st_sy = _to_screen(st_pos[0], st_pos[1])
         pygame.draw.circle(surface, (255, 120, 60), (st_sx, st_sy), 3)
         surface.blit(self.font_mini.render("ST", True, (255, 120, 60)), (st_sx + 5, st_sy - 5))

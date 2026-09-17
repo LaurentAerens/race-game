@@ -133,7 +133,7 @@ class TestModernUIRevamp(unittest.TestCase):
         surf = pygame.Surface((1280, 720))
 
         driver = Driver(1, "Liam Andersson", "AND", 7, "Apex Racing", (0, 210, 190), is_player=True)
-        car = Car(driver, 1)
+        car = Car(1, driver)
         car.position = 3
         car.tires.wear_pct = 35.0
 

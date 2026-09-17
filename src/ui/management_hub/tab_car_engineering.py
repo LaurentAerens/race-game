@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Tuple
+import os
+from typing import Any, Dict, List, Optional, Tuple
 
 import pygame
 
@@ -46,6 +47,8 @@ class CarEngineeringTab:
         self.selected_car_slot: int = 1  # Car 1 or Car 2
         self.selected_part_category: str = "FRONT_WING"
         self._init_fonts()
+        self._chassis_img: Optional[pygame.Surface] = None
+        self._scaled_chassis_cache: Dict[Tuple[int, int], pygame.Surface] = {}
         self.status_message: str = (
             "Select any component on the chassis blueprint to inspect R&D progress or mount warehouse spares."
         )
@@ -259,6 +262,28 @@ class CarEngineeringTab:
 
         return False
 
+    def _get_chassis_image(self, target_w: int, target_h: int) -> Optional[pygame.Surface]:
+        """Loads and smoothscales the top-down formula car blueprint asset with caching."""
+        if (target_w, target_h) in self._scaled_chassis_cache:
+            return self._scaled_chassis_cache[(target_w, target_h)]
+
+        if self._chassis_img is None:
+            path = os.path.join("data", "formula_car_topdown.png")
+            if os.path.exists(path):
+                try:
+                    self._chassis_img = pygame.image.load(path).convert_alpha()
+                except Exception:
+                    self._chassis_img = None
+
+        if self._chassis_img is not None:
+            try:
+                scaled = pygame.transform.smoothscale(self._chassis_img, (target_w, target_h))
+                self._scaled_chassis_cache[(target_w, target_h)] = scaled
+                return scaled
+            except Exception:
+                return None
+        return None
+
     def _draw_chassis_wireframe(
         self,
         surface: pygame.Surface,
@@ -280,12 +305,6 @@ class CarEngineeringTab:
         # Car center & dimensions
         cx = canvas.centerx
         cy = canvas.centery
-        car_len = min(360, int(canvas.width * 0.58))
-        half_l = car_len // 2
-
-        # Anchor points along formula car centerline (Left = Front Nose, Right = Rear Exhaust)
-        front_x = cx - half_l
-        rear_x = cx + half_l
 
         # Component colors & highlight state
         sel = self.selected_part_category
@@ -311,145 +330,193 @@ class CarEngineeringTab:
         col_ers = get_comp_col("ERS", (0, 230, 140))
         col_rw = get_comp_col("REAR_WING", (180, 100, 255))
 
-        # --- A. FRONT WING ---
-        # Swept multielement front wing
-        fw_pts = [
-            (front_x - 12, cy - 58),
-            (front_x + 12, cy - 54),
-            (front_x + 22, cy - 18),
-            (front_x + 16, cy),
-            (front_x + 22, cy + 18),
-            (front_x + 12, cy + 54),
-            (front_x - 12, cy + 58),
-            (front_x - 16, cy + 44),
-            (front_x - 6, cy),
-            (front_x - 16, cy - 44),
-        ]
-        pygame.draw.polygon(surface, (18, 26, 36), fw_pts)
-        pygame.draw.polygon(surface, col_fw, fw_pts, width=2 if sel == "FRONT_WING" else 1)
-
-        # --- B. NOSE CONE & COCKPIT CHASSIS ---
-        nose_pts = [
-            (front_x + 16, cy),
-            (front_x + 75, cy - 14),
-            (cx - 30, cy - 18),
-            (cx + 25, cy - 24),
-            (cx + 70, cy - 22),
-            (rear_x - 20, cy - 12),
-            (rear_x - 10, cy),
-            (rear_x - 20, cy + 12),
-            (cx + 70, cy + 22),
-            (cx + 25, cy + 24),
-            (cx - 30, cy + 18),
-            (front_x + 75, cy + 14),
-        ]
-        pygame.draw.polygon(surface, (14, 20, 28), nose_pts)
-        pygame.draw.polygon(surface, (40, 54, 72), nose_pts, width=1)
-
-        # --- C. FLOOR & SIDEPODS ---
-        side_l = [
-            (cx - 30, cy - 18),
-            (cx - 20, cy - 44),
-            (cx + 45, cy - 42),
-            (cx + 70, cy - 22),
-        ]
-        side_r = [
-            (cx - 30, cy + 18),
-            (cx - 20, cy + 44),
-            (cx + 45, cy + 42),
-            (cx + 70, cy + 22),
-        ]
-        pygame.draw.polygon(surface, (20, 28, 38), side_l)
-        pygame.draw.polygon(surface, col_flr, side_l, width=2 if sel == "FLOOR" else 1)
-        pygame.draw.polygon(surface, (20, 28, 38), side_r)
-        pygame.draw.polygon(surface, col_flr, side_r, width=2 if sel == "FLOOR" else 1)
-
-        # Cockpit Opening & Halo
-        pygame.draw.ellipse(surface, (8, 11, 16), (cx - 28, cy - 9, 36, 18))
-        pygame.draw.ellipse(
-            surface, (0, 220, 240) if sel == "FLOOR" else (50, 65, 85), (cx - 28, cy - 9, 36, 18), width=1
-        )
-        pygame.draw.line(surface, (60, 80, 105), (cx - 28, cy), (cx + 8, cy), 2)
-
-        # --- D. ENGINE & ERS BAY ---
-        engine_rect = pygame.Rect(cx + 15, cy - 12, 45, 24)
-        pygame.draw.rect(surface, (24, 30, 22) if sel == "ENGINE" else (16, 22, 30), engine_rect, border_radius=2)
-        pygame.draw.rect(surface, col_eng, engine_rect, width=2 if sel == "ENGINE" else 1, border_radius=2)
-
-        # ERS Hybrid Battery pack icon/strip
-        ers_rect = pygame.Rect(cx + 22, cy - 6, 30, 12)
-        pygame.draw.rect(surface, (14, 28, 20) if sel == "ERS" else (12, 18, 24), ers_rect, border_radius=2)
-        pygame.draw.rect(surface, col_ers, ers_rect, width=2 if sel == "ERS" else 1, border_radius=2)
-
-        # --- E. WHEELS & SUSPENSION ---
-        # Wheel dimensions
-        fw_w, fw_h = 36, 18
-        rw_w, rw_h = 42, 22
-        front_axle_x = front_x + 65
-        rear_axle_x = rear_x - 35
-
-        # Suspension Wishbone Arms
-        # Front Left
-        pygame.draw.line(
-            surface, col_sus, (front_axle_x + fw_w // 2, cy - 42), (cx - 40, cy - 14), 2 if sel == "SUSPENSION" else 1
-        )
-        pygame.draw.line(surface, col_sus, (front_axle_x + fw_w // 2, cy - 42), (cx - 15, cy - 15), 1)
-        # Front Right
-        pygame.draw.line(
-            surface, col_sus, (front_axle_x + fw_w // 2, cy + 42), (cx - 40, cy + 14), 2 if sel == "SUSPENSION" else 1
-        )
-        pygame.draw.line(surface, col_sus, (front_axle_x + fw_w // 2, cy + 42), (cx - 15, cy + 15), 1)
-        # Rear Left
-        pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy - 46), (cx + 60, cy - 18), 1)
-        pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy - 46), (rear_x - 15, cy - 10), 1)
-        # Rear Right
-        pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy + 46), (cx + 60, cy + 18), 1)
-        pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy + 46), (rear_x - 15, cy + 10), 1)
-
-        # Wheels (Rubber Outer + Carbon Rim + Brake Caliper)
-        for wx, wy, ww, wh in [
-            (front_axle_x, cy - 54, fw_w, fw_h),
-            (front_axle_x, cy + 36, fw_w, fw_h),
-            (rear_axle_x, cy - 60, rw_w, rw_h),
-            (rear_axle_x, cy + 38, rw_w, rw_h),
-        ]:
-            w_rect = pygame.Rect(wx, wy, ww, wh)
-            pygame.draw.rect(surface, (12, 14, 18), w_rect, border_radius=3)
-            pygame.draw.rect(surface, (36, 46, 58), w_rect, width=1, border_radius=3)
-            # Brake disc glowing core
-            pygame.draw.ellipse(surface, col_brk, (wx + 6, wy + 3, ww - 12, wh - 6), width=2 if sel == "BRAKES" else 1)
-
-        # --- F. REAR WING & DRS ---
-        rw_pts = [
-            (rear_x - 10, cy - 50),
-            (rear_x + 15, cy - 50),
-            (rear_x + 15, cy + 50),
-            (rear_x - 10, cy + 50),
-        ]
-        pygame.draw.polygon(surface, (18, 24, 34), rw_pts)
-        pygame.draw.polygon(surface, col_rw, rw_pts, width=2 if sel == "REAR_WING" else 1)
-        # DRS Flap line
-        pygame.draw.line(
-            surface,
-            (255, 255, 255) if sel == "REAR_WING" else (60, 75, 95),
-            (rear_x + 8, cy - 42),
-            (rear_x + 8, cy + 42),
-            2,
-        )
-
-        # --- G. LEADER LINES CONNECTING HOTSPOT BADGES TO CHASSIS ---
         def draw_leader(card_rect: pygame.Rect, target_pt: Tuple[int, int], color: Tuple[int, int, int]):
             start_pt = card_rect.center
             pygame.draw.line(surface, (color[0], color[1], color[2]), start_pt, target_pt, 1)
             pygame.draw.circle(surface, color, target_pt, 3)
 
-        draw_leader(hotspots["FRONT_WING"], (front_x, cy - 25), col_fw)
-        draw_leader(hotspots["BRAKES"], (front_axle_x + 18, cy + 36), col_brk)
-        draw_leader(hotspots["SUSPENSION"], (front_axle_x + 18, cy - 28), col_sus)
-        draw_leader(hotspots["FLOOR"], (cx, cy + 36), col_flr)
-        draw_leader(hotspots["ENGINE"], (cx + 38, cy - 12), col_eng)
-        draw_leader(hotspots["ERS"], (cx + 38, cy + 12), col_ers)
-        draw_leader(hotspots["REAR_WING"], (rear_x + 8, cy), col_rw)
+        # Attempt to render high-definition scaled blueprint image asset
+        bp_w = min(canvas.width - 40, int(canvas.height * 1600 / 700 * 0.95))
+        bp_w = min(bp_w, 560)
+        bp_h = int(bp_w * 700 / 1600)
+        chassis_surf = self._get_chassis_image(bp_w, bp_h)
+
+        if chassis_surf is not None:
+            # High-definition asset mode
+            img_x = cx - bp_w // 2
+            img_y = cy - bp_h // 2
+            surface.blit(chassis_surf, (img_x, img_y))
+
+            # Calibrated hotspot target points on the blueprint
+            target_pts: Dict[str, Tuple[int, int]] = {
+                "FRONT_WING": (img_x + int(bp_w * 0.14), cy),
+                "BRAKES": (img_x + int(bp_w * 0.28), cy + int(bp_h * 0.28)),
+                "SUSPENSION": (img_x + int(bp_w * 0.28), cy - int(bp_h * 0.28)),
+                "FLOOR": (cx, cy + int(bp_h * 0.24)),
+                "ENGINE": (cx + int(bp_w * 0.12), cy - int(bp_h * 0.14)),
+                "ERS": (cx + int(bp_w * 0.12), cy + int(bp_h * 0.14)),
+                "REAR_WING": (img_x + bp_w - int(bp_w * 0.08), cy),
+            }
+
+            # Draw glowing halo around selected component
+            target_pt = target_pts.get(sel, (cx, cy))
+            pygame.draw.circle(surface, UITheme.ACCENT_CYAN, target_pt, max(14, int(18 * (bp_w / 500))), width=2)
+            glow_surf = pygame.Surface((60, 60), pygame.SRCALPHA)
+            pygame.draw.circle(glow_surf, (0, 220, 255, 45), (30, 30), 24)
+            surface.blit(glow_surf, (target_pt[0] - 30, target_pt[1] - 30))
+
+            # Leader lines connecting hotspot cards to blueprint targets
+            draw_leader(hotspots["FRONT_WING"], target_pts["FRONT_WING"], col_fw)
+            draw_leader(hotspots["BRAKES"], target_pts["BRAKES"], col_brk)
+            draw_leader(hotspots["SUSPENSION"], target_pts["SUSPENSION"], col_sus)
+            draw_leader(hotspots["FLOOR"], target_pts["FLOOR"], col_flr)
+            draw_leader(hotspots["ENGINE"], target_pts["ENGINE"], col_eng)
+            draw_leader(hotspots["ERS"], target_pts["ERS"], col_ers)
+            draw_leader(hotspots["REAR_WING"], target_pts["REAR_WING"], col_rw)
+
+        else:
+            # Fallback to procedural wireframe drawing
+            car_len = min(360, int(canvas.width * 0.58))
+            half_l = car_len // 2
+            front_x = cx - half_l
+            rear_x = cx + half_l
+
+            # --- A. FRONT WING ---
+            fw_pts = [
+                (front_x - 12, cy - 58),
+                (front_x + 12, cy - 54),
+                (front_x + 22, cy - 18),
+                (front_x + 16, cy),
+                (front_x + 22, cy + 18),
+                (front_x + 12, cy + 54),
+                (front_x - 12, cy + 58),
+                (front_x - 16, cy + 44),
+                (front_x - 6, cy),
+                (front_x - 16, cy - 44),
+            ]
+            pygame.draw.polygon(surface, (18, 26, 36), fw_pts)
+            pygame.draw.polygon(surface, col_fw, fw_pts, width=2 if sel == "FRONT_WING" else 1)
+
+            # --- B. NOSE CONE & COCKPIT CHASSIS ---
+            nose_pts = [
+                (front_x + 16, cy),
+                (front_x + 75, cy - 14),
+                (cx - 30, cy - 18),
+                (cx + 25, cy - 24),
+                (cx + 70, cy - 22),
+                (rear_x - 20, cy - 12),
+                (rear_x - 10, cy),
+                (rear_x - 20, cy + 12),
+                (cx + 70, cy + 22),
+                (cx + 25, cy + 24),
+                (cx - 30, cy + 18),
+                (front_x + 75, cy + 14),
+            ]
+            pygame.draw.polygon(surface, (14, 20, 28), nose_pts)
+            pygame.draw.polygon(surface, (40, 54, 72), nose_pts, width=1)
+
+            # --- C. FLOOR & SIDEPODS ---
+            side_l = [
+                (cx - 30, cy - 18),
+                (cx - 20, cy - 44),
+                (cx + 45, cy - 42),
+                (cx + 70, cy - 22),
+            ]
+            side_r = [
+                (cx - 30, cy + 18),
+                (cx - 20, cy + 44),
+                (cx + 45, cy + 42),
+                (cx + 70, cy + 22),
+            ]
+            pygame.draw.polygon(surface, (20, 28, 38), side_l)
+            pygame.draw.polygon(surface, col_flr, side_l, width=2 if sel == "FLOOR" else 1)
+            pygame.draw.polygon(surface, (20, 28, 38), side_r)
+            pygame.draw.polygon(surface, col_flr, side_r, width=2 if sel == "FLOOR" else 1)
+
+            # Cockpit Opening & Halo
+            pygame.draw.ellipse(surface, (8, 11, 16), (cx - 28, cy - 9, 36, 18))
+            pygame.draw.ellipse(
+                surface, (0, 220, 240) if sel == "FLOOR" else (50, 65, 85), (cx - 28, cy - 9, 36, 18), width=1
+            )
+            pygame.draw.line(surface, (60, 80, 105), (cx - 28, cy), (cx + 8, cy), 2)
+
+            # --- D. ENGINE & ERS BAY ---
+            engine_rect = pygame.Rect(cx + 15, cy - 12, 45, 24)
+            pygame.draw.rect(surface, (24, 30, 22) if sel == "ENGINE" else (16, 22, 30), engine_rect, border_radius=2)
+            pygame.draw.rect(surface, col_eng, engine_rect, width=2 if sel == "ENGINE" else 1, border_radius=2)
+
+            # ERS Hybrid Battery pack icon/strip
+            ers_rect = pygame.Rect(cx + 22, cy - 6, 30, 12)
+            pygame.draw.rect(surface, (14, 28, 20) if sel == "ERS" else (12, 18, 24), ers_rect, border_radius=2)
+            pygame.draw.rect(surface, col_ers, ers_rect, width=2 if sel == "ERS" else 1, border_radius=2)
+
+            # --- E. WHEELS & SUSPENSION ---
+            fw_w, fw_h = 36, 18
+            rw_w, rw_h = 42, 22
+            front_axle_x = front_x + 65
+            rear_axle_x = rear_x - 35
+
+            # Suspension Wishbone Arms
+            pygame.draw.line(
+                surface,
+                col_sus,
+                (front_axle_x + fw_w // 2, cy - 42),
+                (cx - 40, cy - 14),
+                2 if sel == "SUSPENSION" else 1,
+            )
+            pygame.draw.line(surface, col_sus, (front_axle_x + fw_w // 2, cy - 42), (cx - 15, cy - 15), 1)
+            pygame.draw.line(
+                surface,
+                col_sus,
+                (front_axle_x + fw_w // 2, cy + 42),
+                (cx - 40, cy + 14),
+                2 if sel == "SUSPENSION" else 1,
+            )
+            pygame.draw.line(surface, col_sus, (front_axle_x + fw_w // 2, cy + 42), (cx - 15, cy + 15), 1)
+            pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy - 46), (cx + 60, cy - 18), 1)
+            pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy - 46), (rear_x - 15, cy - 10), 1)
+            pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy + 46), (cx + 60, cy + 18), 1)
+            pygame.draw.line(surface, col_sus, (rear_axle_x + rw_w // 2, cy + 46), (rear_x - 15, cy + 10), 1)
+
+            # Wheels
+            for wx, wy, ww, wh in [
+                (front_axle_x, cy - 54, fw_w, fw_h),
+                (front_axle_x, cy + 36, fw_w, fw_h),
+                (rear_axle_x, cy - 60, rw_w, rw_h),
+                (rear_axle_x, cy + 38, rw_w, rw_h),
+            ]:
+                w_rect = pygame.Rect(wx, wy, ww, wh)
+                pygame.draw.rect(surface, (12, 14, 18), w_rect, border_radius=3)
+                pygame.draw.rect(surface, (36, 46, 58), w_rect, width=1, border_radius=3)
+                pygame.draw.ellipse(
+                    surface, col_brk, (wx + 6, wy + 3, ww - 12, wh - 6), width=2 if sel == "BRAKES" else 1
+                )
+
+            # --- F. REAR WING & DRS ---
+            rw_pts = [
+                (rear_x - 10, cy - 50),
+                (rear_x + 15, cy - 50),
+                (rear_x + 15, cy + 50),
+                (rear_x - 10, cy + 50),
+            ]
+            pygame.draw.polygon(surface, (18, 24, 34), rw_pts)
+            pygame.draw.polygon(surface, col_rw, rw_pts, width=2 if sel == "REAR_WING" else 1)
+            pygame.draw.line(
+                surface,
+                (255, 255, 255) if sel == "REAR_WING" else (60, 75, 95),
+                (rear_x + 8, cy - 42),
+                (rear_x + 8, cy + 42),
+                2,
+            )
+
+            # --- G. LEADER LINES CONNECTING HOTSPOT BADGES TO CHASSIS ---
+            draw_leader(hotspots["FRONT_WING"], (front_x, cy - 25), col_fw)
+            draw_leader(hotspots["BRAKES"], (front_axle_x + 18, cy + 36), col_brk)
+            draw_leader(hotspots["SUSPENSION"], (front_axle_x + 18, cy - 28), col_sus)
+            draw_leader(hotspots["FLOOR"], (cx, cy + 36), col_flr)
+            draw_leader(hotspots["ENGINE"], (cx + 38, cy - 12), col_eng)
+            draw_leader(hotspots["ERS"], (cx + 38, cy + 12), col_ers)
+            draw_leader(hotspots["REAR_WING"], (rear_x + 8, cy), col_rw)
 
         # --- H. HOTSPOT CARDS RENDER ---
         for cat_key, h_rect in hotspots.items():

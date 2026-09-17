@@ -1001,20 +1001,7 @@ class EngineeringManager:
                 return False, "Facility node not found."
 
             # Check parent prerequisites
-            if node_id == "eng_windtunnel":
-                # Wind Tunnel requires an OR prerequisite: Front Aero OR Rear Aero OR Aero Model Shop constructed first!
-                cur.execute(
-                    """
-                SELECT node_id FROM team_facilities 
-                WHERE team_id = ? AND node_id IN ('eng_wings_front', 'eng_wings_rear', 'eng_aero_model_shop') AND is_unlocked = 1 AND current_tier >= 1;
-                """,
-                    (team_id,),
-                )
-                unlocked_wings = cur.fetchall()
-                if not unlocked_wings:
-                    return False, "Wind Tunnel requires constructing Front Aero, Rear Aero, or Aero Model Shop first."
-
-            elif node["parent_id"]:
+            if node["parent_id"]:
                 p_id = node["parent_id"]
                 cur.execute(
                     """
