@@ -1233,8 +1233,6 @@ class DriversAcademyTab:
             eligible_tiers = sorted([t for t in [2, 3, 4, 5] if t > team_tier])
             tier_tabs = ["ALL"] + [str(t) for t in eligible_tiers]
             curr_tab_x = r_rect.x + 460
-            if len(scout_prospects) > prospects_per_page:
-                curr_tab_x = r_rect.x + 360
 
             for t_idx, t_val in enumerate(tier_tabs):
                 pill_w = 75 if t_val == "ALL" else 60
