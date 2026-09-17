@@ -34,6 +34,15 @@ class WeeklyRoundupModal:
         self.height = height
         self._init_fonts()
 
+    def _truncate_text(self, font: pygame.font.Font, text: str, max_w: int) -> str:
+        """Truncate text to fit within max_w pixels with an ellipsis."""
+        if font.size(text)[0] <= max_w:
+            return text
+        ellipsis = "..."
+        while text and font.size(text + ellipsis)[0] > max_w:
+            text = text[:-1]
+        return text.strip() + ellipsis if text else ellipsis
+
     def open(self, summary_data: Dict[str, Any]):
         self.summary_data = summary_data
         self.is_open = True
@@ -108,7 +117,7 @@ class WeeklyRoundupModal:
         pygame.draw.rect(surface, (0, 220, 255), modal_rect, width=2, border_radius=6)
 
         # Header Banner
-        hdr_rect = pygame.Rect(modal_x, modal_y, modal_w, 40)
+        hdr_rect = pygame.Rect(modal_x, modal_y, modal_w, 44)
         pygame.draw.rect(surface, (20, 28, 42), hdr_rect, border_top_left_radius=6, border_top_right_radius=6)
 
         is_season_start = bool(self.summary_data.get("is_season_start", False))
@@ -123,14 +132,13 @@ class WeeklyRoundupModal:
             tiers_str = ", ".join([f"Tier {t}" for t in tiers_sim]) if tiers_sim else "No series racing"
             sub_txt = f"Active Series Simulated This Week: {tiers_str}"
 
-        surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (modal_x + 16, modal_y + 10))
-        surface.blit(
-            self.font_subtitle.render(sub_txt, True, UITheme.TEXT_MUTED), (modal_x + modal_w - 360, modal_y + 14)
-        )
+        surface.blit(self.font_title.render(title_txt, True, (255, 215, 0)), (modal_x + 16, modal_y + 6))
+        sub_trunc = self._truncate_text(self.font_subtitle, sub_txt, modal_w - 32)
+        surface.blit(self.font_subtitle.render(sub_trunc, True, UITheme.TEXT_MUTED), (modal_x + 16, modal_y + 26))
 
         # Tab Strip
         tab_x = modal_x + 16
-        tab_y = modal_y + 46
+        tab_y = modal_y + 48
         tab_w = 115
         tab_h = 26
 
@@ -304,14 +312,19 @@ class WeeklyRoundupModal:
                 t_lbl = self.font_card_title.render(tier_names.get(t_num, f"Tier {t_num}"), True, (255, 215, 0))
                 surface.blit(t_lbl, (row_rect.x + 10, row_rect.y + 11))
 
+                pod_col_x = max(row_rect.x + 460, row_rect.x + int(row_rect.width * 0.62))
+                w_max_w = pod_col_x - (row_rect.x + 210) - 10
                 w_txt = f"🏆 P1: {w['driver_name']} ({w['team_name']})"
-                surface.blit(self.font_body.render(w_txt, True, (0, 240, 140)), (row_rect.x + 230, row_rect.y + 11))
+                w_trunc = self._truncate_text(self.font_body, w_txt, w_max_w)
+                surface.blit(self.font_body.render(w_trunc, True, (0, 240, 140)), (row_rect.x + 210, row_rect.y + 11))
 
                 if p2 and p3:
                     pod_txt = f"P2: {p2['driver_name']}  |  P3: {p3['driver_name']}"
+                    pod_max_w = row_rect.x + row_rect.width - pod_col_x - 10
+                    pod_trunc = self._truncate_text(self.font_subtitle, pod_txt, pod_max_w)
                     surface.blit(
-                        self.font_subtitle.render(pod_txt, True, UITheme.TEXT_MUTED),
-                        (row_rect.x + 510, row_rect.y + 12),
+                        self.font_subtitle.render(pod_trunc, True, UITheme.TEXT_MUTED),
+                        (pod_col_x, row_rect.y + 12),
                     )
 
                 cur_y += 46

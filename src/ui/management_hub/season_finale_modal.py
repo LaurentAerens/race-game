@@ -30,6 +30,7 @@ class SeasonFinaleModal:
         self.player_choice_promote: bool = True
         self.selected_engine_name: Optional[str] = None
         self.available_engines: List[Dict[str, Any]] = []
+        self.engine_scroll: int = 0
 
         self._init_fonts()
 
@@ -47,6 +48,21 @@ class SeasonFinaleModal:
         self.width = width
         self.height = height
         self._init_fonts()
+
+    def _truncate_text(self, font: pygame.font.Font, text: str, max_w: int) -> str:
+        """Safely truncates text to fit within max_w pixels with an ellipsis."""
+        if font.size(text)[0] <= max_w:
+            return text
+        ellipsis = "..."
+        while text and font.size(text + ellipsis)[0] > max_w:
+            text = text[:-1]
+        return text.strip() + ellipsis if text else ellipsis
+
+    def handle_scroll(self, event: pygame.event.Event):
+        if not self.is_open:
+            return
+        if event.type == pygame.MOUSEWHEEL and self.stage == 4:
+            self.engine_scroll = max(0, self.engine_scroll - event.y * 30)
 
     def open(self, gm: GameManager, ls: LeagueSimulator, em: EngineeringManager, prize_cash_multiplier: float = 1.0):
         """Prepares season finale data, sets up preview, and opens the modal."""
@@ -184,10 +200,10 @@ class SeasonFinaleModal:
 
         elif self.stage == 4:
             # Engine Selection Clicks
-            start_y = content_rect.y + 54
+            start_y = content_rect.y + 54 - self.engine_scroll
             for idx, supp in enumerate(self.available_engines):
-                sy = start_y + idx * 72
-                card_rect = pygame.Rect(content_rect.x + 14, sy, content_rect.width - 28, 64)
+                sy = start_y + idx * 68
+                card_rect = pygame.Rect(content_rect.x + 14, sy, content_rect.width - 28, 62)
                 if card_rect.collidepoint(mx, my):
                     self.selected_engine_name = supp["name"]
                     return True
@@ -324,7 +340,8 @@ class SeasonFinaleModal:
         )
 
         # Standings Table (Left Side)
-        table_rect = pygame.Rect(rect.x + 14, rect.y + 74, 580, rect.height - 84)
+        table_w = max(420, int(rect.width * 0.60))
+        table_rect = pygame.Rect(rect.x + 14, rect.y + 74, table_w, rect.height - 84)
         pygame.draw.rect(surface, (14, 18, 24), table_rect, border_radius=3)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, table_rect, width=1, border_radius=3)
 
@@ -333,9 +350,11 @@ class SeasonFinaleModal:
         pygame.draw.rect(surface, (20, 26, 36), th_rect)
         surface.blit(self.font_badge.render("POS", True, UITheme.TEXT_MUTED), (th_rect.x + 8, th_rect.y + 5))
         surface.blit(self.font_badge.render("CONSTRUCTOR", True, UITheme.TEXT_MUTED), (th_rect.x + 54, th_rect.y + 5))
-        surface.blit(self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED), (th_rect.x + 320, th_rect.y + 5))
         surface.blit(
-            self.font_badge.render("SEASON PRIZE MONEY", True, UITheme.TEXT_MUTED), (th_rect.x + 420, th_rect.y + 5)
+            self.font_badge.render("POINTS", True, UITheme.TEXT_MUTED), (th_rect.x + table_w - 190, th_rect.y + 5)
+        )
+        surface.blit(
+            self.font_badge.render("PRIZE MONEY", True, UITheme.TEXT_MUTED), (th_rect.x + table_w - 110, th_rect.y + 5)
         )
 
         for idx, t in enumerate(teams[:10]):
@@ -356,23 +375,28 @@ class SeasonFinaleModal:
             pygame.draw.rect(surface, col_rgb, (r_box.x + 40, r_box.y + 6, 6, 14), border_radius=1)
 
             t_name = f"{t['name']} {'[YOU]' if is_player else ''}"
+            max_t_name_w = max(80, table_w - 250)
+            t_trunc = self._truncate_text(self.font_badge, t_name, max_t_name_w)
             surface.blit(
-                self.font_badge.render(t_name, True, (255, 215, 0) if is_player else UITheme.TEXT_WHITE),
+                self.font_badge.render(t_trunc, True, (255, 215, 0) if is_player else UITheme.TEXT_WHITE),
                 (r_box.x + 54, r_box.y + 6),
             )
 
             surface.blit(
-                self.font_badge.render(f"{t['points']} PTS", True, (0, 220, 255)), (r_box.x + 320, r_box.y + 6)
+                self.font_badge.render(f"{t['points']} PTS", True, (0, 220, 255)),
+                (r_box.x + table_w - 190, r_box.y + 6),
             )
 
             pz_txt = f"${t.get('prize_money', 0):,.0f}"
             surface.blit(
                 self.font_badge.render(pz_txt, True, (0, 240, 140) if is_player else UITheme.TEXT_WHITE),
-                (r_box.x + 420, r_box.y + 6),
+                (r_box.x + table_w - 110, r_box.y + 6),
             )
 
         # Right Side: Financial Impact Card
-        info_rect = pygame.Rect(rect.x + 606, rect.y + 74, rect.width - 620, rect.height - 84)
+        info_x = rect.x + 14 + table_w + 14
+        info_w = max(220, rect.width - 28 - table_w - 14)
+        info_rect = pygame.Rect(info_x, rect.y + 74, info_w, rect.height - 84)
         pygame.draw.rect(surface, (14, 18, 24), info_rect, border_radius=3)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, info_rect, width=1, border_radius=3)
 
@@ -406,7 +430,8 @@ class SeasonFinaleModal:
         champ = self.finale_data.get("player_driver_champion", {})
 
         # Standings Table (Left Side)
-        table_rect = pygame.Rect(rect.x + 14, rect.y + 10, 520, rect.height - 20)
+        table_w = max(380, int(rect.width * 0.52))
+        table_rect = pygame.Rect(rect.x + 14, rect.y + 10, table_w, rect.height - 20)
         pygame.draw.rect(surface, (14, 18, 24), table_rect, border_radius=3)
         pygame.draw.rect(surface, UITheme.PANEL_BORDER, table_rect, width=1, border_radius=3)
 
@@ -414,8 +439,10 @@ class SeasonFinaleModal:
         pygame.draw.rect(surface, (20, 26, 36), th_rect)
         surface.blit(self.font_badge.render("POS", True, UITheme.TEXT_MUTED), (th_rect.x + 8, th_rect.y + 5))
         surface.blit(self.font_badge.render("DRIVER", True, UITheme.TEXT_MUTED), (th_rect.x + 50, th_rect.y + 5))
-        surface.blit(self.font_badge.render("TEAM", True, UITheme.TEXT_MUTED), (th_rect.x + 240, th_rect.y + 5))
-        surface.blit(self.font_badge.render("PTS", True, UITheme.TEXT_MUTED), (th_rect.x + 440, th_rect.y + 5))
+        surface.blit(
+            self.font_badge.render("TEAM", True, UITheme.TEXT_MUTED), (th_rect.x + table_w - 180, th_rect.y + 5)
+        )
+        surface.blit(self.font_badge.render("PTS", True, UITheme.TEXT_MUTED), (th_rect.x + table_w - 60, th_rect.y + 5))
 
         for idx, d in enumerate(drivers[:12]):
             ry = th_rect.y + 26 + idx * 30
@@ -432,20 +459,29 @@ class SeasonFinaleModal:
             surface.blit(self.font_badge.render(pos_txt, True, pos_col), (r_box.x + 6, r_box.y + 6))
 
             d_name = d.get("name", "Driver")
+            max_d_w = max(80, (table_w - 180) - 55)
+            d_trunc = self._truncate_text(self.font_badge, d_name, max_d_w)
             surface.blit(
-                self.font_badge.render(d_name, True, (255, 215, 0) if idx == 0 else UITheme.TEXT_WHITE),
+                self.font_badge.render(d_trunc, True, (255, 215, 0) if idx == 0 else UITheme.TEXT_WHITE),
                 (r_box.x + 50, r_box.y + 6),
             )
 
             t_name = d.get("team_name", "Team")
-            surface.blit(self.font_body.render(t_name, True, UITheme.TEXT_MUTED), (r_box.x + 240, r_box.y + 6))
+            max_t_w = 110
+            t_trunc = self._truncate_text(self.font_body, t_name, max_t_w)
+            surface.blit(
+                self.font_body.render(t_trunc, True, UITheme.TEXT_MUTED), (r_box.x + table_w - 180, r_box.y + 6)
+            )
 
             surface.blit(
-                self.font_badge.render(f"{d.get('points', 0)} PTS", True, (0, 220, 255)), (r_box.x + 440, r_box.y + 6)
+                self.font_badge.render(f"{d.get('points', 0)} PTS", True, (0, 220, 255)),
+                (r_box.x + table_w - 60, r_box.y + 6),
             )
 
         # Right Side: Champion Spotlight Card
-        spot_rect = pygame.Rect(rect.x + 546, rect.y + 10, rect.width - 560, rect.height - 20)
+        spot_x = rect.x + 14 + table_w + 14
+        spot_w = max(260, rect.width - 28 - table_w - 14)
+        spot_rect = pygame.Rect(spot_x, rect.y + 10, spot_w, rect.height - 20)
         pygame.draw.rect(surface, (18, 26, 38), spot_rect, border_radius=4)
         pygame.draw.rect(surface, (255, 215, 0), spot_rect, width=2, border_radius=4)
 
@@ -459,34 +495,34 @@ class SeasonFinaleModal:
                 (spot_rect.x + 14, spot_rect.y + 12),
             )
             surface.blit(
-                self.font_giant.render(c_name.upper(), True, UITheme.TEXT_WHITE), (spot_rect.x + 14, spot_rect.y + 36)
+                self.font_giant.render(c_name.upper(), True, UITheme.TEXT_WHITE), (spot_rect.x + 14, spot_rect.y + 34)
             )
             surface.blit(
                 self.font_body.render(
                     f"Constructor: {c_team} | {champ.get('points', 0)} Championship Points", True, UITheme.TEXT_MUTED
                 ),
-                (spot_rect.x + 14, spot_rect.y + 62),
+                (spot_rect.x + 14, spot_rect.y + 58),
             )
 
             # Champion Mood Pill
-            pill_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 92, spot_rect.width - 28, 44)
+            pill_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 82, spot_rect.width - 28, 40)
             pygame.draw.rect(surface, (36, 48, 30), pill_rect, border_radius=4)
             pygame.draw.rect(surface, (0, 240, 140), pill_rect, width=1, border_radius=4)
             surface.blit(
                 self.font_card_title.render("CHAMPION MOOD: 'WORLD CHAMPION' (Active for Season)", True, (0, 240, 140)),
-                (pill_rect.x + 10, pill_rect.y + 6),
+                (pill_rect.x + 10, pill_rect.y + 4),
             )
             surface.blit(
                 self.font_body.render(
                     "100% Morale, Immune to low morale drops, +35% Composure under pressure", True, UITheme.TEXT_WHITE
                 ),
-                (pill_rect.x + 10, pill_rect.y + 24),
+                (pill_rect.x + 10, pill_rect.y + 22),
             )
 
             # Stat Buffs
             surface.blit(
                 self.font_card_title.render("CHAMPION PERMANENT ATTRIBUTE GAINS:", True, (0, 220, 255)),
-                (spot_rect.x + 14, spot_rect.y + 152),
+                (spot_rect.x + 14, spot_rect.y + 130),
             )
             buff_lines = [
                 "• Pace: +2 Permanent Rating Gain",
@@ -497,29 +533,30 @@ class SeasonFinaleModal:
             for b_idx, bl in enumerate(buff_lines):
                 surface.blit(
                     self.font_body.render(bl, True, UITheme.TEXT_WHITE),
-                    (spot_rect.x + 14, spot_rect.y + 176 + b_idx * 18),
+                    (spot_rect.x + 14, spot_rect.y + 150 + b_idx * 16),
                 )
 
             # Player Team Royalty Bonus or Academy Champion Banner
             if is_ply_champ:
-                roy_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 258, spot_rect.width - 28, 52)
+                roy_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 222, spot_rect.width - 28, 46)
                 pygame.draw.rect(surface, (38, 50, 28), roy_rect, border_radius=4)
                 pygame.draw.rect(surface, (255, 215, 0), roy_rect, width=1, border_radius=4)
                 surface.blit(
                     self.font_card_title.render("💰 TEAM COMMERCIAL ROYALTY BONUS", True, (255, 215, 0)),
-                    (roy_rect.x + 10, roy_rect.y + 6),
+                    (roy_rect.x + 10, roy_rect.y + 4),
                 )
                 surface.blit(
                     self.font_body.render(
                         "+$2,500,000 Merchandising Bonus + 8 Global Team Reputation!", True, (0, 240, 140)
                     ),
-                    (roy_rect.x + 10, roy_rect.y + 26),
+                    (roy_rect.x + 10, roy_rect.y + 24),
                 )
 
         # Academy Champion Spotlight (if player's junior driver won Tier 4 or 5)
         acad_champs = self.finale_data.get("player_academy_champions", [])
         if acad_champs:
-            ac_rect = pygame.Rect(spot_rect.x + 14, spot_rect.y + 318, spot_rect.width - 28, 126)
+            y_start = spot_rect.y + (276 if (champ and champ.get("is_player_champion")) else 226)
+            ac_rect = pygame.Rect(spot_rect.x + 14, y_start, spot_rect.width - 28, 96)
             pygame.draw.rect(surface, (20, 36, 45), ac_rect, border_radius=4)
             pygame.draw.rect(surface, (0, 220, 255), ac_rect, width=1, border_radius=4)
 
@@ -535,15 +572,15 @@ class SeasonFinaleModal:
                 self.font_card_title.render(
                     f"🌟 ACADEMY CHAMPION: {ac_name.upper()} ({ac_tier_name})", True, (0, 220, 255)
                 ),
-                (ac_rect.x + 10, ac_rect.y + 6),
+                (ac_rect.x + 10, ac_rect.y + 4),
             )
             surface.blit(
                 self.font_body.render(
-                    f"Driver Prize Bonus: ${ac_pz:,.0f} (Pure Driver Bonus) | Team Marketing: +{ac_rep} Reputation",
+                    f"Driver Prize Bonus: ${ac_pz:,.0f} | Team Marketing: +{ac_rep} Reputation",
                     True,
                     (0, 240, 140),
                 ),
-                (ac_rect.x + 10, ac_rect.y + 26),
+                (ac_rect.x + 10, ac_rect.y + 24),
             )
             surface.blit(
                 self.font_body.render(
@@ -551,19 +588,19 @@ class SeasonFinaleModal:
                     True,
                     UITheme.TEXT_WHITE,
                 ),
-                (ac_rect.x + 10, ac_rect.y + 46),
+                (ac_rect.x + 10, ac_rect.y + 44),
             )
 
             if is_grad:
                 target_t = ac.get("next_tier", ac_tier - 1)
-                grad_str = f"🚀 MANDATORY PROMOTION: Age requirement met! Promoted to Tier {target_t} seat!"
-                surface.blit(self.font_body.render(grad_str, True, (255, 215, 0)), (ac_rect.x + 10, ac_rect.y + 68))
+                grad_str = f"🚀 MANDATORY PROMOTION: Promoted to Tier {target_t} seat!"
+                surface.blit(self.font_body.render(grad_str, True, (255, 215, 0)), (ac_rect.x + 10, ac_rect.y + 66))
             else:
                 surface.blit(
                     self.font_body.render(
                         "Driver will continue skill development in feeder category.", True, UITheme.TEXT_MUTED
                     ),
-                    (ac_rect.x + 10, ac_rect.y + 68),
+                    (ac_rect.x + 10, ac_rect.y + 66),
                 )
 
     # =========================================================================
@@ -749,10 +786,18 @@ class SeasonFinaleModal:
             (rect.x + 14, rect.y + 30),
         )
 
-        start_y = rect.y + 54
+        total_eng_h = len(self.available_engines) * 68
+        visible_eng_h = max(1, rect.height - 60)
+        max_scroll = max(0, total_eng_h - visible_eng_h)
+        self.engine_scroll = max(0, min(self.engine_scroll, max_scroll))
+
+        start_y = rect.y + 54 - self.engine_scroll
         for idx, supp in enumerate(self.available_engines):
-            sy = start_y + idx * 72
-            card_rect = pygame.Rect(rect.x + 14, sy, rect.width - 28, 64)
+            sy = start_y + idx * 68
+            if sy + 62 < rect.y + 50 or sy > rect.y + rect.height - 8:
+                continue
+            card_w = rect.width - (36 if max_scroll > 0 else 28)
+            card_rect = pygame.Rect(rect.x + 14, sy, card_w, 62)
 
             is_sel = self.selected_engine_name == supp["name"]
             is_works = supp.get("is_in_house", False)
@@ -766,18 +811,18 @@ class SeasonFinaleModal:
             # Name & Badge
             surface.blit(
                 self.font_card_title.render(supp["name"], True, (255, 215, 0) if is_sel else UITheme.TEXT_WHITE),
-                (card_rect.x + 12, card_rect.y + 8),
+                (card_rect.x + 12, card_rect.y + 7),
             )
             if is_works:
                 surface.blit(
                     self.font_badge.render("[ BESPOKE IN-HOUSE WORKS UNIT ]", True, (0, 240, 140)),
-                    (card_rect.x + 240, card_rect.y + 8),
+                    (card_rect.x + 240, card_rect.y + 7),
                 )
 
             # Philosophy
             surface.blit(
                 self.font_body.render(f"Philosophy: {supp['philosophy']}", True, UITheme.TEXT_MUTED),
-                (card_rect.x + 12, card_rect.y + 26),
+                (card_rect.x + 12, card_rect.y + 25),
             )
 
             # Stats
@@ -785,16 +830,27 @@ class SeasonFinaleModal:
             stat_str = (
                 f"Power: {supp['base_power']:.0f} HP | Reliability: {supp['reliability']:.0f}% | Cost: {cost_str}"
             )
-            surface.blit(self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 12, card_rect.y + 44))
+            surface.blit(self.font_badge.render(stat_str, True, (0, 220, 255)), (card_rect.x + 12, card_rect.y + 42))
 
             # Selection Pill
-            pill_rect = pygame.Rect(card_rect.x + card_rect.width - 130, card_rect.y + 18, 118, 28)
+            pill_rect = pygame.Rect(card_rect.x + card_rect.width - 130, card_rect.y + 16, 118, 28)
             p_col = (0, 240, 140) if is_sel else (36, 48, 62)
             pygame.draw.rect(surface, p_col, pill_rect, border_radius=3)
             p_lbl = self.font_btn.render(
                 "SELECTED ✓" if is_sel else "SELECT", True, (10, 25, 20) if is_sel else UITheme.TEXT_WHITE
             )
             surface.blit(p_lbl, (pill_rect.x + (pill_rect.width - p_lbl.get_width()) // 2, pill_rect.y + 6))
+
+        if max_scroll > 0:
+            sb_track = pygame.Rect(rect.x + rect.width - 12, rect.y + 54, 4, rect.height - 60)
+            pygame.draw.rect(surface, (18, 24, 32), sb_track, border_radius=2)
+            thumb_ratio = visible_eng_h / (total_eng_h + visible_eng_h)
+            thumb_h = max(20, int(sb_track.height * thumb_ratio))
+            scroll_frac = self.engine_scroll / max_scroll
+            thumb_y = sb_track.y + int((sb_track.height - thumb_h) * scroll_frac)
+            pygame.draw.rect(
+                surface, (60, 80, 105), pygame.Rect(sb_track.x, thumb_y, sb_track.width, thumb_h), border_radius=2
+            )
 
     # =========================================================================
     # STAGE 5: SEASON KICKOFF OVERVIEW & CONFIRMATION

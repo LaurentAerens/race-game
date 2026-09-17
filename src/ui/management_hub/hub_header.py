@@ -227,9 +227,7 @@ class HubHeader:
 
             # Active underglow neon line
             if is_active:
-                pygame.draw.line(
-                    surface, UITheme.ACCENT_CYAN, (r.x + 4, r.bottom - 2), (r.right - 4, r.bottom - 2), 2
-                )
+                pygame.draw.line(surface, UITheme.ACCENT_CYAN, (r.x + 4, r.bottom - 2), (r.right - 4, r.bottom - 2), 2)
 
             txt_col = UITheme.TEXT_WHITE if is_active else UITheme.TEXT_MUTED
             label = short_label if r.width < 125 else full_label

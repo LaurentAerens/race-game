@@ -62,7 +62,9 @@ class BroadcastHeader:
     def render(self, surface: pygame.Surface, sim: Simulation, camera: Camera):
         # Background bar
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, self.rect)
-        pygame.draw.line(surface, UITheme.PANEL_BORDER, (0, self.rect.bottom - 1), (self.rect.width, self.rect.bottom - 1), 1)
+        pygame.draw.line(
+            surface, UITheme.PANEL_BORDER, (0, self.rect.bottom - 1), (self.rect.width, self.rect.bottom - 1), 1
+        )
 
         # 1. Circuit Name & Flag Status
         c_name = self.font_title.render(sim.circuit.name.upper(), True, UITheme.TEXT_WHITE)

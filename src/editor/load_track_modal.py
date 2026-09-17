@@ -34,7 +34,9 @@ class LoadTrackModal:
         # Layout rects
         self.modal_rect = pygame.Rect(0, 0, 0, 0)
         self.btn_rects: Dict[str, pygame.Rect] = {}
-        self.item_rects: List[Tuple[pygame.Rect, pygame.Rect, int]] = []  # (item_box, load_btn, track_idx)
+        self.item_rects: List[
+            Tuple[pygame.Rect, pygame.Rect, int, int]
+        ] = []  # (item_box, load_btn, track_orig_idx, filtered_idx)
 
     def _init_fonts(self):
         if self.font_title is None:
@@ -169,11 +171,15 @@ class LoadTrackModal:
                 filtered = self._get_filtered_items()
                 if filtered:
                     self.selected_idx = max(0, self.selected_idx - 1)
+                    if self.selected_idx < self.scroll_offset:
+                        self.scroll_offset = self.selected_idx
                 return True
             elif event.key == pygame.K_DOWN:
                 filtered = self._get_filtered_items()
                 if filtered:
                     self.selected_idx = min(len(filtered) - 1, self.selected_idx + 1)
+                    if self.selected_idx >= self.scroll_offset + 4:
+                        self.scroll_offset = max(0, self.selected_idx - 3)
                 return True
             elif event.key == pygame.K_RETURN:
                 filtered = self._get_filtered_items()
@@ -204,12 +210,12 @@ class LoadTrackModal:
                 return True
 
             # Check track item row clicks
-            for item_rect, btn_load_rect, orig_idx in self.item_rects:
+            for item_rect, btn_load_rect, orig_idx, item_idx in self.item_rects:
                 if btn_load_rect.collidepoint(mx, my):
                     self._load_track_file(self.track_items[orig_idx]["filepath"])
                     return True
                 elif item_rect.collidepoint(mx, my):
-                    self.selected_idx = orig_idx
+                    self.selected_idx = item_idx
                     if event.button == 1 and getattr(event, "clicks", 1) == 2:  # Double click
                         self._load_track_file(self.track_items[orig_idx]["filepath"])
                     return True
@@ -339,7 +345,7 @@ class LoadTrackModal:
                 load_txt = self.font_bold.render("LOAD", True, (255, 255, 255))
                 screen.blit(load_txt, load_txt.get_rect(center=btn_load.center))
 
-                self.item_rects.append((item_rect, btn_load, orig_idx))
+                self.item_rects.append((item_rect, btn_load, orig_idx, item_idx))
 
         screen.set_clip(clip_prev)
 

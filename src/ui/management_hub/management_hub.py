@@ -207,6 +207,8 @@ class ManagementHub:
         # Mouse Wheel Events
         if event.type == pygame.MOUSEWHEEL:
             if modal_open:
+                if self.season_finale_modal.is_open and hasattr(self.season_finale_modal, "handle_scroll"):
+                    self.season_finale_modal.handle_scroll(event)
                 return
             if self.active_tab == "WORKFORCE":
                 self.tab_workforce.handle_scroll(event)

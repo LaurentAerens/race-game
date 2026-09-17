@@ -114,9 +114,9 @@ class StartScreen:
         self._init_fonts()
 
     def _get_form_layout(self) -> Tuple[int, int, int]:
-        total_w = min(1020, max(780, self.width - 60))
+        total_w = min(1020, max(540, self.width - 40))
         col_w = (total_w - 36) // 2
-        left_x = (self.width - total_w) // 2
+        left_x = max(20, (self.width - total_w) // 2)
         right_x = left_x + col_w + 36
         return left_x, right_x, col_w
 
@@ -789,14 +789,14 @@ class StartScreen:
             # =================================================================
             # Start Career Button (Bottom Center)
             # =================================================================
-            btn_start = pygame.Rect(self.width // 2 - 220, self.height - 66, 440, 46)
             btn_start = pygame.Rect(self.width // 2 - 220, self.height - 74, 440, 44)
             pygame.draw.rect(surface, (0, 180, 100), btn_start, border_radius=4)
             s_lbl = self.font_btn.render("INITIALIZE CONSTRUCTOR & START CAREER >>", True, (10, 25, 20))
-            surface.blit(s_lbl, (btn_start.x + (btn_start.width - s_lbl.get_width()) // 2, btn_start.y + 14))
             surface.blit(s_lbl, (btn_start.x + (btn_start.width - s_lbl.get_width()) // 2, btn_start.y + 13))
 
             # UI Credits Attribution
-            credit_txt = "Icons by Lucide (lucide.dev) under ISC License"
+            credit_txt = (
+                "Icons by Lucide (lucide.dev) under ISC License  |  Map data © OpenStreetMap contributors (ODbL)"
+            )
             c_surf = self.font_badge.render(credit_txt, True, (80, 95, 115))
             surface.blit(c_surf, ((self.width - c_surf.get_width()) // 2, self.height - 22))

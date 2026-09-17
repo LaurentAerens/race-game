@@ -248,6 +248,15 @@ class TutorialOverlay:
             else:
                 return pygame.Rect(24, max(60, min(self.height - self.card_h - 20, target.y)), self.card_w, self.card_h)
 
+    def _get_card_buttons(self, card_rect: pygame.Rect) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+        """Returns unified button rectangles (skip, back, next) to prevent hitbox desync."""
+        btn_y = card_rect.bottom - 44
+        btn_h = 32
+        btn_skip = pygame.Rect(card_rect.x + 16, btn_y, 100, btn_h)
+        btn_back = pygame.Rect(card_rect.right - 232, btn_y, 76, btn_h)
+        btn_next = pygame.Rect(card_rect.right - 146, btn_y, 132, btn_h)
+        return btn_skip, btn_back, btn_next
+
     def handle_event(self, event: pygame.event.Event, current_mode: Optional[str] = None) -> bool:
         """Handles clicks and shortcuts on the tutorial card."""
         if current_mode in ["START", "ADMIN"]:
@@ -278,13 +287,8 @@ class TutorialOverlay:
             mx, my = event.pos
             hdr_rect = pygame.Rect(card_rect.x, card_rect.y, card_rect.width, 36)
 
-            # Button rects at bottom of card
-            btn_y = card_rect.bottom - 44
-            btn_h = 32
-
-            btn_skip = pygame.Rect(card_rect.x + 16, btn_y, 100, btn_h)
-            btn_back = pygame.Rect(card_rect.right - 236, btn_y, 80, btn_h)
-            btn_next = pygame.Rect(card_rect.right - 146, btn_y, 130, btn_h)
+            # Unified button rects at bottom of card
+            btn_skip, btn_back, btn_next = self._get_card_buttons(card_rect)
 
             if btn_skip.collidepoint(mx, my):
                 self.manager.skip_tutorial()
@@ -589,32 +593,27 @@ class TutorialOverlay:
             rew_surf = self.font_reward.render(step.reward_note, True, (0, 255, 140))
             surface.blit(rew_surf, (reward_rect.x + 8, reward_rect.y + 4))
 
-        # Bottom Button Row
-        btn_y = card.bottom - 42
-        btn_h = 30
+        # Bottom Button Row (Synchronized with handle_event)
+        btn_skip, btn_back, btn_next = self._get_card_buttons(card)
 
         # Skip Tutorial Button (Always available!)
-        btn_skip = pygame.Rect(card.x + 16, btn_y, 95, btn_h)
         pygame.draw.rect(surface, (30, 36, 48), btn_skip, border_radius=3)
         pygame.draw.rect(surface, (70, 80, 95), btn_skip, width=1, border_radius=3)
         sk_lbl = self.font_btn.render("Skip Tutorial", True, (170, 180, 195))
-        surface.blit(sk_lbl, (btn_skip.x + (btn_skip.width - sk_lbl.get_width()) // 2, btn_skip.y + 7))
+        surface.blit(sk_lbl, (btn_skip.x + (btn_skip.width - sk_lbl.get_width()) // 2, btn_skip.y + 8))
 
         # Back Button (if past Step 1)
         if self.manager.current_step_index > 0:
-            btn_back = pygame.Rect(card.right - 225, btn_y, 75, btn_h)
             pygame.draw.rect(surface, (25, 32, 44), btn_back, border_radius=3)
             pygame.draw.rect(surface, (50, 65, 85), btn_back, width=1, border_radius=3)
             bk_lbl = self.font_btn.render("< Back", True, UITheme.TEXT_WHITE)
-            surface.blit(bk_lbl, (btn_back.x + (btn_back.width - bk_lbl.get_width()) // 2, btn_back.y + 7))
+            surface.blit(bk_lbl, (btn_back.x + (btn_back.width - bk_lbl.get_width()) // 2, btn_back.y + 8))
 
         # Primary Action / Next Button
-        btn_next_w = 140
-        btn_next = pygame.Rect(card.right - btn_next_w - 14, btn_y, btn_next_w, btn_h)
         pygame.draw.rect(surface, (0, 180, 110), btn_next, border_radius=3)
         pygame.draw.rect(surface, (0, 240, 150), btn_next, width=1, border_radius=3)
         nx_lbl = self.font_btn.render(step.action_label, True, (10, 24, 18))
-        surface.blit(nx_lbl, (btn_next.x + (btn_next.width - nx_lbl.get_width()) // 2, btn_next.y + 7))
+        surface.blit(nx_lbl, (btn_next.x + (btn_next.width - nx_lbl.get_width()) // 2, btn_next.y + 8))
 
     def _render_wrapped_text(
         self,

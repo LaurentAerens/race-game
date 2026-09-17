@@ -556,7 +556,7 @@ class PersonnelTab:
         content_w = self.width - (450 if self.inspected_personnel_id else 48)
 
         # Draw Nav
-        t_x = 24
+        subtab_rects = self._get_subtab_rects()
         nav_tabs = [
             ("TREE", "ORG HIERARCHY & DESKS", "network"),
             ("RECRUITMENT", "RECRUITMENT & TRYOUTS", "users"),
@@ -564,7 +564,7 @@ class PersonnelTab:
             ("POLICIES", "HR DIRECTIVES & POLICIES", "wrench"),
         ]
         for tab_key, tab_label, tab_icon in nav_tabs:
-            t_rect = pygame.Rect(t_x, 62, 175 if tab_key != "POLICIES" else 205, 26)
+            t_rect = subtab_rects[tab_key]
             is_active = self.sub_tab == tab_key
             pygame.draw.rect(
                 surface,
@@ -583,9 +583,9 @@ class PersonnelTab:
             )
             col = (0, 220, 255) if is_active else (150, 165, 180)
             UITheme.draw_icon(surface, tab_icon, (t_rect.x + 8, t_rect.y + 5), color=col, size=15)
-            t_txt = self.font_badge.render(tab_label, True, col)
+            label = tab_label if t_rect.width >= 160 else tab_label.split("&")[0].strip()
+            t_txt = self.font_badge.render(label, True, col)
             surface.blit(t_txt, (t_rect.x + 28, t_rect.y + 6))
-            t_x += t_rect.width + 4
 
         content_rect = pygame.Rect(24, 90, content_w, self.height - 132)
         pygame.draw.rect(surface, (12, 16, 22), content_rect, border_radius=3)
@@ -659,13 +659,27 @@ class PersonnelTab:
             pygame.draw.rect(surface, (16, 22, 32), exec_bar, border_radius=3)
             pygame.draw.rect(surface, (35, 48, 65), exec_bar, width=1, border_radius=3)
 
+            slot_w = (exec_bar.width - 16) / 4.0
+            is_tight = slot_w < 180
+
             pct_staff = (total_staff_db / max(1, total_capacity)) * 100.0 if total_capacity > 0 else 0.0
+            staff_str = (
+                f"STAFF: {total_staff_db}/{total_capacity}"
+                if is_tight
+                else f"STAFF: {total_staff_db}/{total_capacity} Desks ({pct_staff:.0f}%)"
+            )
+            payroll_str = f"${total_payroll_db / 1000:.0f}k/mo" if is_tight else f"PAYROLL: ${total_payroll_db:,.0f}/mo"
+            dir_str = (
+                f"DIR: {active_directors_count}/7" if is_tight else f"DIRECTORS: {active_directors_count}/7 Appointed"
+            )
+            yield_str = f"+{total_perf_yield:.1f}/wk" if is_tight else f"STAFF YIELD: +{total_perf_yield:.2f} Perf/wk"
+
             UITheme.draw_stat_item(
                 surface,
-                exec_bar.x + 12,
+                int(exec_bar.x + 8),
                 exec_bar.y + 7,
                 "users",
-                f"STAFF: {total_staff_db}/{total_capacity} Desks ({pct_staff:.0f}%)",
+                staff_str,
                 self.font_badge,
                 text_color=(0, 240, 220),
                 icon_color=(0, 240, 220),
@@ -673,10 +687,10 @@ class PersonnelTab:
             )
             UITheme.draw_stat_item(
                 surface,
-                exec_bar.x + 230,
+                int(exec_bar.x + 8 + slot_w),
                 exec_bar.y + 7,
                 "circle-dollar-sign",
-                f"PAYROLL: ${total_payroll_db:,.0f}/mo",
+                payroll_str,
                 self.font_badge,
                 text_color=(255, 180, 50),
                 icon_color=(255, 180, 50),
@@ -684,10 +698,10 @@ class PersonnelTab:
             )
             UITheme.draw_stat_item(
                 surface,
-                exec_bar.x + 440,
+                int(exec_bar.x + 8 + slot_w * 2),
                 exec_bar.y + 7,
                 "award",
-                f"DIRECTORS: {active_directors_count}/7 Appointed",
+                dir_str,
                 self.font_badge,
                 text_color=(255, 215, 0),
                 icon_color=(255, 215, 0),
@@ -695,10 +709,10 @@ class PersonnelTab:
             )
             UITheme.draw_stat_item(
                 surface,
-                exec_bar.x + 650,
+                int(exec_bar.x + 8 + slot_w * 3),
                 exec_bar.y + 7,
                 "zap",
-                f"STAFF YIELD: +{total_perf_yield:.2f} Perf/wk",
+                yield_str,
                 self.font_badge,
                 text_color=(0, 255, 160),
                 icon_color=(0, 255, 160),

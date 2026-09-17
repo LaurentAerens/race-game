@@ -210,10 +210,18 @@ class UITheme:
             total_w = ic_surf.get_width() + 4 + txt_surf.get_width()
             start_x = rect.x + (rect.width - total_w) // 2
             surface.blit(ic_surf, (start_x, rect.y + (rect.height - ic_surf.get_height()) // 2))
-            surface.blit(txt_surf, (start_x + ic_surf.get_width() + 4, rect.y + (rect.height - txt_surf.get_height()) // 2))
+            surface.blit(
+                txt_surf, (start_x + ic_surf.get_width() + 4, rect.y + (rect.height - txt_surf.get_height()) // 2)
+            )
         else:
             txt_surf = f.render(text, True, fg_color)
-            surface.blit(txt_surf, (rect.x + (rect.width - txt_surf.get_width()) // 2, rect.y + (rect.height - txt_surf.get_height()) // 2))
+            surface.blit(
+                txt_surf,
+                (
+                    rect.x + (rect.width - txt_surf.get_width()) // 2,
+                    rect.y + (rect.height - txt_surf.get_height()) // 2,
+                ),
+            )
         return rect
 
     @staticmethod

@@ -277,23 +277,23 @@ class DatabaseExplorerTab:
 
         # Filter buttons
         filters = [
-            ("ALUMNI", "★ MY TEAM ALUMNI"),
+            ("ALUMNI", "★ ALUMNI"),
             ("ALL", "ALL DRIVERS"),
             ("T1", "TIER 1 (WSF)"),
             ("T2", "TIER 2 (CC)"),
             ("T3", "TIER 3 (NOC)"),
-            ("T4_5", "FEEDER SERIES"),
+            ("T4_5", "FEEDERS"),
             ("FREE_AGENT", "FREE AGENTS"),
         ]
         fx = 24
         for f_key, f_lbl in filters:
-            btn_w = 140 if f_key == "ALUMNI" else 115
+            btn_w = 120 if f_key == "ALUMNI" else 96
             f_rect = pygame.Rect(fx, 108, btn_w, 24)
             if f_rect.collidepoint(mx, my):
                 self.driver_filter = f_key
                 self.driver_list_scroll = 0
                 return True
-            fx += btn_w + 8
+            fx += btn_w + 6
 
         # Driver list selection click
         drivers = self._get_filtered_drivers(gm)
@@ -789,27 +789,32 @@ class DatabaseExplorerTab:
 
         # 2. Filter Bar (y = 108)
         filters = [
-            ("ALUMNI", "MY TEAM ALUMNI"),
+            ("ALUMNI", "★ ALUMNI"),
             ("ALL", "ALL DRIVERS"),
             ("T1", "TIER 1 (WSF)"),
             ("T2", "TIER 2 (CC)"),
             ("T3", "TIER 3 (NOC)"),
-            ("T4_5", "FEEDER SERIES"),
+            ("T4_5", "FEEDERS"),
             ("FREE_AGENT", "FREE AGENTS"),
         ]
         fx = 24
         for f_key, f_lbl in filters:
-            btn_w = 140 if f_key == "ALUMNI" else 115
+            btn_w = 120 if f_key == "ALUMNI" else 96
             f_rect = pygame.Rect(fx, 108, btn_w, 24)
             is_sel = self.driver_filter == f_key
             icon = "award" if f_key == "ALUMNI" else None
             UITheme.draw_button(surface, f_rect, f_lbl, self.font_badge, is_active=is_sel, icon=icon, icon_size=12)
-            fx += btn_w + 8
+            fx += btn_w + 6
 
         # 3. Driver List (Left Panel)
         drivers = self._get_filtered_drivers(gm)
         list_box = pygame.Rect(24, 144, 360, self.height - 165)
         UITheme.draw_panel(surface, list_box)
+
+        total_driver_h = len(drivers) * 46
+        visible_driver_h = max(1, list_box.height - 36)
+        max_driver_scroll = max(0, total_driver_h - visible_driver_h)
+        self.driver_list_scroll = max(0, min(self.driver_list_scroll, max_driver_scroll))
 
         l_hdr = pygame.Rect(list_box.x, list_box.y, list_box.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, l_hdr, border_top_left_radius=4, border_top_right_radius=4)
@@ -829,7 +834,7 @@ class DatabaseExplorerTab:
                 row_y = list_box.y + 32 + idx * 46 - self.driver_list_scroll
                 if row_y < list_box.y + 30 or row_y + 42 > list_box.y + list_box.height:
                     continue
-                r_box = pygame.Rect(list_box.x + 6, row_y, list_box.width - 12, 42)
+                r_box = pygame.Rect(list_box.x + 6, row_y, list_box.width - (16 if max_driver_scroll > 0 else 12), 42)
                 is_sel = d["id"] == self.selected_driver_id
                 is_alumni = bool(d.get("alumni_id"))
 
@@ -870,6 +875,17 @@ class DatabaseExplorerTab:
                         self.font_btn.render(f"{pts} PTS", True, (0, 220, 255)),
                         (r_box.x + r_box.width - 65, r_box.y + 12),
                     )
+
+            if max_driver_scroll > 0:
+                sb_track = pygame.Rect(list_box.x + list_box.width - 6, list_box.y + 32, 4, list_box.height - 36)
+                pygame.draw.rect(surface, (18, 24, 32), sb_track, border_radius=2)
+                thumb_ratio = visible_driver_h / (total_driver_h + visible_driver_h)
+                thumb_h = max(20, int(sb_track.height * thumb_ratio))
+                scroll_frac = self.driver_list_scroll / max_driver_scroll
+                thumb_y = sb_track.y + int((sb_track.height - thumb_h) * scroll_frac)
+                pygame.draw.rect(
+                    surface, (60, 80, 105), pygame.Rect(sb_track.x, thumb_y, sb_track.width, thumb_h), border_radius=2
+                )
 
         # 4. Selected Driver Dossier (Right Panel)
         detail_box = pygame.Rect(400, 144, self.width - 424, self.height - 165)
@@ -964,9 +980,12 @@ class DatabaseExplorerTab:
             ("CHAMPIONSHIPS", str(totals.get("titles", 0)), "award"),
             ("BEST FINISH", totals.get("best_finish", "P1"), "award"),
         ]
-        card_w = (box.width - 34) // 6
+        cols = 3 if box.width < 700 else 6
+        card_w = (box.width - 24 - (cols - 1) * 4) // cols
         for idx, (stat_title, stat_val, stat_icon) in enumerate(stat_cards):
-            c_rect = pygame.Rect(box.x + 12 + idx * (card_w + 2), cur_y, card_w, 42)
+            row = idx // cols
+            col = idx % cols
+            c_rect = pygame.Rect(box.x + 12 + col * (card_w + 4), cur_y + row * 46, card_w, 42)
             pygame.draw.rect(surface, (18, 24, 32), c_rect, border_radius=2)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, c_rect, width=1, border_radius=2)
 
@@ -982,7 +1001,7 @@ class DatabaseExplorerTab:
             v_surf = self.font_stat.render(stat_val, True, val_col)
             surface.blit(v_surf, (c_rect.x + (card_w - v_surf.get_width()) // 2, c_rect.y + 19))
 
-        cur_y += 48
+        cur_y += 48 if cols == 6 else 96
 
         # AI Career Report & Driver Talent Radar Spider Chart
         ai_data = p.get("ai_analysis", {})
@@ -1148,6 +1167,11 @@ class DatabaseExplorerTab:
         list_box = pygame.Rect(24, 144, 330, self.height - 165)
         UITheme.draw_panel(surface, list_box)
 
+        total_team_h = len(teams) * 48
+        visible_team_h = max(1, list_box.height - 36)
+        max_team_scroll = max(0, total_team_h - visible_team_h)
+        self.team_list_scroll = max(0, min(self.team_list_scroll, max_team_scroll))
+
         l_hdr = pygame.Rect(list_box.x, list_box.y, list_box.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, l_hdr, border_top_left_radius=4, border_top_right_radius=4)
         cnt_lbl = self.font_badge.render(f"CONSTRUCTORS ({len(teams)})", True, UITheme.TEXT_MUTED)
@@ -1166,7 +1190,7 @@ class DatabaseExplorerTab:
                 row_y = list_box.y + 32 + idx * 48 - self.team_list_scroll
                 if row_y < list_box.y + 30 or row_y + 44 > list_box.y + list_box.height:
                     continue
-                r_box = pygame.Rect(list_box.x + 6, row_y, list_box.width - 12, 44)
+                r_box = pygame.Rect(list_box.x + 6, row_y, list_box.width - (16 if max_team_scroll > 0 else 12), 44)
                 is_sel = t["id"] == self.selected_team_id
                 is_ply = bool(t.get("is_player"))
 
@@ -1195,6 +1219,17 @@ class DatabaseExplorerTab:
                 pts = t.get("points", 0)
                 surface.blit(
                     self.font_btn.render(f"{pts} PTS", True, (0, 220, 255)), (r_box.x + r_box.width - 65, r_box.y + 12)
+                )
+
+            if max_team_scroll > 0:
+                sb_track = pygame.Rect(list_box.x + list_box.width - 6, list_box.y + 32, 4, list_box.height - 36)
+                pygame.draw.rect(surface, (18, 24, 32), sb_track, border_radius=2)
+                thumb_ratio = visible_team_h / (total_team_h + visible_team_h)
+                thumb_h = max(20, int(sb_track.height * thumb_ratio))
+                scroll_frac = self.team_list_scroll / max_team_scroll
+                thumb_y = sb_track.y + int((sb_track.height - thumb_h) * scroll_frac)
+                pygame.draw.rect(
+                    surface, (60, 80, 105), pygame.Rect(sb_track.x, thumb_y, sb_track.width, thumb_h), border_radius=2
                 )
 
         # 4. Right Panel: Selected Constructor Dossier

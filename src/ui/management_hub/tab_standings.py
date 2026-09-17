@@ -339,7 +339,9 @@ class StandingsTab:
             )
 
             # Track Name
-            t_name_surf = self.font_body.render(rnd["track_name"], True, UITheme.TEXT_WHITE)
+            available_track_w = max(60, c_box.width - 310)
+            t_name_trunc = self._truncate_text(self.font_body, rnd["track_name"], available_track_w)
+            t_name_surf = self.font_body.render(t_name_trunc, True, UITheme.TEXT_WHITE)
             surface.blit(t_name_surf, (c_box.x + 95, c_box.y + 5))
 
             # Characteristic Badge
@@ -399,8 +401,9 @@ class StandingsTab:
 
         info = self.selected_round_results
         title = f"TIER {info['tier']} ROUND {info['round']}: {info['track_name'].upper()}"
+        title_trunc = self._truncate_text(self.font_card_title, title, modal_w - 120)
         UITheme.draw_icon(surface, "flag", (modal_x + 12, modal_y + 10), color=(255, 215, 0), size=16)
-        surface.blit(self.font_card_title.render(title, True, (255, 215, 0)), (modal_x + 34, modal_y + 9))
+        surface.blit(self.font_card_title.render(title_trunc, True, (255, 215, 0)), (modal_x + 34, modal_y + 9))
 
         close_btn = pygame.Rect(modal_x + modal_w - 80, modal_y + 7, 70, 22)
         UITheme.draw_button(surface, close_btn, "CLOSE", self.font_badge, icon="x", icon_size=12)
@@ -446,12 +449,12 @@ class StandingsTab:
 
             tag = " [ACADEMY]" if is_acad else (" [YOU]" if is_ply else "")
             d_name = f"{r.get('driver_name', 'Driver')}{tag}"
+            d_trunc = self._truncate_text(self.font_body, d_name, 190)
             d_col = (0, 240, 140) if is_acad else ((255, 215, 0) if is_ply else UITheme.TEXT_WHITE)
-            surface.blit(self.font_body.render(d_name, True, d_col), (r_box.x + 50, r_box.y + 5))
+            surface.blit(self.font_body.render(d_trunc, True, d_col), (r_box.x + 50, r_box.y + 5))
 
-            surface.blit(
-                self.font_body.render(r.get("team_name", ""), True, UITheme.TEXT_MUTED), (r_box.x + 250, r_box.y + 5)
-            )
+            team_trunc = self._truncate_text(self.font_body, r.get("team_name", ""), 170)
+            surface.blit(self.font_body.render(team_trunc, True, UITheme.TEXT_MUTED), (r_box.x + 250, r_box.y + 5))
 
             pts = r.get("points", 0)
             pts_col = (0, 220, 255) if pts > 0 else UITheme.TEXT_MUTED

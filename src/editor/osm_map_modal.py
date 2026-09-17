@@ -23,6 +23,7 @@ from src.editor.osm_importer import (
     snap_point_to_roads,
     unproject_meters_to_gps,
 )
+from src.ui.theme import UITheme
 
 ROAD_COLORS = {
     "motorway": (230, 100, 100),
@@ -105,10 +106,10 @@ class OSMMapModal:
 
     def _init_fonts(self):
         if self.font_title is None:
-            self.font_title = pygame.font.SysFont("Segoe UI", 18, bold=True)
-            self.font_ui = pygame.font.SysFont("Segoe UI", 14)
-            self.font_bold = pygame.font.SysFont("Segoe UI", 14, bold=True)
-            self.font_small = pygame.font.SysFont("Segoe UI", 12)
+            self.font_title = UITheme.get_font(18, bold=True)
+            self.font_ui = UITheme.get_font(14)
+            self.font_bold = UITheme.get_font(14, bold=True)
+            self.font_small = UITheme.get_font(12)
 
     def open(self):
         self.is_open = True
@@ -654,6 +655,17 @@ class OSMMapModal:
         )
         pygame.draw.rect(screen, (20, 24, 30), hint_bg, border_radius=3)
         screen.blit(hint_surf, (hint_bg.x + 5, hint_bg.y + 2))
+
+        # OpenStreetMap attribution badge (bottom right overlay inside map)
+        attr_surf = self.font_small.render("Map data © OpenStreetMap contributors (ODbL)", True, (130, 150, 175))
+        attr_bg = pygame.Rect(
+            self.map_rect.right - attr_surf.get_width() - 14,
+            self.map_rect.bottom - 24,
+            attr_surf.get_width() + 10,
+            20,
+        )
+        pygame.draw.rect(screen, (20, 24, 30), attr_bg, border_radius=3)
+        screen.blit(attr_surf, (attr_bg.x + 5, attr_bg.y + 2))
 
     def _render_roads(self, screen: pygame.Surface):
         ways = self.road_data.get("ways", [])

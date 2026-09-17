@@ -604,10 +604,7 @@ class TrackEditor:
         for c_key, tier, r in chips:
             if r.collidepoint(mx, my):
                 self._push_undo()
-                if c_key in self.circuit.nominated_compounds:
-                    if len(self.circuit.nominated_compounds) > 1:
-                        self.circuit.nominated_compounds.remove(c_key)
-                else:
+                if c_key not in self.circuit.nominated_compounds:
                     if len(self.circuit.nominated_compounds) >= 3:
                         self.circuit.nominated_compounds.pop(0)
                     self.circuit.nominated_compounds.append(c_key)
@@ -809,8 +806,8 @@ class TrackEditor:
 
         # Render Row 1: Undo / Redo / Delete Node Buttons (y = py + 70)
         btns = self._get_panel_buttons()
-        UITheme.draw_button(surface, btns["undo"], "UNDO", self.font_btn)
-        UITheme.draw_button(surface, btns["redo"], "REDO", self.font_btn)
+        UITheme.draw_button(surface, btns["undo"], "UNDO", self.font_btn, is_disabled=(len(self.undo_stack) == 0))
+        UITheme.draw_button(surface, btns["redo"], "REDO", self.font_btn, is_disabled=(len(self.redo_stack) == 0))
 
         # Danger button styling for Delete Node
         del_node_bg = (160, 36, 36)
@@ -870,8 +867,8 @@ class TrackEditor:
         )
         surface.blit(pit_hdr, (self.panel_rect.x + 10, self.panel_rect.y + 272))
 
-        UITheme.draw_button(surface, btns["set_pit_in"], f"PIT IN: #{node_a_str}", self.font_btn)
-        UITheme.draw_button(surface, btns["set_pit_out"], f"PIT OUT: #{node_b_str}", self.font_btn)
+        UITheme.draw_button(surface, btns["set_pit_in"], f"PIT IN: {node_a_str}", self.font_btn)
+        UITheme.draw_button(surface, btns["set_pit_out"], f"PIT OUT: {node_b_str}", self.font_btn)
         UITheme.draw_button(surface, btns["toggle_pit_side"], f"SIDE: {self.circuit.pit_side[:3]}", self.font_btn)
         UITheme.draw_button(
             surface, btns["cycle_pit_offset"], f"OFFSET: {self.circuit.pit_offset_m:.0f}m", self.font_btn

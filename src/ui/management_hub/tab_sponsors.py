@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pygame
 
 from ...management.game_manager import GameManager
@@ -27,11 +29,17 @@ class SponsorsTab:
         self.height = height
         self._init_fonts()
 
+    def _get_column_rects(self) -> Tuple[pygame.Rect, pygame.Rect]:
+        """Calculates responsive 50/50 column layouts for active sponsors and incoming offers."""
+        gap = 16
+        col_w = (self.width - 48 - gap) // 2
+        act_rect = pygame.Rect(24, 126, col_w, self.height - 170)
+        off_rect = pygame.Rect(24 + col_w + gap, 126, self.width - (24 + col_w + gap) - 24, self.height - 170)
+        return act_rect, off_rect
+
     def handle_click(self, mx: int, my: int, gm: GameManager, sm: SponsorManager) -> bool:
         offers = sm.get_sponsor_offers(gm.team_id)
-
-        # Check click on Sign Offer Buttons (Right Column)
-        off_rect = pygame.Rect(560, 126, self.width - 584, self.height - 170)
+        _, off_rect = self._get_column_rects()
 
         for idx, o in enumerate(offers[:4]):
             oy = 158 + idx * 88
@@ -62,7 +70,7 @@ class SponsorsTab:
         surface.blit(
             self.font_card_title.render("GLOBAL SPONSOR APPEAL", True, (255, 215, 0)), (app_rect.x + 34, app_rect.y + 6)
         )
-        breakdown_str = f"Tier: +{appeal_data['tier_pts']:.0f}pts  |  10-Race Form: +{appeal_data['form_pts']:.0f}pts  |  5-Season History: +{appeal_data['history_pts']:.0f}pts  |  Driver Marketability: +{appeal_data['driver_pts']:.0f}pts  |  Marketing HQ: +{appeal_data['facility_pts']:.0f}pts"
+        breakdown_str = f"Tier: +{appeal_data['tier_pts']:.0f}pts | Form: +{appeal_data['form_pts']:.0f}pts | History: +{appeal_data['history_pts']:.0f}pts | Drivers: +{appeal_data['driver_pts']:.0f}pts | HQ: +{appeal_data['facility_pts']:.0f}pts"
         surface.blit(self.font_body.render(breakdown_str, True, UITheme.TEXT_MUTED), (app_rect.x + 12, app_rect.y + 26))
 
         # Score & Visual Progress Bar on Top Right
@@ -87,7 +95,7 @@ class SponsorsTab:
         pygame.draw.rect(surface, (40, 50, 65), bar_rect, width=1, border_radius=3)
 
         # 2. Active Sponsor Slots (Left Column)
-        act_rect = pygame.Rect(24, 126, 520, self.height - 170)
+        act_rect, off_rect = self._get_column_rects()
         UITheme.draw_panel(surface, act_rect)
 
         act_hdr = pygame.Rect(act_rect.x, act_rect.y, act_rect.width, 26)
@@ -249,8 +257,6 @@ class SponsorsTab:
             )
 
         # 3. Incoming Sponsor Offers Portal (Right Column)
-
-        off_rect = pygame.Rect(560, 126, self.width - 584, self.height - 170)
         UITheme.draw_panel(surface, off_rect)
 
         off_hdr = pygame.Rect(off_rect.x, off_rect.y, off_rect.width, 26)
@@ -284,7 +290,7 @@ class SponsorsTab:
             )
             surface.blit(
                 self.font_body.render(
-                    f"Signing Bonus: +${o['signing_bonus']:,.0f} (Instant Cash) | Contract: {o['races_total']} Races",
+                    f"Signing Bonus: +${o['signing_bonus']:,.0f} | Contract: {o['races_total']} Races",
                     True,
                     (0, 240, 140),
                 ),

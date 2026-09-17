@@ -33,6 +33,7 @@ class DriversAcademyTab:
         self.selected_tier_filter: str = "ALL"  # 'ALL', '4', '5', '3', '2'
         self.market_filter: str = "ALL"  # 'ALL', 'STANDARD', 'PAY_DRIVER', 'SPONSORED_DRIVER'
         self.academy_page: int = 0
+        self.scout_page: int = 0
         self.market_page: int = 0
 
         # Negotiation Modal State
@@ -439,6 +440,19 @@ class DriversAcademyTab:
                 self.status_message = msg
                 return True
 
+            scout_prospects = dm.get_scout_prospects(gm.team_id)
+            prospects_per_page = 3
+            max_scout_pages = max(1, (len(scout_prospects) + prospects_per_page - 1) // prospects_per_page)
+            if len(scout_prospects) > prospects_per_page:
+                prev_btn = pygame.Rect(r_rect.x + r_rect.width - 340, 70, 65, 24)
+                next_btn = pygame.Rect(r_rect.x + r_rect.width - 270, 70, 65, 24)
+                if prev_btn.collidepoint(mx, my) and self.scout_page > 0:
+                    self.scout_page -= 1
+                    return True
+                elif next_btn.collidepoint(mx, my) and self.scout_page < max_scout_pages - 1:
+                    self.scout_page += 1
+                    return True
+
             eligible_tiers = sorted([t for t in [2, 3, 4, 5] if t > team_tier])
             tier_tabs = ["ALL"] + [str(t) for t in eligible_tiers]
             curr_tab_x = r_rect.x + 460
@@ -452,13 +466,15 @@ class DriversAcademyTab:
 
             available_seats = dm.get_available_feeder_seats(team_tier)
             displayed_seats = self._get_displayed_seats(available_seats, team_tier)
-            scout_prospects = dm.get_scout_prospects(gm.team_id)
 
             start_y = 108
             card_w = r_rect.width - 20
             card_h = 136
 
-            for idx, p in enumerate(scout_prospects[:4]):
+            page_scouts = scout_prospects[
+                self.scout_page * prospects_per_page : (self.scout_page + 1) * prospects_per_page
+            ]
+            for idx, p in enumerate(page_scouts):
                 cy = start_y + idx * (card_h + 10)
                 card_rect = pygame.Rect(r_rect.x + 10, cy, card_w, card_h)
 
@@ -869,7 +885,7 @@ class DriversAcademyTab:
         radar_y = 460
         radar_bottom = p_rect.y + p_rect.height - 48
         radar_h = radar_bottom - radar_y
-        if radar_h >= 100 and len(primary_drivers) > 0:
+        if radar_h >= 75 and len(primary_drivers) > 0:
             radar_panel = pygame.Rect(p_rect.x + 10, radar_y, p_rect.width - 20, radar_h)
             pygame.draw.rect(surface, (18, 24, 32), radar_panel, border_radius=3)
             pygame.draw.rect(surface, UITheme.PANEL_BORDER, radar_panel, width=1, border_radius=3)
@@ -909,8 +925,8 @@ class DriversAcademyTab:
 
             rc_cx = radar_panel.x + radar_panel.width // 2
             available_h = radar_panel.height - 24
-            rad = max(24, min(40, (available_h - 26) // 2))
-            rc_cy = radar_panel.y + 24 + available_h // 2 - 8
+            rad = max(18, min(40, (available_h - 22) // 2))
+            rc_cy = radar_panel.y + 24 + available_h // 2 - 4
 
             UITheme.draw_radar_chart(
                 surface,
@@ -1203,9 +1219,22 @@ class DriversAcademyTab:
                 btn_scout_lbl, (btn_scout.x + (btn_scout.width - btn_scout_lbl.get_width()) // 2, btn_scout.y + 4)
             )
 
+            # Pagination Controls
+            prospects_per_page = 3
+            max_scout_pages = max(1, (len(scout_prospects) + prospects_per_page - 1) // prospects_per_page)
+            if len(scout_prospects) > prospects_per_page:
+                prev_btn = pygame.Rect(r_rect.x + r_rect.width - 340, 70, 65, 24)
+                next_btn = pygame.Rect(r_rect.x + r_rect.width - 270, 70, 65, 24)
+                UITheme.draw_button(surface, prev_btn, "< PREV", self.font_badge, is_disabled=self.scout_page == 0)
+                UITheme.draw_button(
+                    surface, next_btn, "NEXT >", self.font_badge, is_disabled=self.scout_page >= max_scout_pages - 1
+                )
+
             eligible_tiers = sorted([t for t in [2, 3, 4, 5] if t > team_tier])
             tier_tabs = ["ALL"] + [str(t) for t in eligible_tiers]
             curr_tab_x = r_rect.x + 460
+            if len(scout_prospects) > prospects_per_page:
+                curr_tab_x = r_rect.x + 360
 
             for t_idx, t_val in enumerate(tier_tabs):
                 pill_w = 75 if t_val == "ALL" else 60
@@ -1223,7 +1252,10 @@ class DriversAcademyTab:
             card_w = r_rect.width - 20
             card_h = 136
 
-            for idx, p in enumerate(scout_prospects[:4]):
+            page_scouts = scout_prospects[
+                self.scout_page * prospects_per_page : (self.scout_page + 1) * prospects_per_page
+            ]
+            for idx, p in enumerate(page_scouts):
                 cy = start_y + idx * (card_h + 10)
                 card_rect = pygame.Rect(r_rect.x + 10, cy, card_w, card_h)
 

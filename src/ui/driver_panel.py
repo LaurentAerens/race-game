@@ -238,7 +238,9 @@ class DriverStrategyPanel:
                 box_border_col = UITheme.BTN_BORDER
 
             pygame.draw.rect(surface, box_color, box_btn, border_radius=4)
-            pygame.draw.rect(surface, box_border_col, box_btn, width=2 if (car.box_this_lap or is_box_hov) else 1, border_radius=4)
+            pygame.draw.rect(
+                surface, box_border_col, box_btn, width=2 if (car.box_this_lap or is_box_hov) else 1, border_radius=4
+            )
 
             box_ic = UIIcons.get_icon("octagon", size=16, color=UITheme.TEXT_WHITE)
             surface.blit(box_ic, (box_btn.x + (box_btn.width - box_ic.get_width()) // 2, box_btn.y + 8))

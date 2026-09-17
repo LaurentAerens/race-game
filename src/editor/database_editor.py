@@ -50,6 +50,8 @@ class DatabaseEditor:
         # Factory Custom Node Creator / Editor State
         self.selected_node_idx: int = 0
         self.node_scroll_y: int = 0
+        self.team_scroll_y: int = 0
+        self.cal_scroll_y: int = 0
         self.show_node_modal: bool = False
         self.modal_mode: str = "CREATE"  # "CREATE" or "EDIT"
         self.edit_node_id: str = ""
@@ -229,10 +231,17 @@ class DatabaseEditor:
                 return
             return
 
-        # 2. Mouse Wheel Scrolling for Factory Nodes List
-        if event.type == pygame.MOUSEWHEEL and self.active_subtab == "FACTORY":
-            self.node_scroll_y = max(0, min(max(0, len(self.all_nodes) - 10), self.node_scroll_y - event.y))
-            return
+        # 2. Mouse Wheel Scrolling
+        if event.type == pygame.MOUSEWHEEL:
+            if self.active_subtab == "FACTORY":
+                self.node_scroll_y = max(0, min(max(0, len(self.all_nodes) - 10), self.node_scroll_y - event.y))
+                return
+            elif self.active_subtab in ("CAR", "DRIVER"):
+                self.team_scroll_y = max(0, min(max(0, len(self.teams) - 10), self.team_scroll_y - event.y))
+                return
+            elif self.active_subtab == "CALENDAR":
+                self.cal_scroll_y = max(0, min(max(0, len(self.calendar_rounds) - 12), self.cal_scroll_y - event.y))
+                return
 
         # 3. Mouse Button Down Handling
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -243,12 +252,14 @@ class DatabaseEditor:
             if btn_exh.collidepoint(mx, my) and self.db_mode != "EXHIBITION":
                 self.db_mode = "EXHIBITION"
                 self.selected_team_idx = 0
+                self.team_scroll_y = 0
                 self.reload_data()
                 self.set_status("Switched to Exhibition Database (race_game.db)")
                 return
             elif btn_car.collidepoint(mx, my) and self.db_mode != "CAREER":
                 self.db_mode = "CAREER"
                 self.selected_team_idx = 0
+                self.team_scroll_y = 0
                 self.reload_data()
                 self.set_status("Switched to Career Database (career.db)")
                 return
@@ -285,8 +296,8 @@ class DatabaseEditor:
             team_list_rect = pygame.Rect(20, 90, 345, self.screen_height - 150)
             if team_list_rect.collidepoint(mx, my):
                 item_h = 36
-                clicked_idx = (my - (team_list_rect.y + 30)) // item_h
-                if 0 <= clicked_idx < min(len(self.teams), 14):
+                clicked_idx = self.team_scroll_y + (my - (team_list_rect.y + 30)) // item_h
+                if 0 <= clicked_idx < len(self.teams):
                     self.selected_team_idx = clicked_idx
                     self._load_selected_team_data()
                     return
@@ -350,8 +361,8 @@ class DatabaseEditor:
         # Round selection list
         cal_list_rect = pygame.Rect(20, 90, 360, self.screen_height - 150)
         if cal_list_rect.collidepoint(mx, my):
-            item_h = 36
-            clicked_idx = (my - (cal_list_rect.y + 32)) // item_h
+            item_h = 30 if len(self.calendar_rounds) > 12 else 35
+            clicked_idx = self.cal_scroll_y + (my - (cal_list_rect.y + 34)) // item_h
             if 0 <= clicked_idx < len(self.calendar_rounds):
                 self.selected_round_idx = clicked_idx
                 return
@@ -755,9 +766,19 @@ class DatabaseEditor:
         surface.blit(self.font_section.render(t_title, True, UITheme.ACCENT_CYAN), (hdr_rect.x + 10, hdr_rect.y + 5))
 
         item_y = team_panel.y + 32
-        for idx, t in enumerate(self.teams[:14]):
+        total_teams = len(self.teams)
+        visible_teams = max(1, (team_panel.height - 40) // 36)
+        max_t_scroll = max(0, total_teams - visible_teams)
+        self.team_scroll_y = max(0, min(self.team_scroll_y, max_t_scroll))
+
+        for rel_idx in range(min(visible_teams, total_teams)):
+            idx = self.team_scroll_y + rel_idx
+            if idx >= total_teams:
+                break
+            t = self.teams[idx]
             is_sel = idx == self.selected_team_idx
-            row_rect = pygame.Rect(team_panel.x + 6, item_y, team_panel.width - 12, 32)
+            row_w = team_panel.width - (18 if max_t_scroll > 0 else 12)
+            row_rect = pygame.Rect(team_panel.x + 6, item_y, row_w, 32)
             bg_col = (30, 42, 58) if is_sel else (18, 22, 28)
             border_col = UITheme.ACCENT_CYAN if is_sel else (35, 42, 52)
             pygame.draw.rect(surface, bg_col, row_rect, border_radius=3)
@@ -784,6 +805,15 @@ class DatabaseEditor:
                 surface.blit(p_badge, (row_rect.right - 55, row_rect.y + 9))
 
             item_y += 36
+
+        if max_t_scroll > 0:
+            sb_track = pygame.Rect(team_panel.x + team_panel.width - 6, team_panel.y + 32, 4, team_panel.height - 38)
+            pygame.draw.rect(surface, (18, 24, 32), sb_track, border_radius=2)
+            thumb_h = max(20, int(sb_track.height * (visible_teams / total_teams)))
+            thumb_y = sb_track.y + int((sb_track.height - thumb_h) * (self.team_scroll_y / max_t_scroll))
+            pygame.draw.rect(
+                surface, (60, 80, 105), pygame.Rect(sb_track.x, thumb_y, sb_track.width, thumb_h), border_radius=2
+            )
 
         right_panel = pygame.Rect(380, 90, self.screen_width - 400, self.screen_height - 150)
         UITheme.draw_panel(surface, right_panel)
@@ -816,8 +846,8 @@ class DatabaseEditor:
                 label_text = key.replace("_", " ").upper()
                 surface.blit(self.font_bold.render(label_text, True, UITheme.TEXT_WHITE), (right_panel.x + 20, y + 4))
 
-                bar_x = right_panel.x + 240
-                bar_w = max(100, self.screen_width - 680)
+                bar_x = right_panel.x + 220
+                bar_w = max(60, min(240, self.screen_width - 280 - bar_x))
                 bar_rect = pygame.Rect(bar_x, y + 4, bar_w, 16)
                 pygame.draw.rect(surface, (20, 26, 36), bar_rect, border_radius=3)
                 fill_w = int((val / 100.0) * bar_w)
@@ -888,12 +918,21 @@ class DatabaseEditor:
             (hdr_rect.x + 10, hdr_rect.y + 6),
         )
 
+        total_rounds = len(self.calendar_rounds)
+        row_h = 30 if total_rounds > 12 else 35
+        visible_rounds = max(1, (cal_panel.height - 40) // row_h)
+        max_cal_scroll = max(0, total_rounds - visible_rounds)
+        self.cal_scroll_y = max(0, min(self.cal_scroll_y, max_cal_scroll))
+
         item_y = cal_panel.y + 34
-        for idx, r in enumerate(self.calendar_rounds[:16]):
+        for rel_idx in range(min(visible_rounds, total_rounds)):
+            idx = self.cal_scroll_y + rel_idx
+            if idx >= total_rounds:
+                break
+            r = self.calendar_rounds[idx]
             is_sel = idx == self.selected_round_idx
-            row_rect = pygame.Rect(
-                cal_panel.x + 6, item_y, cal_panel.width - 12, 28 if len(self.calendar_rounds) > 12 else 32
-            )
+            row_w = cal_panel.width - (18 if max_cal_scroll > 0 else 12)
+            row_rect = pygame.Rect(cal_panel.x + 6, item_y, row_w, 28 if total_rounds > 12 else 32)
             bg_col = (30, 44, 62) if is_sel else (18, 22, 28)
             border_col = UITheme.ACCENT_CYAN if is_sel else (35, 42, 52)
             pygame.draw.rect(surface, bg_col, row_rect, border_radius=3)
@@ -921,7 +960,16 @@ class DatabaseEditor:
             lap_badge = self.font_badge.render(f"{r['total_laps']}L", True, UITheme.ACCENT_CYAN)
             surface.blit(lap_badge, (row_rect.right - 34, row_rect.y + 6))
 
-            item_y += 30 if len(self.calendar_rounds) > 12 else 35
+            item_y += row_h
+
+        if max_cal_scroll > 0:
+            sb_track = pygame.Rect(cal_panel.x + cal_panel.width - 6, cal_panel.y + 34, 4, cal_panel.height - 40)
+            pygame.draw.rect(surface, (18, 24, 32), sb_track, border_radius=2)
+            thumb_h = max(20, int(sb_track.height * (visible_rounds / total_rounds)))
+            thumb_y = sb_track.y + int((sb_track.height - thumb_h) * (self.cal_scroll_y / max_cal_scroll))
+            pygame.draw.rect(
+                surface, (60, 80, 105), pygame.Rect(sb_track.x, thumb_y, sb_track.width, thumb_h), border_radius=2
+            )
 
         # 2. Right panel: Round configuration & track swapper
         right_panel = pygame.Rect(395, 90, self.screen_width - 415, self.screen_height - 150)
@@ -1169,13 +1217,16 @@ class DatabaseEditor:
 
         f_y = modal_rect.y + 55
 
+        cursor_pipe = " |" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+
         # 1. Node ID
         surface.blit(self.font_bold.render("NODE ID (Key):", True, UITheme.TEXT_WHITE), (modal_rect.x + 20, f_y + 4))
         id_box = pygame.Rect(modal_rect.x + 160, f_y, 380, 26)
         id_col = (0, 220, 255) if self.active_input == "ID" else (40, 50, 65)
         pygame.draw.rect(surface, (12, 16, 22), id_box, border_radius=3)
         pygame.draw.rect(surface, id_col, id_box, width=1, border_radius=3)
-        surface.blit(self.font_body.render(self.edit_node_id, True, (255, 255, 255)), (id_box.x + 8, id_box.y + 5))
+        id_txt = self.edit_node_id + (cursor_pipe if self.active_input == "ID" else "")
+        surface.blit(self.font_body.render(id_txt, True, (255, 255, 255)), (id_box.x + 8, id_box.y + 5))
 
         # 2. Name
         f_y += 36
@@ -1184,9 +1235,8 @@ class DatabaseEditor:
         name_col = (0, 220, 255) if self.active_input == "NAME" else (40, 50, 65)
         pygame.draw.rect(surface, (12, 16, 22), name_box, border_radius=3)
         pygame.draw.rect(surface, name_col, name_box, width=1, border_radius=3)
-        surface.blit(
-            self.font_body.render(self.edit_node_name, True, (255, 255, 255)), (name_box.x + 8, name_box.y + 5)
-        )
+        name_txt = self.edit_node_name + (cursor_pipe if self.active_input == "NAME" else "")
+        surface.blit(self.font_body.render(name_txt, True, (255, 255, 255)), (name_box.x + 8, name_box.y + 5))
 
         # 3. Description
         f_y += 36
@@ -1195,9 +1245,8 @@ class DatabaseEditor:
         desc_col = (0, 220, 255) if self.active_input == "DESC" else (40, 50, 65)
         pygame.draw.rect(surface, (12, 16, 22), desc_box, border_radius=3)
         pygame.draw.rect(surface, desc_col, desc_box, width=1, border_radius=3)
-        surface.blit(
-            self.font_body.render(self.edit_node_desc[:45], True, (255, 255, 255)), (desc_box.x + 8, desc_box.y + 5)
-        )
+        desc_txt = self.edit_node_desc[:45] + (cursor_pipe if self.active_input == "DESC" else "")
+        surface.blit(self.font_body.render(desc_txt, True, (255, 255, 255)), (desc_box.x + 8, desc_box.y + 5))
 
         # 4. Department
         f_y += 36

@@ -493,9 +493,7 @@ class DashboardTab:
 
                 aw_ic = UIIcons.get_icon("award", size=13, color=tier_col)
                 surface.blit(aw_ic, (s_box.x + 10, s_box.y + 8))
-                raw_partner_title = (
-                    f"{sp.get('slot_tier', 'COMMERCIAL')} PARTNER: {sp.get('brand_name', 'Partner')}"
-                )
+                raw_partner_title = f"{sp.get('slot_tier', 'COMMERCIAL')} PARTNER: {sp.get('brand_name', 'Partner')}"
                 partner_title = self._truncate_text(self.font_card_title, raw_partner_title, s_box.width - 145)
                 surface.blit(
                     self.font_card_title.render(partner_title, True, tier_col),
