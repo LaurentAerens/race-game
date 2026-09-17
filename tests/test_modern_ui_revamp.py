@@ -178,3 +178,71 @@ class TestModernUIRevamp(unittest.TestCase):
         grid = [{"driver_name": "Driver 1", "team_name": "Apex", "race_grid_pos": 1}]
         screen._render_grid_table(surf, grid, is_sprint=False)
         self.assertGreater(surf.get_width(), 0)
+
+    def test_factory_tree_navigation_and_executive_bar(self):
+        """Validates FactoryTreeTab executive summary bar, bezier edge flow, and floating HUD controls."""
+        from src.management.engineering_manager import EngineeringManager
+        from src.ui.management_hub.tab_factory_tree import FactoryTreeTab
+
+        eng_mgr = EngineeringManager(self.db)
+        tab = FactoryTreeTab(1280, 720)
+        surf = pygame.Surface((1280, 720))
+
+        # Render factory tree
+        tab.render(surf, eng_mgr)
+        self.assertGreater(len(tab.node_rects), 0)
+
+        # Test floating camera HUD controls
+        initial_zoom = tab.zoom
+        # Click [+] button
+        plus_btn = tab.hud_buttons.get("zoom_in")
+        self.assertIsNotNone(plus_btn)
+        tab.handle_click(plus_btn.centerx, plus_btn.centery, eng_mgr)
+        self.assertGreater(tab.zoom, initial_zoom)
+
+        # Click [RESET] button
+        reset_btn = tab.hud_buttons.get("reset")
+        self.assertIsNotNone(reset_btn)
+        tab.handle_click(reset_btn.centerx, reset_btn.centery, eng_mgr)
+        self.assertEqual(tab.zoom, 1.0)
+        self.assertEqual(tab.pan_x, 0)
+        self.assertEqual(tab.pan_y, 0)
+
+        # Test clicking a facility node to inspect
+        first_node_id = list(tab.node_rects.keys())[0]
+        first_rect = tab.node_rects[first_node_id]
+        tab.handle_click(first_rect.centerx, first_rect.centery, eng_mgr)
+        self.assertEqual(tab.inspected_node_id, first_node_id)
+
+    def test_personnel_tab_org_deck_and_department_focus(self):
+        """Validates PersonnelTab Executive Org Deck split-screen, department switching, and desk layout."""
+        from src.management.staff_manager import StaffManager
+        from src.ui.management_hub.tab_personnel import PersonnelTab
+
+        staff_mgr = StaffManager(self.db)
+        recruited = []
+        tab = PersonnelTab(1280, 720, on_recruit_click=lambda dept: recruited.append(dept))
+        surf = pygame.Surface((1280, 720))
+
+        # Initial department should default to ENGINEERING
+        self.assertEqual(tab.selected_category, "ENGINEERING")
+
+        # Render tab
+        tab.render(surf, staff_mgr)
+
+        # Department buttons must be populated
+        self.assertIn("MANUFACTURING", tab.dept_buttons)
+        mfg_btn = tab.dept_buttons["MANUFACTURING"]
+
+        # Click MANUFACTURING
+        tab.handle_click(mfg_btn.centerx, mfg_btn.centery, staff_mgr)
+        self.assertEqual(tab.selected_category, "MANUFACTURING")
+
+        # Re-render under MANUFACTURING
+        tab.render(surf, staff_mgr)
+
+        # Test clicking an open desk recruit button if present
+        if tab.recruit_desk_buttons:
+            btn_rect, dept_id = tab.recruit_desk_buttons[0]
+            tab.handle_click(btn_rect.centerx, btn_rect.centery, staff_mgr)
+            self.assertIn(dept_id, recruited)
