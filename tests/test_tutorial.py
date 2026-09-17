@@ -236,16 +236,15 @@ class TestTutorialSystem(unittest.TestCase):
 
         overlay = TutorialOverlay(1280, 720, tm)
 
-        # 1. Without drawer open: Target must cleanly encompass Brakes Lab node (x=370, y=130, w=250, h=90)
-        # and NOT the old cut-off box (x=24, y=110, w=500)
+        # 1. Without drawer open: Target must cleanly encompass Brakes Lab node (x=370, y=130, w=210, h=105)
         target_closed = overlay.get_target_rect(step2)
         self.assertIsNotNone(target_closed)
         self.assertEqual(target_closed.x, 370)
         self.assertEqual(target_closed.y, 130)
-        self.assertEqual(target_closed.width, 250)
-        self.assertEqual(target_closed.height, 90)
+        self.assertEqual(target_closed.width, 210)
+        self.assertEqual(target_closed.height, 105)
 
-        # Card must dock to the right of Brakes Lab (x >= 620)
+        # Card must dock to the right of Brakes Lab (x >= 580)
         card_closed = overlay.get_card_rect(step2)
         self.assertGreaterEqual(card_closed.x, target_closed.right)
 
@@ -274,6 +273,91 @@ class TestTutorialSystem(unittest.TestCase):
         # Render must succeed cleanly in both states
         surf = pygame.Surface((1280, 720))
         overlay.render(surf, current_mode="MANAGEMENT")
+
+    def test_step3_personnel_targeting_and_modal_state(self):
+        """Step 3 must target recruitment tab, candidate card, and modal assign button when destination picker opens."""
+        tm = TutorialManager(self.db, self.team_id)
+        tm.current_step_index = 2  # PERSONNEL_HIRING
+        step3 = tm.get_current_step()
+        self.assertEqual(step3.step_id, "PERSONNEL_HIRING")
+
+        overlay = TutorialOverlay(1280, 720, tm)
+
+        class MockWorkforceTab:
+            width = 1280
+            sub_tab = "TREE"
+            inspected_personnel_id = None
+            destination_picker_data = None
+            target_assignment_node = None
+            scroll_y = 0.0
+
+        class MockHub:
+            tab_workforce = MockWorkforceTab()
+
+        overlay.management_hub = MockHub()
+
+        # 1. On TREE sub-tab: highlights Recruitment subtab button at x=203, y=62
+        t1 = overlay.get_target_rect(step3)
+        self.assertEqual(t1.x, 203)
+        self.assertEqual(t1.y, 62)
+
+        # 2. On RECRUITMENT sub-tab: highlights first applicant card at y=126
+        MockHub.tab_workforce.sub_tab = "RECRUITMENT"
+        t2 = overlay.get_target_rect(step3)
+        self.assertEqual(t2.x, 36)
+        self.assertEqual(t2.y, 126)
+
+        # 3. When destination picker modal is open: highlights ASSIGN HERE button
+        MockHub.tab_workforce.destination_picker_data = {"type": "APPLICANT", "id": 1}
+        t3 = overlay.get_target_rect(step3)
+        self.assertIsNotNone(t3)
+        self.assertGreater(t3.x, 500)
+
+    def test_step4_car_blueprint_and_build_btn_targeting(self):
+        """Step 4 must target front wing blueprint hotspot, then switch to BUILD NEXT GEN button when selected."""
+        tm = TutorialManager(self.db, self.team_id)
+        tm.current_step_index = 3  # CAR_RND_FRONT_WING
+        step4 = tm.get_current_step()
+        self.assertEqual(step4.step_id, "CAR_RND_FRONT_WING")
+
+        overlay = TutorialOverlay(1280, 720, tm)
+
+        class MockCarTab:
+            selected_part_category = "SUSPENSION"  # Not front wing initially
+
+            def get_layout(self, gm, em, tier, allowed_parts):
+                return {
+                    "hotspot_rects": {
+                        "FRONT_WING": pygame.Rect(560, 130, 80, 40),
+                        "SUSPENSION": pygame.Rect(560, 240, 80, 40),
+                    },
+                    "build_btn": pygame.Rect(520, 490, 160, 36),
+                }
+
+        class MockGM:
+            team_id = 1
+
+        class MockEM:
+            def get_team_allowed_parts(self, tid):
+                return 3, "National Open Cup", ["FRONT_WING", "BRAKES"]
+
+        class MockHub:
+            tab_car = MockCarTab()
+            gm = MockGM()
+            em = MockEM()
+
+        overlay.management_hub = MockHub()
+
+        # 1. When Front Wing not selected: targets blueprint hotspot
+        t1 = overlay.get_target_rect(step4)
+        self.assertEqual(t1.x, 560)
+        self.assertEqual(t1.y, 130)
+
+        # 2. When Front Wing is selected: targets BUILD NEXT GEN button
+        MockHub.tab_car.selected_part_category = "FRONT_WING"
+        t2 = overlay.get_target_rect(step4)
+        self.assertEqual(t2.x, 520)
+        self.assertEqual(t2.y, 490)
 
 
 if __name__ == "__main__":

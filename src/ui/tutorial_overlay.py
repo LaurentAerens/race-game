@@ -68,31 +68,37 @@ class TutorialOverlay:
         w, h = self.width, self.height
 
         if key == "tab_dashboard_gp":
-            return pygame.Rect(24, 70, 460, 200)
+            col_w = min(540, (w - 64) // 2)
+            return pygame.Rect(24, 70, col_w, 215)
         elif key == "tab_factory_node":
             if self.management_hub and hasattr(self.management_hub, "tab_factory"):
                 tf = self.management_hub.tab_factory
                 # If equipment drawer is open for Brakes Lab, highlight the first equipment item & its buy button
                 if getattr(tf, "inspected_node_id", None) == "eng_brakes":
                     drawer_x = self.width - 550
-                    return pygame.Rect(drawer_x + 14, 276, 498, 80)
+                    return pygame.Rect(drawer_x + 18, 304, 490, 82)
                 # If drawer is closed, highlight the Brakes Lab node on the canvas with exact coordinates
                 if hasattr(tf, "node_positions") and "eng_brakes" in tf.node_positions:
                     gx, gy = tf.node_positions["eng_brakes"]
                     sx = int(tf.pan_x + gx * tf.zoom)
                     sy = int(tf.pan_y + gy * tf.zoom)
-                    sw = int(250 * tf.zoom)
-                    sh = int(90 * tf.zoom)
+                    sw = int(210 * tf.zoom)
+                    sh = int(105 * tf.zoom)
                     return pygame.Rect(sx, sy, sw, sh)
-            return pygame.Rect(370, 130, 250, 90)
+            return pygame.Rect(370, 130, 210, 105)
         elif key == "tab_personnel_recruitment":
             if self.management_hub and hasattr(self.management_hub, "tab_workforce"):
                 tw = self.management_hub.tab_workforce
-                if getattr(tw, "sub_tab", "") != "RECRUITMENT":
-                    # Highlight the Recruitment sub-tab button
-                    return pygame.Rect(203, 62, 175, 26)
-                else:
-                    # Target the actual candidate card in tab_personnel (rec_canvas at y=126, first card at y=126 + scroll_y, card_w = content_w - 24)
+                # 1. If Destination Picker Modal is open, highlight the first room's "ASSIGN HERE" button
+                if getattr(tw, "destination_picker_data", None) is not None:
+                    modal_w = min(780, self.width - 80)
+                    modal_x = (self.width - modal_w) // 2
+                    modal_y = (self.height - min(540, self.height - 100)) // 2
+                    list_x = modal_x + 12
+                    card_w = modal_w - 24
+                    return pygame.Rect(list_x + card_w - 158, modal_y + 94, 140, 28)
+                # 2. If on RECRUITMENT sub-tab, highlight the first applicant card and its hire button
+                if getattr(tw, "sub_tab", "") == "RECRUITMENT":
                     content_w = tw.width - (450 if getattr(tw, "inspected_personnel_id", None) else 48)
                     card_w = content_w - 24
                     top_offset = 46 if getattr(tw, "target_assignment_node", None) else 0
@@ -100,29 +106,58 @@ class TutorialOverlay:
                     card_y = 126 + top_offset + scroll_y
                     card_x = 36
                     return pygame.Rect(card_x, card_y, card_w, 72)
-            return pygame.Rect(36, 126, w - 72, 72)
+                # 3. If on TREE sub-tab, highlight the Recruitment sub-tab button
+                return pygame.Rect(203, 62, 175, 26)
+            return pygame.Rect(203, 62, 175, 26)
         elif key == "car_rnd_front_wing":
-            return pygame.Rect(24, 110, min(480, int(w * 0.38)), 80)
+            if self.management_hub and hasattr(self.management_hub, "tab_car"):
+                tc = self.management_hub.tab_car
+                gm = self.management_hub.gm
+                em = self.management_hub.em
+                tier, _, allowed_parts = em.get_team_allowed_parts(gm.team_id)
+                layout = tc.get_layout(gm, em, tier, allowed_parts)
+                # If FRONT_WING is already selected, highlight the "BUILD NEXT GEN" button in the R&D Evolution deck
+                if getattr(tc, "selected_part_category", "") == "FRONT_WING":
+                    b_btn = layout.get("build_btn")
+                    if b_btn:
+                        return b_btn
+                # Otherwise, highlight the Front Wing hotspot on the chassis blueprint
+                hotspots = layout.get("hotspot_rects", {})
+                if "FRONT_WING" in hotspots:
+                    return hotspots["FRONT_WING"]
+            return pygame.Rect(self.width // 2 - 160, 480, 160, 36)
         elif key == "drivers_academy_scouts":
-            return pygame.Rect(min(490, int(w * 0.38)), 70, w - min(514, int(w * 0.38) + 24), 240)
+            if self.management_hub and hasattr(self.management_hub, "tab_drivers"):
+                td = self.management_hub.tab_drivers
+                right_x = min(460, int(self.width * 0.35)) + 40
+                right_w = self.width - right_x - 24
+                # If on SCOUTS sub-tab, highlight the first scout prospect card and its sign button
+                if getattr(td, "active_subtab", "") == "SCOUTS":
+                    return pygame.Rect(right_x + 10, 108, right_w - 20, 134)
+                # Otherwise highlight the SCOUTS sub-tab button
+                return pygame.Rect(right_x + 150, 68, 160, 28)
+            right_x = min(460, int(w * 0.35)) + 40
+            return pygame.Rect(right_x + 150, 68, 160, 28)
         elif key == "sponsors_offers":
-            return pygame.Rect(560, 126, w - 584, min(360, h - 200))
+            off_rect_x = 560
+            off_rect_w = self.width - 584
+            return pygame.Rect(off_rect_x + 10, 158, off_rect_w - 20, 80)
         elif key == "btn_start_race":
-            return pygame.Rect(w - 320, h - 65, 300, 48)
+            return pygame.Rect(self.width - 320, self.height - 65, 300, 48)
         elif key == "weekend_practice_sliders":
             return pygame.Rect(24, 150, 480, 260)
         elif key == "weekend_qualifying_btn":
-            return pygame.Rect(w // 2 - 220, h // 2 - 30, 440, 60)
+            return pygame.Rect(self.width // 2 - 220, self.height // 2 - 30, 440, 60)
         elif key == "race_driver_panel":
-            return pygame.Rect(10, h - 138, w - 20, 130)
+            return pygame.Rect(10, self.height - 138, self.width - 20, 130)
         elif key == "hub_header_tutorial_btn":
-            return pygame.Rect(w - 340, 4, 95, 18)
+            return pygame.Rect(self.width - 340, 4, 92, 18)
 
         return None
 
     def get_card_rect(self, step: TutorialStep) -> pygame.Rect:
         """Calculates smart positioning directly adjacent to the target element."""
-        # Auto-reset custom drag if step changed, inspector drawer toggled, or workforce sub-tab changed
+        # Auto-reset custom drag if step changed, or if interactive screen state changed
         is_drawer_open = bool(
             self.management_hub
             and hasattr(self.management_hub, "tab_factory")
@@ -133,14 +168,35 @@ class TutorialOverlay:
             if (self.management_hub and hasattr(self.management_hub, "tab_workforce"))
             else ""
         )
+        has_dest_picker = bool(
+            self.management_hub
+            and hasattr(self.management_hub, "tab_workforce")
+            and getattr(self.management_hub.tab_workforce, "destination_picker_data", None) is not None
+        )
+        car_part = (
+            getattr(self.management_hub.tab_car, "selected_part_category", "")
+            if (self.management_hub and hasattr(self.management_hub, "tab_car"))
+            else ""
+        )
+        drivers_sub_tab = (
+            getattr(self.management_hub.tab_drivers, "active_subtab", "")
+            if (self.management_hub and hasattr(self.management_hub, "tab_drivers"))
+            else ""
+        )
         if (
             getattr(self, "_last_step_id", None) != step.step_id
             or getattr(self, "_last_drawer_open", None) != is_drawer_open
             or getattr(self, "_last_wf_sub_tab", None) != wf_sub_tab
+            or getattr(self, "_last_dest_picker", None) != has_dest_picker
+            or getattr(self, "_last_car_part", None) != car_part
+            or getattr(self, "_last_drivers_sub_tab", None) != drivers_sub_tab
         ):
             self._last_step_id = step.step_id
             self._last_drawer_open = is_drawer_open
             self._last_wf_sub_tab = wf_sub_tab
+            self._last_dest_picker = has_dest_picker
+            self._last_car_part = car_part
+            self._last_drivers_sub_tab = drivers_sub_tab
             self.custom_card_pos = None
 
         if self.custom_card_pos:
@@ -323,7 +379,9 @@ class TutorialOverlay:
 
             # Step Focus Badge attached to the highlighted target
             badge_txt = f"🎯 TUTORIAL FOCUS: STEP {self.manager.current_step_index + 1}"
-            if step.step_id == "FACTORY_BRAKES_EQUIPMENT":
+            if step.step_id == "WELCOME_DASHBOARD":
+                badge_txt = "🎯 STEP 1: REVIEW CALENDAR & CIRCUIT DEMANDS"
+            elif step.step_id == "FACTORY_BRAKES_EQUIPMENT":
                 if (
                     self.management_hub
                     and hasattr(self.management_hub, "tab_factory")
@@ -331,16 +389,46 @@ class TutorialOverlay:
                 ):
                     badge_txt = "🎯 STEP 2: CLICK 'BUY' OR 'UPGRADE' (FREE BOARD GRANT)"
                 else:
-                    badge_txt = "🎯 STEP 2: CLICK 'BRAKES LAB' TO OPEN EQUIPMENT"
+                    badge_txt = "🎯 STEP 2: CLICK 'BRAKES WORKSHOP' TO OPEN EQUIPMENT"
             elif step.step_id == "PERSONNEL_HIRING":
+                if self.management_hub and hasattr(self.management_hub, "tab_workforce"):
+                    tw = self.management_hub.tab_workforce
+                    if getattr(tw, "destination_picker_data", None) is not None:
+                        badge_txt = "🎯 STEP 3: CLICK 'ASSIGN HERE' TO COMPLETE HIRING"
+                    elif getattr(tw, "sub_tab", "") == "RECRUITMENT":
+                        badge_txt = "🎯 STEP 3: CLICK 'INBOUND / CHOOSE ROOM' TO HIRE"
+                    else:
+                        badge_txt = "🎯 STEP 3: CLICK 'RECRUITMENT & TRYOUTS' SUB-TAB"
+            elif step.step_id == "CAR_RND_FRONT_WING":
                 if (
                     self.management_hub
-                    and hasattr(self.management_hub, "tab_workforce")
-                    and getattr(self.management_hub.tab_workforce, "sub_tab", "") != "RECRUITMENT"
+                    and hasattr(self.management_hub, "tab_car")
+                    and getattr(self.management_hub.tab_car, "selected_part_category", "") == "FRONT_WING"
                 ):
-                    badge_txt = "🎯 STEP 3: CLICK 'RECRUITMENT & TRYOUTS' SUB-TAB"
+                    badge_txt = "🎯 STEP 4: CLICK 'BUILD NEXT GEN' (BOARD PROTO SUBSIDY)"
                 else:
-                    badge_txt = "🎯 STEP 3: HIRE A CANDIDATE (FREE BOARD GRANT)"
+                    badge_txt = "🎯 STEP 4: CLICK FRONT WING ON BLUEPRINT"
+            elif step.step_id == "DRIVERS_ACADEMY":
+                if (
+                    self.management_hub
+                    and hasattr(self.management_hub, "tab_drivers")
+                    and getattr(self.management_hub.tab_drivers, "active_subtab", "") == "SCOUTS"
+                ):
+                    badge_txt = "🎯 STEP 5: SIGN YOUNG TALENT OR ASSIGN FEEDER SEAT"
+                else:
+                    badge_txt = "🎯 STEP 5: CLICK 'SCOUTS' SUB-TAB TO FIND YOUTH TALENT"
+            elif step.step_id == "SPONSORS_COMMERCIAL":
+                badge_txt = "🎯 STEP 6: SIGN CORPORATE SPONSOR CONTRACT"
+            elif step.step_id == "LAUNCH_WEEKEND":
+                badge_txt = "🎯 STEP 7: CLICK 'START RACE WEEKEND' TO TRAVEL TO TRACK"
+            elif step.step_id == "WEEKEND_PRACTICE":
+                badge_txt = "🎯 STEP 8: TUNE WING/BRAKE SLIDERS & RUN PRACTICE STINT"
+            elif step.step_id == "WEEKEND_QUALIFYING":
+                badge_txt = "🎯 STEP 9: CLICK 'SIMULATE QUALIFYING SHOOTOUT'"
+            elif step.step_id == "LIVE_RACE_PITWALL":
+                badge_txt = "🎯 STEP 10: MANAGE DRIVER PACE & TYRE LIFE ON PIT WALL"
+            elif step.step_id == "RACE_DEBRIEF":
+                badge_txt = "🎯 TUTORIAL COMPLETE: CONGRATULATIONS TEAM PRINCIPAL!"
 
             badge_surf = self.font_step.render(badge_txt, True, (0, 240, 255))
             bw, bh = badge_surf.get_width() + 16, 20
@@ -427,18 +515,47 @@ class TutorialOverlay:
         ):
             if getattr(self.management_hub.tab_factory, "inspected_node_id", None) == "eng_brakes":
                 body_text = (
-                    "Brakes Lab opened!\n\n"
+                    "Brakes Workshop opened!\n\n"
                     "Inspect the specialized equipment items in the drawer on the right (Stress Rigs, Carbon Lathes, etc.).\n\n"
                     "Click 'BUY' or 'UPGRADE' on any item to equip our facility. The Board grant will reimburse 100% of the cost (+$800,000) as a completion bonus!"
                 )
         elif (
             step.step_id == "PERSONNEL_HIRING" and self.management_hub and hasattr(self.management_hub, "tab_workforce")
         ):
-            if getattr(self.management_hub.tab_workforce, "sub_tab", "") == "RECRUITMENT":
+            tw = self.management_hub.tab_workforce
+            if getattr(tw, "destination_picker_data", None) is not None:
+                body_text = (
+                    "Room Destination Selector open!\n\n"
+                    "Choose an unlocked facility room with an open desk (such as Workshop or Brakes) and click 'ASSIGN HERE'.\n\n"
+                    "Your new team member will begin contributing to your weekly performance output immediately!"
+                )
+            elif getattr(tw, "sub_tab", "") == "RECRUITMENT":
                 body_text = (
                     "Recruitment & Tryouts queue active!\n\n"
                     "Here you can see inbound applicants and 6-month intern tryouts. Inspect their specialties and salaries.\n\n"
                     "Click 'INBOUND / CHOOSE ROOM' (or 'HIRE') on the top candidate to onboard them. The Board grant will cover their onboarding!"
+                )
+        elif step.step_id == "CAR_RND_FRONT_WING" and self.management_hub and hasattr(self.management_hub, "tab_car"):
+            tc = self.management_hub.tab_car
+            if getattr(tc, "selected_part_category", "") == "FRONT_WING":
+                body_text = (
+                    "Front Wing selected on the chassis blueprint!\n\n"
+                    "Review the Continuous Evolution Knowledge accumulated by your cars in the deck below.\n\n"
+                    "Click 'BUILD NEXT GEN' to manufacture our Mk II specification. The Board will sponsor this prototype build with a +$125,000 grant!"
+                )
+            else:
+                body_text = (
+                    "Welcome to Car Engineering!\n\n"
+                    "Our interactive top-down blueprint displays component wear, reliability, and R&D evolution.\n\n"
+                    "Click the FRONT WING hotspot on the blueprint to inspect its continuous knowledge and prototype development."
+                )
+        elif step.step_id == "DRIVERS_ACADEMY" and self.management_hub and hasattr(self.management_hub, "tab_drivers"):
+            td = self.management_hub.tab_drivers
+            if getattr(td, "active_subtab", "") == "SCOUTS":
+                body_text = (
+                    "Scouting Prospects active!\n\n"
+                    "Here you can find raw youth talents seeking developmental backing. Select a feeder seat tier (e.g. Tier 5 Karting) and click 'SIGN PROSPECT'.\n\n"
+                    "The Board will fund a +$30,000 youth development scholarship upon signing!"
                 )
 
         self._render_wrapped_text(

@@ -189,7 +189,7 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         phase="RACE_WEEKEND",
         required_mode="WEEKEND",
         required_tab=None,
-        speaker_name="David Croft",
+        speaker_name="Declan Ward",
         speaker_role="SENIOR RACE ENGINEER",
         title="Free Practice & Setup Tuning",
         body=(
@@ -209,7 +209,7 @@ TUTORIAL_STEPS: List[TutorialStep] = [
         phase="RACE_WEEKEND",
         required_mode="WEEKEND",
         required_tab=None,
-        speaker_name="David Croft",
+        speaker_name="Declan Ward",
         speaker_role="SENIOR RACE ENGINEER",
         title="Qualifying: Setting the Grid",
         body=(
@@ -429,9 +429,9 @@ class TutorialManager:
         if not curr_step:
             return
 
-        # If we entered WEEKEND mode and we were on LAUNCH_WEEKEND or earlier, advance to WEEKEND_PRACTICE
+        # If we entered WEEKEND mode and we were on any factory step, advance to WEEKEND_PRACTICE
         if current_mode == "WEEKEND":
-            if curr_step.step_id in ["LAUNCH_WEEKEND", "WELCOME_DASHBOARD"]:
+            if curr_step.phase == "FACTORY" or curr_step.step_id in ["LAUNCH_WEEKEND", "WELCOME_DASHBOARD"]:
                 self.current_step_index = self._get_step_index_by_id("WEEKEND_PRACTICE")
                 self.save_state()
 
@@ -443,6 +443,6 @@ class TutorialManager:
 
         # If in MANAGEMENT mode after race completion, show debrief
         elif current_mode == "MANAGEMENT":
-            if curr_step.step_id == "LIVE_RACE_PITWALL":
+            if curr_step.step_id in ["LIVE_RACE_PITWALL", "WEEKEND_QUALIFYING", "WEEKEND_PRACTICE"]:
                 self.current_step_index = self._get_step_index_by_id("RACE_DEBRIEF")
                 self.save_state()

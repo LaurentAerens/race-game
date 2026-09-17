@@ -265,18 +265,15 @@ class ManagementHub:
                 msg_before = self.tab_car.status_message
                 self.tab_car.handle_click(mx, my, self.gm, self.em, cost_mult=diff_cfg["parts_cost_mult"])
                 if self.tutorial_manager and self.tab_car.status_message != msg_before:
-                    if "Mk" in self.tab_car.status_message or "manufactured" in self.tab_car.status_message.lower():
+                    car_msg = self.tab_car.status_message.lower()
+                    if "mk" in car_msg or "built" in car_msg or "manufactured" in car_msg:
                         self.tutorial_manager.notify_action_completed("BUILD_FRONT_WING")
             elif self.active_tab == "FACTORY":
                 msg_before = self.tab_factory.status_message
                 self.tab_factory.handle_click(mx, my, self.gm, self.em, cost_mult=diff_cfg["factory_cost_mult"])
                 if self.tutorial_manager and self.tab_factory.status_message != msg_before:
-                    if (
-                        "Purchased" in self.tab_factory.status_message
-                        or "Upgraded" in self.tab_factory.status_message
-                        or "equipped" in self.tab_factory.status_message.lower()
-                        or "bought" in self.tab_factory.status_message.lower()
-                    ):
+                    fac_msg = self.tab_factory.status_message.lower()
+                    if "purchased" in fac_msg or "upgraded" in fac_msg or "equipped" in fac_msg or "bought" in fac_msg:
                         self.tutorial_manager.notify_action_completed("BUY_BRAKES_EQUIPMENT")
                 if self.tab_factory.requested_hiring_target:
                     tgt_node, tgt_role, tgt_desc = self.tab_factory.requested_hiring_target
@@ -287,32 +284,30 @@ class ManagementHub:
                 msg_before = self.tab_drivers.status_message
                 self.tab_drivers.handle_click(mx, my, self.gm, self.dm)
                 if self.tutorial_manager and self.tab_drivers.status_message != msg_before:
+                    d_msg = self.tab_drivers.status_message.lower()
                     if (
-                        "Signed" in self.tab_drivers.status_message
-                        or "transferred" in self.tab_drivers.status_message
-                        or "enrolled" in self.tab_drivers.status_message.lower()
-                        or "contract" in self.tab_drivers.status_message.lower()
+                        "signed" in d_msg
+                        or "transferred" in d_msg
+                        or "enrolled" in d_msg
+                        or "contract" in d_msg
+                        or "focus" in d_msg
                     ):
                         self.tutorial_manager.notify_action_completed("ENROLL_DRIVER")
             elif self.active_tab == "SPONSORS":
                 msg_before = self.tab_sponsors.status_message
                 self.tab_sponsors.handle_click(mx, my, self.gm, self.sm)
                 if self.tutorial_manager and self.tab_sponsors.status_message != msg_before:
-                    if (
-                        "Signed" in self.tab_sponsors.status_message
-                        or "Contract" in self.tab_sponsors.status_message
-                        or "Accepted" in self.tab_sponsors.status_message
-                    ):
+                    sp_msg = self.tab_sponsors.status_message.lower()
+                    if "signed" in sp_msg or "contract" in sp_msg or "accepted" in sp_msg:
                         self.tutorial_manager.notify_action_completed("SIGN_SPONSOR")
             elif self.active_tab == "WORKFORCE":
                 msg_before = self.tab_workforce.status_message
                 self.tab_workforce.handle_click(mx, my, self.gm, self.em)
                 if self.tutorial_manager and self.tab_workforce.status_message != msg_before:
-                    if (
-                        "Hired" in self.tab_workforce.status_message
-                        or "assigned" in self.tab_workforce.status_message.lower()
-                    ):
+                    wf_msg = self.tab_workforce.status_message.lower()
+                    if "hired" in wf_msg or "signed" in wf_msg or "assigned" in wf_msg or "appointed" in wf_msg:
                         self.tutorial_manager.notify_action_completed("HIRE_STAFF")
+
             elif self.active_tab == "STANDINGS":
                 self.tab_standings.handle_click(mx, my, self.gm)
             elif self.active_tab == "DATABASE":
