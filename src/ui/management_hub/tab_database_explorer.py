@@ -984,9 +984,11 @@ class DatabaseExplorerTab:
 
         cur_y += 48
 
-        # AI Career Trajectory Intelligence Report Box
+        # AI Career Report & Driver Talent Radar Spider Chart
         ai_data = p.get("ai_analysis", {})
-        ai_box = pygame.Rect(box.x + 12, cur_y, box.width - 24, 60)
+        radar_w = 210
+        ai_box_w = box.width - 24 - radar_w - 12
+        ai_box = pygame.Rect(box.x + 12, cur_y, ai_box_w, 88)
         pygame.draw.rect(surface, (16, 26, 36), ai_box, border_radius=3)
         pygame.draw.rect(surface, (0, 180, 220), ai_box, width=1, border_radius=3)
 
@@ -998,17 +1000,44 @@ class DatabaseExplorerTab:
         )
         surface.blit(
             self.font_body.render(ai_data.get("scout_assessment", ""), True, UITheme.TEXT_WHITE),
-            (ai_box.x + 10, ai_box.y + 23),
+            (ai_box.x + 10, ai_box.y + 26),
         )
 
         alumni_note = ai_data.get("alumni_insight", "")
         if alumni_note:
             surface.blit(
                 self.font_body.render(alumni_note, True, (255, 215, 0) if is_alumni else UITheme.TEXT_MUTED),
-                (ai_box.x + 10, ai_box.y + 40),
+                (ai_box.x + 10, ai_box.y + 46),
             )
 
-        cur_y += 66
+        # Driver Talent Radar Spider Chart
+        radar_rect = pygame.Rect(box.x + 12 + ai_box_w + 12, cur_y, radar_w, 88)
+        pygame.draw.rect(surface, (16, 22, 30), radar_rect, border_radius=3)
+        pygame.draw.rect(surface, UITheme.PANEL_BORDER, radar_rect, width=1, border_radius=3)
+
+        radar_attrs = ["Pace", "Brake", "Defend", "Consist", "Tires", "Wet"]
+        radar_vals = [
+            float(p.get("pace", 65)),
+            float(p.get("braking", 65)),
+            float(p.get("defending", 65)),
+            float(p.get("consistency", 65)),
+            float(p.get("tire_management", 65)),
+            float(p.get("wet_weather", 65)),
+        ]
+        rc_x = radar_rect.x + radar_rect.width // 2
+        rc_y = radar_rect.y + radar_rect.height // 2 - 8
+        UITheme.draw_radar_chart(
+            surface,
+            center=(rc_x, rc_y),
+            radius=26,
+            attributes=radar_attrs,
+            values_1=radar_vals,
+            label_1=p.get("name", "Driver")[:10],
+            color_1=(0, 220, 240),
+            show_labels=True,
+        )
+
+        cur_y += 96
 
         # Season-by-Season Career History Table
         surface.blit(self.font_btn.render("HISTORICAL SEASON BREAKDOWN", True, UITheme.TEXT_WHITE), (box.x + 12, cur_y))

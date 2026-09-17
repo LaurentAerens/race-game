@@ -1,4 +1,5 @@
-from typing import Dict, Optional, Tuple
+import math
+from typing import Dict, List, Optional, Tuple
 
 import pygame
 
@@ -271,3 +272,106 @@ class UITheme:
         surface.blit(icon_surf, (x, iy))
         surface.blit(txt_surf, (x + icon_surf.get_width() + gap, ty))
         return icon_surf.get_width() + gap + txt_surf.get_width()
+
+    @staticmethod
+    def draw_radar_chart(
+        surface: pygame.Surface,
+        center: Tuple[int, int],
+        radius: int,
+        attributes: List[str],
+        values_1: List[float],
+        values_2: Optional[List[float]] = None,
+        label_1: str = "Driver 1",
+        label_2: Optional[str] = None,
+        color_1: Tuple[int, int, int] = (0, 220, 240),
+        color_2: Tuple[int, int, int] = (255, 205, 30),
+        font: Optional[pygame.font.Font] = None,
+        show_labels: bool = True,
+        max_value: float = 100.0,
+    ):
+        """
+        Renders a radar (spider) chart for driver talent comparison.
+        Draws concentric webs, attribute radial axes, semi-transparent filled polygons,
+        vertex indicator pips, and legend.
+        """
+        cx, cy = center
+        n = len(attributes)
+        if n < 3:
+            return
+
+        lbl_font = font or UITheme.get_font(9, bold=True)
+        angles = [(-math.pi / 2) + (2 * math.pi * i / n) for i in range(n)]
+
+        # 1. Concentric Grid Webs (25%, 50%, 75%, 100%)
+        for ring_pct in [0.25, 0.50, 0.75, 1.0]:
+            ring_r = radius * ring_pct
+            ring_pts = [(int(cx + ring_r * math.cos(ang)), int(cy + ring_r * math.sin(ang))) for ang in angles]
+            ring_col = (45, 55, 70) if ring_pct == 1.0 else (30, 36, 48)
+            pygame.draw.polygon(surface, ring_col, ring_pts, width=1)
+
+        # 2. Radial Spoke Lines from Center to Web Perimeters
+        for ang in angles:
+            ox = int(cx + radius * math.cos(ang))
+            oy = int(cy + radius * math.sin(ang))
+            pygame.draw.line(surface, (38, 46, 60), (cx, cy), (ox, oy), 1)
+
+        # 3. Attribute Labels on Outer Web
+        if show_labels:
+            for label, ang in zip(attributes, angles):
+                lx = cx + (radius + 14) * math.cos(ang)
+                ly = cy + (radius + 14) * math.sin(ang)
+                txt = lbl_font.render(label, True, UITheme.TEXT_MUTED)
+                surface.blit(txt, (int(lx - txt.get_width() / 2), int(ly - txt.get_height() / 2)))
+
+        # Bounding box for alpha polygon rendering
+        pad = radius + 30
+        poly_surf = pygame.Surface((pad * 2, pad * 2), pygame.SRCALPHA)
+        local_cx, local_cy = pad, pad
+
+        # 4. Driver 1 Polygon
+        norm_v1 = [max(0.05, min(1.0, v / max_value)) for v in values_1]
+        pts_1 = [
+            (int(cx + radius * nv * math.cos(ang)), int(cy + radius * nv * math.sin(ang)))
+            for nv, ang in zip(norm_v1, angles)
+        ]
+        local_pts_1 = [
+            (int(local_cx + radius * nv * math.cos(ang)), int(local_cy + radius * nv * math.sin(ang)))
+            for nv, ang in zip(norm_v1, angles)
+        ]
+        pygame.draw.polygon(poly_surf, (color_1[0], color_1[1], color_1[2], 75), local_pts_1)
+        pygame.draw.polygon(surface, color_1, pts_1, width=2)
+        for p in pts_1:
+            pygame.draw.circle(surface, color_1, p, 3)
+
+        # 5. Driver 2 Polygon (Optional Comparison Overlay)
+        if values_2:
+            norm_v2 = [max(0.05, min(1.0, v / max_value)) for v in values_2]
+            pts_2 = [
+                (int(cx + radius * nv * math.cos(ang)), int(cy + radius * nv * math.sin(ang)))
+                for nv, ang in zip(norm_v2, angles)
+            ]
+            local_pts_2 = [
+                (int(local_cx + radius * nv * math.cos(ang)), int(local_cy + radius * nv * math.sin(ang)))
+                for nv, ang in zip(norm_v2, angles)
+            ]
+            pygame.draw.polygon(poly_surf, (color_2[0], color_2[1], color_2[2], 75), local_pts_2)
+            pygame.draw.polygon(surface, color_2, pts_2, width=2)
+            for p in pts_2:
+                pygame.draw.circle(surface, color_2, p, 3)
+
+        # Blit alpha polygons onto main surface
+        surface.blit(poly_surf, (cx - pad, cy - pad))
+
+        # 6. Mini Legend
+        leg_y = cy + radius + 22
+        leg_font = UITheme.get_font(9, bold=True)
+        if label_1:
+            t1 = leg_font.render(f"■ {label_1}", True, color_1)
+            if values_2 and label_2:
+                t2 = leg_font.render(f"■ {label_2}", True, color_2)
+                total_w = t1.get_width() + 16 + t2.get_width()
+                start_x = int(cx - total_w / 2)
+                surface.blit(t1, (start_x, leg_y))
+                surface.blit(t2, (start_x + t1.get_width() + 16, leg_y))
+            else:
+                surface.blit(t1, (int(cx - t1.get_width() / 2), leg_y))

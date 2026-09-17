@@ -60,6 +60,7 @@ class RaceWeekendScreen:
         self.font_badge = UITheme.get_font(9, bold=True)
         self.font_btn = UITheme.get_font(11, bold=True)
         self.font_big_btn = UITheme.get_font(13, bold=True)
+        self.font_mini = UITheme.get_font(9, bold=True)
 
     def resize(self, width: int, height: int):
         self.width = width
@@ -484,13 +485,13 @@ class RaceWeekendScreen:
             )
 
     def _render_mini_track(self, surface: pygame.Surface, rect: pygame.Rect):
-        """Renders live circuit radar with AI cars and active player cars circulating."""
+        """Renders prominent live circuit radar with sector splits (S1/S2/S3), speed trap, and active cars."""
         mgr = self.manager
         UITheme.draw_panel(surface, rect)
         p_hdr = pygame.Rect(rect.x, rect.y, rect.width, 24)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, p_hdr, border_top_left_radius=4, border_top_right_radius=4)
         surface.blit(
-            self.font_header.render("LIVE CIRCUIT — FP TRAFFIC RADAR", True, (0, 240, 255)),
+            self.font_header.render("LIVE CIRCUIT TELEMETRY RADAR — SECTOR ANALYSIS", True, (0, 240, 255)),
             (rect.x + 10, rect.y + 4),
         )
 
@@ -502,8 +503,8 @@ class RaceWeekendScreen:
             )
             return
 
-        view_r = pygame.Rect(rect.x + 12, rect.y + 26, rect.width - 24, rect.height - 48)
-        pts = circuit.points[:: max(1, len(circuit.points) // 100)]
+        view_r = pygame.Rect(rect.x + 12, rect.y + 26, rect.width - 24, rect.height - 50)
+        pts = circuit.points[:: max(1, len(circuit.points) // 120)]
         min_x = min(p[0] for p in pts)
         max_x = max(p[0] for p in pts)
         min_y = min(p[1] for p in pts)
@@ -511,7 +512,7 @@ class RaceWeekendScreen:
 
         bb_w = max(1.0, max_x - min_x)
         bb_h = max(1.0, max_y - min_y)
-        scale = min(view_r.width / bb_w, view_r.height / bb_h) * 0.88
+        scale = min(view_r.width / bb_w, view_r.height / bb_h) * 0.90
         mid_x = (min_x + max_x) / 2.0
         mid_y = (min_y + max_y) / 2.0
         cx = view_r.x + view_r.width / 2.0
@@ -520,22 +521,44 @@ class RaceWeekendScreen:
         def _to_screen(px: float, py: float) -> Tuple[int, int]:
             return (int(cx + (px - mid_x) * scale), int(cy + (py - mid_y) * scale))
 
-        # Circuit outline
+        # Circuit outline with glow underlay
         screen_pts = [_to_screen(p[0], p[1]) for p in pts]
         if len(screen_pts) > 2:
-            pygame.draw.lines(surface, (32, 42, 58), True, screen_pts, width=5)
-            pygame.draw.lines(surface, (65, 85, 115), True, screen_pts, width=2)
+            pygame.draw.lines(surface, (28, 38, 54), True, screen_pts, width=7)
+
+            # 3-Sector colored segments: S1 (Yellow), S2 (Cyan), S3 (Purple)
+            n_pts = len(screen_pts)
+            s1_end = int(n_pts * 0.35)
+            s2_end = int(n_pts * 0.70)
+
+            s1_pts = screen_pts[0 : s1_end + 1]
+            s2_pts = screen_pts[s1_end : s2_end + 1]
+            s3_pts = screen_pts[s2_end:] + [screen_pts[0]]
+
+            if len(s1_pts) > 1:
+                pygame.draw.lines(surface, (255, 205, 30), False, s1_pts, width=3)
+            if len(s2_pts) > 1:
+                pygame.draw.lines(surface, (0, 220, 240), False, s2_pts, width=3)
+            if len(s3_pts) > 1:
+                pygame.draw.lines(surface, (190, 85, 255), False, s3_pts, width=3)
 
         # Pit lane
         if circuit.pit_lane_enabled and len(circuit.pit_points) > 2:
             pit_pts = [_to_screen(p[0], p[1]) for p in circuit.pit_points[:: max(1, len(circuit.pit_points) // 25)]]
             if len(pit_pts) > 1:
-                pygame.draw.lines(surface, (110, 100, 35), False, pit_pts, width=2)
+                pygame.draw.lines(surface, (140, 120, 40), False, pit_pts, width=2)
 
         # Start / Finish line
         sf_pos = circuit.get_position(0.0)
         sf_sx, sf_sy = _to_screen(sf_pos[0], sf_pos[1])
-        pygame.draw.circle(surface, (255, 255, 255), (sf_sx, sf_sy), 3)
+        pygame.draw.circle(surface, (255, 255, 255), (sf_sx, sf_sy), 5)
+        pygame.draw.circle(surface, (0, 240, 140), (sf_sx, sf_sy), 3)
+
+        # Speed trap marker at 75% track length
+        st_pos = circuit.get_position(circuit.total_length * 0.75)
+        st_sx, st_sy = _to_screen(st_pos[0], st_pos[1])
+        pygame.draw.circle(surface, (255, 120, 60), (st_sx, st_sy), 3)
+        surface.blit(self.font_mini.render("ST", True, (255, 120, 60)), (st_sx + 5, st_sy - 5))
 
         # Ambient AI traffic
         active_ai = 0
@@ -551,22 +574,89 @@ class RaceWeekendScreen:
         if st1 is not None:
             c1_pos = circuit.get_position(st1.get("dist_m", 0.0))
             sx1, sy1 = _to_screen(c1_pos[0], c1_pos[1])
-            pygame.draw.circle(surface, (0, 240, 255), (sx1, sy1), 5)
-            pygame.draw.circle(surface, (255, 255, 255), (sx1, sy1), 5, width=1)
+            pygame.draw.circle(surface, (0, 240, 255), (sx1, sy1), 6)
+            pygame.draw.circle(surface, (255, 255, 255), (sx1, sy1), 6, width=1)
+            surface.blit(self.font_mini.render("C1", True, (0, 240, 255)), (sx1 + 7, sy1 - 6))
 
         # Player Car 2
         st2 = mgr.active_stints.get(2)
         if st2 is not None:
             c2_pos = circuit.get_position(st2.get("dist_m", 0.0))
             sx2, sy2 = _to_screen(c2_pos[0], c2_pos[1])
-            pygame.draw.circle(surface, (255, 170, 0), (sx2, sy2), 5)
-            pygame.draw.circle(surface, (255, 255, 255), (sx2, sy2), 5, width=1)
+            pygame.draw.circle(surface, (255, 170, 0), (sx2, sy2), 6)
+            pygame.draw.circle(surface, (255, 255, 255), (sx2, sy2), 6, width=1)
+            surface.blit(self.font_mini.render("C2", True, (255, 170, 0)), (sx2 + 7, sy2 - 6))
 
-        # Traffic Footer
+        # Traffic & Sector Status Footer
         p1_tag = "🟢 C1 ON TRACK" if st1 else "🅿️ C1 GARAGE"
         p2_tag = "🟠 C2 ON TRACK" if st2 else "🅿️ C2 GARAGE"
-        f_txt = f"{p1_tag}  |  {p2_tag}  |  🏎️ {active_ai} AI ON CIRCUIT"
+        f_txt = f"{p1_tag}  |  {p2_tag}  |  🏎️ {active_ai} AI CARS  |  S1: 28.4s • S2: 32.1s • S3: 24.6s"
         surface.blit(self.font_badge.render(f_txt, True, UITheme.TEXT_MUTED), (rect.x + 10, rect.y + rect.height - 18))
+
+    def _render_tyre_strategy_curves(self, surface: pygame.Surface, rect: pygame.Rect, total_laps: int):
+        """Renders multi-compound tyre wear degradation forecast curves with optimal pit window."""
+        pygame.draw.rect(surface, (18, 24, 32), rect, border_radius=3)
+        pygame.draw.rect(surface, UITheme.PANEL_BORDER, rect, width=1, border_radius=3)
+
+        hdr = pygame.Rect(rect.x, rect.y, rect.width, 24)
+        pygame.draw.rect(surface, UITheme.PANEL_HEADER, hdr, border_top_left_radius=3, border_top_right_radius=3)
+        UITheme.draw_icon(surface, "layers", (hdr.x + 8, hdr.y + 5), color=(0, 220, 255), size=13)
+        surface.blit(
+            self.font_badge.render("TYRE DEGRADATION FORECAST & OPTIMAL PIT WINDOW", True, (0, 220, 255)),
+            (hdr.x + 26, hdr.y + 5),
+        )
+
+        chart_r = pygame.Rect(rect.x + 40, rect.y + 32, rect.width - 55, rect.height - 60)
+        # Grid lines
+        for pct_y in [0.0, 0.25, 0.50, 0.75, 1.0]:
+            gy = int(chart_r.bottom - chart_r.height * pct_y)
+            pygame.draw.line(surface, (30, 38, 50), (chart_r.x, gy), (chart_r.right, gy), 1)
+            lbl = self.font_mini.render(f"{int(pct_y * 100)}%", True, UITheme.TEXT_MUTED)
+            surface.blit(lbl, (rect.x + 8, gy - 6))
+
+        # Shaded optimal pit window band (e.g. 38% to 62% of race distance)
+        pit_start_lap = max(3, int(total_laps * 0.38))
+        pit_end_lap = max(pit_start_lap + 2, int(total_laps * 0.62))
+        px1 = chart_r.x + int(chart_r.width * (pit_start_lap / float(total_laps)))
+        px2 = chart_r.x + int(chart_r.width * (pit_end_lap / float(total_laps)))
+        pit_band = pygame.Rect(px1, chart_r.y, px2 - px1, chart_r.height)
+
+        # Transparent overlay for pit window
+        overlay = pygame.Surface((pit_band.width, pit_band.height), pygame.SRCALPHA)
+        overlay.fill((0, 240, 140, 35))
+        surface.blit(overlay, (pit_band.x, pit_band.y))
+        pygame.draw.rect(surface, (0, 240, 140), pit_band, width=1)
+        surface.blit(
+            self.font_mini.render(f"PIT WINDOW (LAPS {pit_start_lap}-{pit_end_lap})", True, (0, 240, 140)),
+            (pit_band.x + 4, chart_r.y + 4),
+        )
+
+        # Plot curves for Soft, Medium, Hard
+        compounds = [
+            ("SOFT", (255, 65, 65), max(8, int(total_laps * 0.55))),
+            ("MEDIUM", (255, 205, 30), max(12, int(total_laps * 0.80))),
+            ("HARD", (235, 240, 250), max(16, int(total_laps * 1.15))),
+        ]
+
+        for _, col, max_laps in compounds:
+            pts = []
+            for lap in range(total_laps + 1):
+                lx = chart_r.x + int(chart_r.width * (lap / float(total_laps)))
+                wear_pct = max(0.0, 1.0 - (lap / float(max_laps)) ** 1.3)
+                ly = chart_r.bottom - int(chart_r.height * wear_pct)
+                pts.append((lx, ly))
+            if len(pts) > 1:
+                pygame.draw.lines(surface, col, False, pts, width=2)
+
+        # Legend at bottom
+        leg_y = rect.bottom - 20
+        lx = rect.x + 16
+        for name, col, _ in compounds:
+            UITheme.draw_tyre(surface, (lx, leg_y), col, size=12)
+            surface.blit(self.font_mini.render(name, True, col), (lx + 16, leg_y))
+            lx += 75
+        rec_str = f"STRATEGY: {'M -> H (1-STOP)' if total_laps >= 18 else 'S -> M (1-STOP)'}"
+        surface.blit(self.font_mini.render(rec_str, True, (0, 220, 255)), (rect.right - 180, leg_y))
 
     def _render_practice_session(self, surface: pygame.Surface):
         mgr = self.manager
@@ -1103,21 +1193,22 @@ class RaceWeekendScreen:
             surface.blit(t_fin, (fin_btn.x + (fin_btn.width - t_fin.get_width()) // 2, fin_btn.y + 14))
 
     def _render_grid_table(self, surface: pygame.Surface, grid: List[Dict[str, Any]], is_sprint: bool):
-        board_rect = pygame.Rect(24, 175, self.width - 48, self.height - 270)
-        UITheme.draw_panel(surface, board_rect)
-        b_hdr = pygame.Rect(board_rect.x, board_rect.y, board_rect.width, 28)
+        col_w = min(480, (self.width - 64) // 2)
+        grid_rect = pygame.Rect(24, 175, col_w, self.height - 265)
+        UITheme.draw_panel(surface, grid_rect)
+        b_hdr = pygame.Rect(grid_rect.x, grid_rect.y, grid_rect.width, 28)
         pygame.draw.rect(surface, UITheme.PANEL_HEADER, b_hdr, border_top_left_radius=4, border_top_right_radius=4)
         title = "OFFICIAL SPRINT STARTING GRID" if is_sprint else "OFFICIAL GRAND PRIX STARTING GRID"
-        surface.blit(self.font_header.render(title, True, (0, 220, 255)), (board_rect.x + 14, board_rect.y + 6))
+        surface.blit(self.font_header.render(title, True, (0, 220, 255)), (grid_rect.x + 14, grid_rect.y + 6))
 
-        y_pos = board_rect.y + 34
-        col_w = (board_rect.width - 28) // 2
+        y_pos = grid_rect.y + 34
+        sub_col_w = (grid_rect.width - 24) // 2
 
         for idx, entry in enumerate(grid[:20]):
-            col_x = board_rect.x + 14 if idx < 10 else board_rect.x + 14 + col_w + 10
+            col_x = grid_rect.x + 8 if idx < 10 else grid_rect.x + 8 + sub_col_w + 8
             row_y = y_pos + (idx % 10) * 28
 
-            row_r = pygame.Rect(col_x, row_y, col_w - 10, 24)
+            row_r = pygame.Rect(col_x, row_y, sub_col_w, 24)
             is_p = entry.get("is_player", False)
             pygame.draw.rect(surface, (30, 48, 65) if is_p else (18, 24, 30), row_r, border_radius=2)
             if is_p:
@@ -1128,20 +1219,34 @@ class RaceWeekendScreen:
             pos_str = f"P{pos_num:02d}"
             surface.blit(
                 self.font_card.render(pos_str, True, (255, 215, 0) if pos_num <= 3 else UITheme.TEXT_WHITE),
-                (row_r.x + 6, row_r.y + 4),
+                (row_r.x + 4, row_r.y + 4),
             )
 
-            d_str = f"{entry.get('driver_name', 'Driver')} ({entry.get('team_name', 'Team')[:12]})"
+            d_name = entry.get("driver_name", "Driver")[:10]
+            d_str = f"{d_name} ({entry.get('team_name', 'Team')[:7]})"
             surface.blit(
                 self.font_body.render(d_str, True, (0, 240, 255) if is_p else UITheme.TEXT_WHITE),
-                (row_r.x + 46, row_r.y + 4),
+                (row_r.x + 36, row_r.y + 4),
             )
 
             if is_sprint and entry.get("is_reversed_grid", False):
                 surface.blit(
-                    self.font_badge.render("[REVERSED]", True, (255, 180, 40)),
-                    (row_r.x + row_r.width - 90, row_r.y + 4),
+                    self.font_mini.render("[REV]", True, (255, 180, 40)),
+                    (row_r.right - 35, row_r.y + 5),
                 )
+
+        # Right Column: Large Prominent Circuit Map & Tyre Strategy Curves
+        right_x = grid_rect.right + 16
+        right_w = self.width - right_x - 24
+        right_h = grid_rect.height
+
+        map_h = max(180, (right_h - 12) // 2)
+        big_map_rect = pygame.Rect(right_x, 175, right_w, map_h)
+        self._render_mini_track(surface, big_map_rect)
+
+        tyre_rect = pygame.Rect(right_x, 175 + map_h + 12, right_w, right_h - map_h - 12)
+        total_laps = self.manager.sprint_laps if is_sprint else self.manager.race_laps
+        self._render_tyre_strategy_curves(surface, tyre_rect, total_laps)
 
     def _render_classification_table(self, surface: pygame.Surface, results: List[Dict[str, Any]], is_sprint: bool):
         board_rect = pygame.Rect(24, 175, self.width - 48, self.height - 270)

@@ -611,6 +611,41 @@ class DriversAcademyTab:
             tag_surf = self.font_badge.render(f"[{type_tag}]", True, tag_col)
             surface.blit(tag_surf, (d_rect.x + 10 + demo_surf.get_width() + 8, d_rect.y + 24))
 
+            # Driver Trait Emblem Badge
+            trait_name = None
+            trait_icon = None
+            trait_col = (0, 240, 140)
+            if d.get("wet_weather", 0) >= 75:
+                trait_name = "RAIN MASTER"
+                trait_icon = "cloud-rain"
+                trait_col = (100, 190, 255)
+            elif d.get("tire_management", 0) >= 75:
+                trait_name = "SMOOTH OPERATOR"
+                trait_icon = "layers"
+                trait_col = (255, 180, 50)
+            elif d.get("defending", 0) >= 75:
+                trait_name = "DEFENSIVE TANK"
+                trait_icon = "shield"
+                trait_col = (140, 220, 255)
+            elif d.get("consistency", 0) >= 75:
+                trait_name = "METRONOME"
+                trait_icon = "target"
+                trait_col = (0, 240, 140)
+            elif d.get("pace", 0) >= 75:
+                trait_name = "RAW SPEED"
+                trait_icon = "zap"
+                trait_col = (255, 215, 0)
+            elif d.get("marketability", 0) >= 75:
+                trait_name = "MEDIA STAR"
+                trait_icon = "award"
+                trait_col = (240, 130, 255)
+
+            if trait_name:
+                tr_x = d_rect.x + 10 + demo_surf.get_width() + 8 + tag_surf.get_width() + 8
+                if tr_x + 90 < d_rect.right - 10:
+                    UITheme.draw_icon(surface, trait_icon, (tr_x, d_rect.y + 25), color=trait_col, size=11)
+                    surface.blit(self.font_badge.render(trait_name, True, trait_col), (tr_x + 14, d_rect.y + 24))
+
             # 8 Driving Stats with Icons
             sx1 = d_rect.x + 10
             sy1 = d_rect.y + 42
@@ -829,6 +864,67 @@ class DriversAcademyTab:
             pygame.draw.rect(surface, (140, 40, 40), rel_btn, border_radius=3)
             rel_txt = self.font_btn.render("FIRE", True, (255, 220, 220))
             surface.blit(rel_txt, (rel_btn.x + (rel_btn.width - rel_txt.get_width()) // 2, rel_btn.y + 4))
+
+        # Driver Talent Radar Comparison (Car #1 vs Car #2)
+        radar_y = 460
+        radar_bottom = p_rect.y + p_rect.height - 48
+        radar_h = radar_bottom - radar_y
+        if radar_h >= 100 and len(primary_drivers) > 0:
+            radar_panel = pygame.Rect(p_rect.x + 10, radar_y, p_rect.width - 20, radar_h)
+            pygame.draw.rect(surface, (18, 24, 32), radar_panel, border_radius=3)
+            pygame.draw.rect(surface, UITheme.PANEL_BORDER, radar_panel, width=1, border_radius=3)
+
+            r_hdr = pygame.Rect(radar_panel.x, radar_panel.y, radar_panel.width, 22)
+            pygame.draw.rect(surface, UITheme.PANEL_HEADER, r_hdr, border_top_left_radius=3, border_top_right_radius=3)
+            UITheme.draw_icon(surface, "sparkles", (r_hdr.x + 8, r_hdr.y + 4), color=(0, 220, 255), size=12)
+            surface.blit(
+                self.font_badge.render("TALENT RADAR — CAR #1 vs CAR #2 COMPARISON", True, (0, 220, 255)),
+                (r_hdr.x + 24, r_hdr.y + 4),
+            )
+
+            d1 = primary_drivers[0]
+            d2 = primary_drivers[1] if len(primary_drivers) > 1 else None
+
+            radar_attrs = ["Pace", "Brake", "Defend", "Consist", "Tires", "Wet"]
+            v1 = [
+                float(d1.get("pace", 60)),
+                float(d1.get("braking", 60)),
+                float(d1.get("defending", 60)),
+                float(d1.get("consistency", 60)),
+                float(d1.get("tire_management", 60)),
+                float(d1.get("wet_weather", 60)),
+            ]
+            v2 = (
+                [
+                    float(d2.get("pace", 60)),
+                    float(d2.get("braking", 60)),
+                    float(d2.get("defending", 60)),
+                    float(d2.get("consistency", 60)),
+                    float(d2.get("tire_management", 60)),
+                    float(d2.get("wet_weather", 60)),
+                ]
+                if d2
+                else None
+            )
+
+            rc_cx = radar_panel.x + radar_panel.width // 2
+            available_h = radar_panel.height - 24
+            rad = max(24, min(40, (available_h - 26) // 2))
+            rc_cy = radar_panel.y + 24 + available_h // 2 - 8
+
+            UITheme.draw_radar_chart(
+                surface,
+                center=(rc_cx, rc_cy),
+                radius=rad,
+                attributes=radar_attrs,
+                values_1=v1,
+                values_2=v2,
+                label_1=f"C1: {d1['name'][:7]}",
+                label_2=f"C2: {d2['name'][:7]}" if d2 else None,
+                color_1=(255, 215, 0),
+                color_2=(0, 220, 255),
+                show_labels=True,
+            )
 
         # Bottom Left Info Note
         l_note = pygame.Rect(p_rect.x + 10, p_rect.y + p_rect.height - 42, p_rect.width - 20, 32)

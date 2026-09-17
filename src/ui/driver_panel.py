@@ -129,11 +129,24 @@ class DriverStrategyPanel:
             surface.blit(e_val, (cx + 28, cy + 48))
 
             # Tyre
-            UIIcons.draw_tyre(surface, (cx + 8, cy + 72), car.tires.compound.color_rgb, size=15)
+            UIIcons.draw_tyre(surface, (cx + 8, cy + 70), car.tires.compound.color_rgb, size=14)
             t_val = self.font_sub.render(
                 f"{int(100 - car.tires.wear_pct)}% {car.tires.compound.name[:4]}", True, car.tires.compound.color_rgb
             )
-            surface.blit(t_val, (cx + 28, cy + 72))
+            surface.blit(t_val, (cx + 28, cy + 69))
+
+            # Tyre life progress bar
+            tyre_bar = pygame.Rect(cx + 28, cy + 83, 105, 4)
+            pygame.draw.rect(surface, (18, 22, 28), tyre_bar, border_radius=1)
+            life_pct = max(0.0, min(1.0, (100.0 - car.tires.wear_pct) / 100.0))
+            life_col = (0, 240, 140) if life_pct > 0.60 else ((255, 205, 30) if life_pct > 0.30 else (255, 60, 60))
+            if life_pct > 0:
+                pygame.draw.rect(
+                    surface,
+                    life_col,
+                    pygame.Rect(tyre_bar.x, tyre_bar.y, int(tyre_bar.width * life_pct), 4),
+                    border_radius=1,
+                )
 
             # Vertical separator line between Telemetry and Strategy Buttons
             sep_x = cx + 146
@@ -184,15 +197,14 @@ class DriverStrategyPanel:
 
             # Right BOX Button
             box_btn = pygame.Rect(box_x, cy + 22, box_w, 68)
-            box_color = (200, 30, 30) if car.box_this_lap else (40, 50, 65)
+            box_color = (210, 35, 35) if car.box_this_lap else (38, 48, 62)
             pygame.draw.rect(surface, box_color, box_btn, border_radius=4)
-            pygame.draw.rect(
-                surface, (255, 255, 255) if car.box_this_lap else UITheme.BTN_BORDER, box_btn, width=1, border_radius=4
-            )
+            box_border_col = (255, 255, 255) if car.box_this_lap else UITheme.BTN_BORDER
+            pygame.draw.rect(surface, box_border_col, box_btn, width=2 if car.box_this_lap else 1, border_radius=4)
 
             box_ic = UIIcons.get_icon("octagon", size=16, color=UITheme.TEXT_WHITE)
             surface.blit(box_ic, (box_btn.x + (box_btn.width - box_ic.get_width()) // 2, box_btn.y + 8))
-            box_txt1 = self.font_btn.render("BOX", True, UITheme.TEXT_WHITE)
+            box_txt1 = self.font_btn.render("ARMED" if car.box_this_lap else "BOX", True, UITheme.TEXT_WHITE)
             box_txt2 = self.font_btn.render("CANCEL" if car.box_this_lap else "STRATEGY", True, (240, 240, 240))
             surface.blit(box_txt1, (box_btn.x + (box_btn.width - box_txt1.get_width()) // 2, box_btn.y + 28))
             surface.blit(box_txt2, (box_btn.x + (box_btn.width - box_txt2.get_width()) // 2, box_btn.y + 46))
