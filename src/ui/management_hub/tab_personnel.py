@@ -55,6 +55,7 @@ class PersonnelTab:
         self.font_body = UITheme.get_font(11, bold=False)
         self.font_badge = UITheme.get_font(10, bold=True)
         self.font_btn = UITheme.get_font(10, bold=True)
+        self.font_mini = UITheme.get_font(9, bold=False)
 
     def resize(self, width: int, height: int):
         self.width = width

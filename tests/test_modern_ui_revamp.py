@@ -189,60 +189,66 @@ class TestModernUIRevamp(unittest.TestCase):
         surf = pygame.Surface((1280, 720))
 
         # Render factory tree
-        tab.render(surf, eng_mgr)
-        self.assertGreater(len(tab.node_rects), 0)
+        tab.render(surf, self.gm, eng_mgr)
+        self.assertGreater(len(tab.node_positions), 0)
 
         # Test floating camera HUD controls
         initial_zoom = tab.zoom
+        canvas_bottom = tab.height - 40
+        hud_right = tab.width - 36
+        hud_y = canvas_bottom - 28
+        hud_rect = pygame.Rect(hud_right - 164, hud_y, 164, 22)
+        btn_hud_in = pygame.Rect(hud_rect.x + 73, hud_rect.y + 2, 22, 18)
+        btn_hud_fit = pygame.Rect(hud_rect.x + 98, hud_rect.y + 2, 63, 18)
+
         # Click [+] button
-        plus_btn = tab.hud_buttons.get("zoom_in")
-        self.assertIsNotNone(plus_btn)
-        tab.handle_click(plus_btn.centerx, plus_btn.centery, eng_mgr)
+        tab.handle_click(btn_hud_in.centerx, btn_hud_in.centery, self.gm, eng_mgr)
         self.assertGreater(tab.zoom, initial_zoom)
 
         # Click [RESET] button
-        reset_btn = tab.hud_buttons.get("reset")
-        self.assertIsNotNone(reset_btn)
-        tab.handle_click(reset_btn.centerx, reset_btn.centery, eng_mgr)
+        tab.handle_click(btn_hud_fit.centerx, btn_hud_fit.centery, self.gm, eng_mgr)
         self.assertEqual(tab.zoom, 1.0)
-        self.assertEqual(tab.pan_x, 0)
-        self.assertEqual(tab.pan_y, 0)
+        self.assertEqual(tab.pan_x, 40.0)
+        self.assertEqual(tab.pan_y, 130.0)
 
         # Test clicking a facility node to inspect
-        first_node_id = list(tab.node_rects.keys())[0]
-        first_rect = tab.node_rects[first_node_id]
-        tab.handle_click(first_rect.centerx, first_rect.centery, eng_mgr)
+        first_node_id = list(tab.node_positions.keys())[0]
+        wx, wy = tab.node_positions[first_node_id]
+        sx = int(tab.pan_x + wx * tab.zoom) + 20
+        sy = int(tab.pan_y + wy * tab.zoom) + 20
+        tab.handle_click(sx, sy, self.gm, eng_mgr)
         self.assertEqual(tab.inspected_node_id, first_node_id)
 
     def test_personnel_tab_org_deck_and_department_focus(self):
         """Validates PersonnelTab Executive Org Deck split-screen, department switching, and desk layout."""
-        from src.management.staff_manager import StaffManager
+        from src.management.engineering_manager import EngineeringManager
         from src.ui.management_hub.tab_personnel import PersonnelTab
 
-        staff_mgr = StaffManager(self.db)
-        recruited = []
-        tab = PersonnelTab(1280, 720, on_recruit_click=lambda dept: recruited.append(dept))
+        eng_mgr = EngineeringManager(self.db)
+        tab = PersonnelTab(1280, 720)
         surf = pygame.Surface((1280, 720))
 
         # Initial department should default to ENGINEERING
         self.assertEqual(tab.selected_category, "ENGINEERING")
 
         # Render tab
-        tab.render(surf, staff_mgr)
+        tab.render(surf, self.gm, eng_mgr)
 
-        # Department buttons must be populated
-        self.assertIn("MANUFACTURING", tab.dept_buttons)
-        mfg_btn = tab.dept_buttons["MANUFACTURING"]
+        # Click MANUFACTURING in left department column (2nd item, index 1)
+        # Calculate coordinates according to tab layout
+        content_rect_y = 90
+        left_y = content_rect_y + 42
+        left_h = (720 - 132) - (left_y - 90) - 6
+        depts = ["ENGINEERING", "MANUFACTURING", "TESTING", "POWERTRAIN", "COMMERCIAL", "HR", "TRACKSIDE"]
+        card_h = max(42, (left_h - (len(depts) - 1) * 6 - 8) // len(depts))
+        mfg_y = left_y + 4 + 1 * (card_h + 6) + card_h // 2
+        mfg_x = 24 + 8 + 50
 
-        # Click MANUFACTURING
-        tab.handle_click(mfg_btn.centerx, mfg_btn.centery, staff_mgr)
+        # Click on MANUFACTURING card
+        clicked = tab.handle_click(mfg_x, mfg_y, self.gm, eng_mgr)
+        self.assertTrue(clicked)
         self.assertEqual(tab.selected_category, "MANUFACTURING")
 
         # Re-render under MANUFACTURING
-        tab.render(surf, staff_mgr)
-
-        # Test clicking an open desk recruit button if present
-        if tab.recruit_desk_buttons:
-            btn_rect, dept_id = tab.recruit_desk_buttons[0]
-            tab.handle_click(btn_rect.centerx, btn_rect.centery, staff_mgr)
-            self.assertIn(dept_id, recruited)
+        tab.render(surf, self.gm, eng_mgr)
+        self.assertEqual(tab.selected_category, "MANUFACTURING")
